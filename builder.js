@@ -172,7 +172,15 @@ async function init() {
   ]);
   data = { pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex };
 
-  teamState = wcLoadTeamState();
+  // Milestone 22: pulls in any teams saved to this account from another
+  // device before anything else runs -- specifically before
+  // ensureActiveTeam() below, which can itself trigger a save. Doing the
+  // cloud merge first matters: a save that goes out BEFORE this device's
+  // local (possibly empty) team list has been reconciled with the
+  // account's would look, from the cloud's side, exactly like the account
+  // just deleted every team it had (see wcPushTeamsToCloudIfSignedIn's
+  // delete-diff in teams.js).
+  teamState = await wcLoadAndSyncTeamState();
   activeId = teamState.activeId;
   ensureActiveTeam();
   loadActiveIntoWorkingState();

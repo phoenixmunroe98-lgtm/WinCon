@@ -723,4 +723,8 @@ somewhere new:
 
 - Swap `starter-threats.json` for real usage data from
   championsbattledata.com — the highest-value fix, see the honesty note above
-- An account (Supabase) so progress and saved teams sync across devices
+- ~~An account (Supabase) so progress and saved teams sync across
+  devices~~ — done as of Milestone 22: sign in on any device and your
+  saved teams (including their logged win/loss record) show up there too.
+  See teams.js's "Cloud sync" section and
+  `supabase/migrations/0004_team_match_log.sql`.

@@ -48,7 +48,11 @@ async function init() {
   homeData = { pokemon, baseStats, sprites, threats, typeChart };
   homeNonMegaPokemon = pokemon.filter((p) => !wcIsMegaForm(p));
 
-  const teamState = wcLoadTeamState();
+  // Milestone 22: home.js never saves a team itself, but still awaits the
+  // cloud merge here (rather than the plain local-only read used at line
+  // ~346 below) so the overview/top-teams/wishlist sections reflect teams
+  // saved from another device, not just this browser's own history.
+  const teamState = await wcLoadAndSyncTeamState();
 
   renderOverview(teamState);
   renderTopTeams(teamState);
@@ -405,21 +409,34 @@ function homeThreatsWithTypes() {
   });
 }
 
-/** Every obtained Pokémon's `.types`, from both formats' TOP teams combined (see homeTopTeamOf) -- the reference "team so far" the wishlist scores candidates against. [] if neither format has a team with anything picked. */
-function homeReferenceTeamTypes(teamState) {
-  const typesList = [];
+/**
+ * Every obtained Pokémon from both formats' TOP teams combined (see
+ * homeTopTeamOf), shaped as `{ types }` objects -- the reference "team so
+ * far" the wishlist scores candidates against. [] if neither format has a
+ * team with anything picked.
+ *
+ * Milestone 21 note: wcDreamTeamCandidateScore's `team` argument does
+ * `team.map((m) => m.types)` internally (it expects team MEMBER objects,
+ * not a bare list of type arrays) -- this used to return the bare type
+ * arrays directly, which silently produced a list of `undefined` once
+ * Milestone 21 shipped, and crashed the Wishlist section the moment a
+ * real team existed (`.reduce` on `undefined` deeper inside the scoring
+ * chain). Wrapping each entry in `{ types }` here is the fix.
+ */
+function homeReferenceTeamMembers(teamState) {
+  const members = [];
   ["singles", "doubles"].forEach((format) => {
     const team = homeTopTeamOf(teamState.teams.filter((t) => wcGetTeamFormat(t) === format));
     if (!team) return;
     (team.chosen || []).forEach((name) => {
       const p = homeData.pokemon.find((x) => x.name === name);
-      if (p) typesList.push(p.types);
+      if (p) members.push({ types: p.types });
     });
   });
-  return typesList;
+  return members;
 }
 
-function homeWishlistCandidates(teamTypesList) {
+function homeWishlistCandidates(teamMembers) {
   const threats = homeThreatsWithTypes();
   const allTypes = homeData.typeChart.types;
   const obtained = homeGetObtainedSet();
@@ -433,7 +450,7 @@ function homeWishlistCandidates(teamTypesList) {
   });
 
   return candidates
-    .map((c) => ({ ...c, score: wcDreamTeamCandidateScore(c, teamTypesList, threats, homeData.typeChart, allTypes) }))
+    .map((c) => ({ ...c, score: wcDreamTeamCandidateScore(c, teamMembers, threats, homeData.typeChart, allTypes) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
 }
@@ -447,15 +464,15 @@ let homeWishlistCarousel = null;
 function renderWishlist(teamState) {
   const noteEl = document.getElementById("home-wishlist-note");
   const carousel = document.getElementById("home-wishlist-carousel");
-  const teamTypesList = homeReferenceTeamTypes(teamState);
+  const teamMembers = homeReferenceTeamMembers(teamState);
 
   let names;
-  if (teamTypesList.length === 0) {
+  if (teamMembers.length === 0) {
     names = homeMegaRotation();
     noteEl.textContent =
       "You don't have a saved team with any Pokémon picked yet, so here's a rotation of Mega Pokémon to aim for instead — build a Singles or Doubles team to get suggestions tailored to it.";
   } else {
-    names = homeWishlistCandidates(teamTypesList).map((c) => c.name);
+    names = homeWishlistCandidates(teamMembers).map((c) => c.name);
     noteEl.textContent =
       "Not-yet-obtained Pokémon ranked by how much they'd improve your top team's matchup against WinCon's reference threat list (the same one Matchup Score and Generate Dream Team use) — offense, defense, and covering types your team doesn't already answer well.";
     if (names.length === 0) {
