@@ -24,8 +24,12 @@
 //      feature for any account where that ever ends up false (an
 //      incomplete sign-up, or one from before this existed).
 //   6. Exposes `window.wcAuth` with a couple of small helpers
-//      (`getSession()`, `getUserId()`) that later milestones (cloud team
-//      storage, friends, favourite team) will build on.
+//      (`getSession()`, `getUserId()`, `getProfile()`) that later
+//      milestones (cloud team storage, friends, favourite team) will
+//      build on, plus `setColorTheme()` so theme.js can save a signed-in
+//      user's color theme choice to their account, and fires a
+//      `wc:auth-changed` window event on every session change so theme.js
+//      can pick up the saved choice once a profile loads.
 //
 // Real name, age, and password never leave this file except in the one
 // call each is handed to (`supabase.auth.signUp`) — Supabase stores and
@@ -730,7 +734,7 @@
   async function wcLoadProfile(userId) {
     const { data, error } = await window.wcSupabase
       .from("profiles")
-      .select("username, age_confirmed, avatar_species, first_name, last_name, age")
+      .select("username, age_confirmed, avatar_species, first_name, last_name, age, color_theme")
       .eq("id", userId)
       .maybeSingle();
     if (error) {
@@ -740,12 +744,36 @@
     return data;
   }
 
+  // Lets a signed-in user's chosen color theme (see theme.js) follow their
+  // ACCOUNT rather than just this one browser's localStorage -- so it's
+  // still there after they log in on a different device. It's a personal
+  // UI preference, not something friends need to see, so it lives on the
+  // private `profiles` table only, same privacy boundary as first_name/
+  // last_name/age.
+  async function wcSetColorTheme(theme) {
+    if (!wcCurrentSession) return { error: new Error("Not signed in") };
+    const { error } = await window.wcSupabase
+      .from("profiles")
+      .update({ color_theme: theme })
+      .eq("id", wcCurrentSession.user.id);
+    if (error) {
+      console.warn("WinCon: couldn't save color theme", error.message);
+    } else if (wcCurrentProfile) {
+      wcCurrentProfile.color_theme = theme;
+    }
+    return { error };
+  }
+
   async function wcHandleSessionChange(session) {
     wcCurrentSession = session;
     wcCurrentProfile = session ? await wcLoadProfile(session.user.id) : null;
     if (!wcRecoveryMode) wcCloseAuthModal();
     wcRenderAccountWidget();
     wcMaybeShowAgeGate();
+    // Lets theme.js know a profile (with its saved color_theme, if any)
+    // just became available -- fires on initial load, sign-in, sign-out,
+    // and any other auth state change.
+    window.dispatchEvent(new CustomEvent("wc:auth-changed", { detail: { session, profile: wcCurrentProfile } }));
   }
 
   async function wcInit() {
@@ -783,6 +811,8 @@
     getSession: () => wcCurrentSession,
     getUserId: () => (wcCurrentSession ? wcCurrentSession.user.id : null),
     isSignedIn: () => !!wcCurrentSession,
+    getProfile: () => wcCurrentProfile,
+    setColorTheme: wcSetColorTheme,
   };
 
   if (document.readyState === "loading") {

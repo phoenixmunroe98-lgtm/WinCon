@@ -16,6 +16,12 @@
 // default colors); this file does the rest once the DOM exists: mounting
 // the small theme picker in the header, and swapping `.site-bg`'s
 // background art to match.
+//
+// For a signed-out visitor, the choice lives only in this browser's
+// localStorage. For a signed-in user it also gets saved to their account
+// (see wcSetColorTheme in auth.js) and takes over from localStorage once
+// their profile loads, so the theme they picked follows them to any
+// device/browser they next log in on.
 
 (function () {
   const WC_THEME_KEY = "wincon.colorTheme";
@@ -143,6 +149,32 @@
       // no persistence available -- still apply it for this page view
     }
     wcApplyTheme(theme);
+    // Keep the toggle's own displayed value in sync too -- this runs both
+    // for a manual pick AND for the account-theme sync below, so either
+    // path has to be able to move the select, not just the manual one.
+    const select = document.getElementById("wc-theme-select");
+    if (select && select.value !== theme) select.value = theme;
+  }
+
+  // Once true, a signed-in user has actively picked a theme THIS page
+  // view, so the one-time account-theme sync below must not clobber it
+  // (e.g. if it fires a moment later, after the profile finishes loading).
+  let wcThemeManuallyChangedThisView = false;
+
+  // A signed-in user's theme choice is meant to follow their ACCOUNT, not
+  // just this one browser's localStorage (see wcSetColorTheme in auth.js)
+  // -- so it's still there the next time they log in anywhere else. This
+  // applies whatever the account has saved, once auth.js's profile fetch
+  // resolves (it fires this on every session change: initial load,
+  // sign-in, sign-out). A signed-out visitor is untouched -- their pick
+  // just stays in this browser's localStorage as before.
+  function wcApplyAccountThemeIfAny(profile) {
+    if (wcThemeManuallyChangedThisView) return;
+    if (!window.wcAuth || !window.wcAuth.isSignedIn()) return;
+    const accountTheme = profile && profile.color_theme;
+    if (!accountTheme || !WC_VALID_THEMES.includes(accountTheme)) return;
+    if (accountTheme === wcGetStoredTheme()) return; // already showing it
+    wcSetTheme(accountTheme);
   }
 
   function wcMountThemeToggle() {
@@ -160,13 +192,29 @@
       select.appendChild(option);
     });
     select.value = wcGetStoredTheme();
-    select.addEventListener("change", () => wcSetTheme(select.value));
+    select.addEventListener("change", () => {
+      wcThemeManuallyChangedThisView = true;
+      wcSetTheme(select.value);
+      if (window.wcAuth && window.wcAuth.isSignedIn()) {
+        window.wcAuth.setColorTheme(select.value);
+      }
+    });
     mount.appendChild(select);
   }
 
   function wcInitTheme() {
     wcApplyTheme(wcGetStoredTheme());
     wcMountThemeToggle();
+    // Covers the (normal) case where auth.js's profile fetch is still in
+    // flight when this runs -- its "wc:auth-changed" event carries the
+    // profile once it lands. Also handle the rare case where a profile is
+    // somehow already available synchronously (script order changes,
+    // a fast cached session, etc.) so a reload doesn't need to wait for
+    // the event either.
+    if (window.wcAuth && window.wcAuth.isSignedIn()) {
+      wcApplyAccountThemeIfAny(window.wcAuth.getProfile());
+    }
+    window.addEventListener("wc:auth-changed", (e) => wcApplyAccountThemeIfAny(e.detail && e.detail.profile));
   }
 
   window.wcTheme = { get: wcGetStoredTheme, set: wcSetTheme };
