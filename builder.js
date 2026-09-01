@@ -471,7 +471,7 @@ function renderPicker() {
 
   if (obtainedList.length === 0) {
     pickerHint.innerHTML =
-      'No Pokémon marked as obtained yet. Go check some off on the <a href="index.html">Pokédex tracker</a> first.';
+      'No Pokémon marked as obtained yet. Go check some off on the <a href="pokedex.html">Pokédex tracker</a> first.';
   } else {
     pickerHint.textContent = `${chosen.length} of 6 selected — choose from the ${obtainedList.length} you've marked obtained.`;
   }

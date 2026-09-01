@@ -1928,3 +1928,320 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 0.8rem;
   font-style: italic;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Homepage dashboard (index.html) — see that file's own header comment.  */
+/* ---------------------------------------------------------------------- */
+
+/* Consistent breathing room between the dashboard's own sections, without
+   having to add a bottom margin to every section's outermost element
+   individually the way the rest of the site does. */
+.home-shell > section {
+  margin-bottom: 34px;
+}
+
+.home-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  text-align: center;
+}
+
+.home-stat-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.home-stat-value {
+  margin: 4px 0;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-stat-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+}
+
+.home-top-teams {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.home-team-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.home-team-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.home-team-format {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.home-team-name {
+  font-weight: 600;
+}
+
+.home-team-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.home-team-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 68px;
+  text-align: center;
+}
+
+.home-team-slot-sprite {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.home-team-slot-name {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  overflow-wrap: break-word;
+}
+
+.home-team-record {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+}
+
+.home-team-empty {
+  margin: 0 0 8px;
+}
+
+.home-team-link,
+.home-pokedex-link {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.home-team-link a,
+.home-pokedex-link a {
+  color: var(--link);
+}
+
+.home-ranked-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-ranked-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.home-ranked-number {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-ranked-sprite {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.home-ranked-name {
+  font-weight: 600;
+  flex: 1 1 auto;
+}
+
+.home-ranked-count {
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+}
+
+.home-add-search {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.home-add-search input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.home-add-search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.home-add-suggestions {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.home-add-suggestion-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.home-add-suggestion-item:hover,
+.home-add-suggestion-item:focus-visible {
+  background: var(--surface-muted);
+}
+
+.home-add-suggestion-sprite {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.home-add-suggestion-empty {
+  padding: 7px 8px;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+}
+
+.home-carousel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-carousel-track {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 4px 2px;
+  /* Scrollbar stays available (dragging/trackpad still works) but doesn't
+     visually compete with the auto-advancing motion. */
+  scrollbar-width: thin;
+}
+
+.home-carousel-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 8px;
+}
+
+.home-carousel-sprite {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.home-carousel-name {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  overflow-wrap: break-word;
+}
+
+.home-carousel-arrow {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.home-carousel-arrow:hover,
+.home-carousel-arrow:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .home-top-teams {
+    grid-template-columns: 1fr;
+  }
+}

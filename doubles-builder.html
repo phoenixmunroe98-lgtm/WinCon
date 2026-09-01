@@ -14,7 +14,12 @@
     (function () {
       try {
         var t = localStorage.getItem("wincon.colorTheme");
-        if (t === "charizard" || t === "fairy") document.documentElement.setAttribute("data-color-theme", t);
+        // Bug: this only ever allowlisted "charizard"/"fairy" -- the three
+        // themes added after those (water/grass/electric) still flashed
+        // default colors on every load until theme.js caught up a moment
+        // later. Keep this list in sync with WC_VALID_THEMES in theme.js.
+        var validThemes = ["charizard", "fairy", "water", "grass", "electric"];
+        if (validThemes.indexOf(t) !== -1) document.documentElement.setAttribute("data-color-theme", t);
       } catch (e) {}
     })();
   </script>
@@ -91,7 +96,8 @@
       <div class="topbar-banner-row">
         <div class="account-widget-slot" id="wc-account-widget-slot"></div>
         <nav class="page-nav">
-          <a href="index.html">Pokédex</a>
+          <a href="index.html">Home</a>
+          <a href="pokedex.html">Pokédex</a>
           <a href="singles-builder.html">Singles Builder</a>
           <a href="doubles-builder.html" class="current">Doubles Builder</a>
         </nav>
