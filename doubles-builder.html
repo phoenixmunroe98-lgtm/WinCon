@@ -216,16 +216,36 @@
       <ul id="tracker-log-list" class="tracker-log-list"></ul>
     </section>
 
-    <section id="score-section" hidden>
-      <div class="score-hero">
-        <div class="score-ring" id="score-ring">
-          <span id="score-number">0</span>
-        </div>
-        <div class="score-meta">
-          <h2 class="section-title">Matchup Score</h2>
-          <p id="score-summary" class="hint"></p>
+    <section id="score-rival-header-row" class="score-rival-header-row" hidden>
+      <div class="score-rival-col">
+        <div class="score-hero">
+          <div class="score-ring" id="score-ring">
+            <span id="score-number">0</span>
+          </div>
+          <div class="score-meta">
+            <h2 class="section-title">Matchup Score</h2>
+            <p id="score-summary" class="hint"></p>
+          </div>
         </div>
       </div>
+      <div class="score-rival-col">
+        <div class="slots-header">
+          <div>
+            <h2 class="section-title">Your Rival</h2>
+            <p class="hint">
+              Synthesized from the full Champions roster — not just what you've obtained — specifically to give your
+              current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
+              reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
+              typing and stats.
+            </p>
+          </div>
+          <button id="rival-btn" class="btn-primary">Find Your Rival</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="score-section" hidden>
+      <div id="score-winloss-mount"></div>
 
       <h3 class="section-title">Toughest matchups</h3>
       <p class="hint">Threats where none of your six currently has a clearly favorable answer.</p>
@@ -272,18 +292,6 @@
     </section>
 
     <section id="rival-section" hidden>
-      <div class="slots-header">
-        <div>
-          <h2 class="section-title">Your Rival</h2>
-          <p class="hint">
-            Synthesized from the full Champions roster — not just what you've obtained — specifically to give your
-            current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
-            reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
-            typing and stats.
-          </p>
-        </div>
-        <button id="rival-btn" class="btn-primary">Find Your Rival</button>
-      </div>
       <div id="rival-note" class="callout-box" hidden></div>
       <div id="rival-result" hidden></div>
     </section>

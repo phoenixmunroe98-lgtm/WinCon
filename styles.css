@@ -1354,6 +1354,33 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 0.92rem;
 }
 
+/* Matchup Score's ring/heading and Your Rival's intro/button sit side by
+   side here — just these two compact "headers", not the heavier content
+   under each (the tough-matchups list and full matrix stay in
+   #score-section below; Your Rival's roster/reasoning stay in
+   #rival-section, further down the page, exactly where they always
+   rendered — only the button that fills them in moved up here). */
+.score-rival-header-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.score-rival-col { min-width: 0; }
+
+@media (max-width: 760px) {
+  .score-rival-header-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Author styles that set `display` on an element otherwise beat the
+   browser's own [hidden] rule at equal specificity (see .team-selector's
+   own note above) -- without this, a hidden header row still shows up as
+   an empty grid box. */
+.score-rival-header-row[hidden] { display: none; }
+
 .score-hero {
   display: flex;
   align-items: center;

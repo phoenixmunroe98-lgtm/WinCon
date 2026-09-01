@@ -123,6 +123,7 @@ const modalTitle = document.getElementById("changes-modal-title");
 const modalBody = document.getElementById("changes-modal-body");
 const modalActions = document.getElementById("changes-modal-actions");
 
+const scoreRivalHeaderRowEl = document.getElementById("score-rival-header-row");
 const scoreSectionEl = document.getElementById("score-section");
 const coverageSectionEl = document.getElementById("coverage-section");
 const trackerSectionEl = document.getElementById("tracker-section");
@@ -1524,6 +1525,7 @@ function scoreAgainstThreats(threatsList) {
 function refreshDerivedSections() {
   const hasTeam = chosen.length > 0;
   noTeamEl.hidden = hasTeam;
+  scoreRivalHeaderRowEl.hidden = !hasTeam;
   scoreSectionEl.hidden = !hasTeam;
   coverageSectionEl.hidden = !hasTeam;
   trackerSectionEl.hidden = !hasTeam;
@@ -1546,6 +1548,49 @@ function renderScoreHero(score, favorableCount, toughCount, total) {
     `Favorable answers to ${favorableCount} of ${total} reference threats, ` +
     `no clear answer to ${toughCount} of them. This is a matchup score against a placeholder list — not a win rate.` +
     (sheetMode === "open" ? " Scored under your Open Team Sheet — move-dependent edges are already discounted." : "");
+
+  renderScoreWinLoss(score, toughCount, total);
+}
+
+/**
+ * The same "Projected Win/Loss Ratio" pill treatment as Your Rival's block
+ * (see renderRival()), but against the generic 16-Pokémon reference list
+ * instead of one synthesized rival: win rate = the score itself (the
+ * favorable share), loss rate = that same list's unfavorable share. The
+ * two don't have to sum to 100 -- an "even" verdict is neither favorable
+ * nor unfavorable -- so this reuses the percent-based ratio formatter,
+ * same as Your Rival.
+ */
+function renderScoreWinLoss(score, toughCount, total) {
+  const mount = document.getElementById("score-winloss-mount");
+  if (!mount) return;
+  mount.innerHTML = "";
+  if (total === 0) return;
+
+  const winPct = score;
+  const lossPct = Math.round((toughCount / total) * 100);
+  const winTier = wcStatTier(winPct);
+  const lossTier = wcStatTier(100 - lossPct);
+  const ratioTier = winTier;
+
+  const block = document.createElement("div");
+  block.className = "winloss-block";
+  const heading = document.createElement("h3");
+  heading.className = "section-title";
+  heading.textContent = "Projected Win/Loss Ratio";
+  const hint = document.createElement("p");
+  hint.className = "hint";
+  hint.textContent =
+    "From your Matchup Score against the 16-Pokémon reference list — a heuristic estimate, not a simulated battle or a measured win rate.";
+  const row = document.createElement("div");
+  row.className = "winloss-row";
+  row.append(
+    wcBuildWinLossStat("Your win rate", `${winPct}%`, winTier),
+    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, lossTier),
+    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), ratioTier)
+  );
+  block.append(heading, hint, row);
+  mount.appendChild(block);
 }
 
 function renderToughList(container, toughEntries) {
