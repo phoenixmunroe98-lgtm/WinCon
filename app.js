@@ -34,6 +34,8 @@ const statusFilter = document.getElementById("status-filter");
 const caughtCountEl = document.getElementById("caught-count");
 const totalCountEl = document.getElementById("total-count");
 const progressFillEl = document.getElementById("progress-fill");
+const progressCursorEl = document.getElementById("progress-cursor");
+const progressCursorSpriteEl = document.getElementById("progress-cursor-sprite");
 
 init();
 
@@ -205,4 +207,38 @@ function updateProgress() {
   caughtCountEl.textContent = obtained.size;
   const percent = allPokemon.length ? (obtained.size / allPokemon.length) * 100 : 0;
   progressFillEl.style.width = `${percent}%`;
+  updateProgressCursor(percent);
 }
+
+/**
+ * Moves the little sprite marker at the progress bar's leading edge to
+ * match the current fill percentage, using whatever Pokémon the signed-in
+ * user picked as their account avatar (see auth.js's avatar picker/
+ * profiles.avatar_species). Hidden entirely — bar looks exactly like it
+ * always has — whenever nobody's signed in or a signed-in account hasn't
+ * picked an avatar yet, rather than showing some placeholder sprite.
+ */
+function updateProgressCursor(percent) {
+  if (!progressCursorEl) return;
+  const profile = window.wcAuth && window.wcAuth.isSignedIn() && window.wcAuth.getProfile();
+  const species = profile && profile.avatar_species;
+  const spritePath = species && sprites[species];
+  if (!spritePath) {
+    progressCursorEl.hidden = true;
+    return;
+  }
+  progressCursorSpriteEl.src = `data/${spritePath}`;
+  progressCursorSpriteEl.alt = species;
+  progressCursorEl.style.left = `${percent}%`;
+  progressCursorEl.hidden = false;
+}
+
+// theme.js's account-synced color theme already relies on this same event
+// (dispatched by auth.js on initial load, sign-in, and sign-out) to react
+// once a profile becomes available asynchronously — the avatar cursor
+// needs the same re-check, since it isn't known yet at the moment
+// updateProgress() first runs during init().
+window.addEventListener("wc:auth-changed", () => {
+  const percent = allPokemon.length ? (obtained.size / allPokemon.length) * 100 : 0;
+  updateProgressCursor(percent);
+});

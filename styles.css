@@ -27,6 +27,17 @@
   --positive: #1E8F73;
   --positive-soft: #DEF3EC;
   --link: #2E6FE0;
+  /* Win/loss stat pills (Matchup Score's Projected Win/Loss Ratio, and the
+     results tracker's actual record) — deliberately NOT re-picked per
+     Pokémon theme below, unlike --positive: green/orange/red here are a
+     functional status signal, not a brand color, so they stay constant
+     across every theme and only shift for light/dark. --negative reuses
+     the same red already used for .btn-danger/.verdict-unfavorable
+     elsewhere in this file, so "bad" reads the same everywhere. */
+  --mediocre: #B8760B;
+  --mediocre-soft: #FFF0D6;
+  --negative: #C0463B;
+  --negative-soft: #FBE4E1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,6 +53,10 @@
     --positive: #3FBB9D;
     --positive-soft: #1B332C;
     --link: #7FB0FF;
+    --mediocre: #E0A542;
+    --mediocre-soft: #3A2C10;
+    --negative: #E27469;
+    --negative-soft: #3A1815;
   }
 }
 
@@ -610,6 +625,7 @@ body {
 }
 
 .progress-bar {
+  position: relative;
   margin-bottom: 20px;
 }
 
@@ -627,6 +643,33 @@ body {
   background: var(--positive);
   border-radius: 100px;
   transition: width 0.25s ease;
+}
+
+/* The moving cursor at the fill's leading edge — the signed-in user's own
+   account avatar Pokémon (see auth.js/wc-avatar-*), so the progress bar
+   doubles as a tiny "you are here" marker instead of just a bare bar.
+   Sits OUTSIDE .progress-track (not nested in it) because the track's own
+   overflow:hidden — needed to clip the fill's rounded corners — would
+   otherwise clip a marker sized larger than the 8px track. Hidden by
+   app.js whenever there's no signed-in account/avatar to show yet, so the
+   bar looks exactly as it always has until there's something to show. */
+.progress-cursor {
+  position: absolute;
+  top: 4px;
+  left: 0%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  transition: left 0.25s ease;
+  z-index: 2;
+}
+
+.progress-cursor-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .progress-label {
@@ -1743,9 +1786,56 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 .tracker-loss-btn:hover:not(:disabled) { border-color: #C0463B; color: #C0463B; }
 
 .tracker-summary {
-  font-weight: 600;
-  margin: 6px 0 10px;
+  margin: 6px 0 14px;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Win/loss stat pills — shared by the Matchup Score section's Projected  */
+/* Win/Loss Ratio (renderRival()) and this results tracker's actual      */
+/* record (renderMatchTracker()). See --mediocre/--negative above.       */
+/* ---------------------------------------------------------------------- */
+
+.winloss-block {
+  margin: 20px 0 32px;
+}
+
+.winloss-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.winloss-stat {
+  flex: 1 1 140px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.winloss-stat-label {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.winloss-stat-value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.winloss-stat.is-good { border-color: var(--positive); background: var(--positive-soft); }
+.winloss-stat.is-good .winloss-stat-value { color: var(--positive); }
+.winloss-stat.is-mediocre { border-color: var(--mediocre); background: var(--mediocre-soft); }
+.winloss-stat.is-mediocre .winloss-stat-value { color: var(--mediocre); }
+.winloss-stat.is-bad { border-color: var(--negative); background: var(--negative-soft); }
+.winloss-stat.is-bad .winloss-stat-value { color: var(--negative); }
 
 .tracker-log-list {
   list-style: none;

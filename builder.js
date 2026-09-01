@@ -264,6 +264,54 @@ function renderTeamNotes() {
   teamNotesInput.value = notes;
 }
 
+// ---------------------------------------------------------------------------
+// Win/loss stat pills — shared by the Matchup Score section's "Projected
+// Win/Loss Ratio" (see renderRival()) and the results tracker's "actual"
+// win/loss readout (see renderMatchTracker()). Two small pure helpers plus
+// one DOM builder so both places render the exact same green/orange/red
+// treatment instead of quietly drifting apart.
+// ---------------------------------------------------------------------------
+
+/** Buckets a 0-100 "goodness" percentage into the three-tier color scale. Kept as one tunable spot: 60+ reads as a real edge, 40-59 as a coin flip, under 40 as trouble. */
+function wcStatTier(goodnessPercent) {
+  if (goodnessPercent >= 60) return "good";
+  if (goodnessPercent >= 40) return "mediocre";
+  return "bad";
+}
+
+/** Win:loss expressed as a "wins per loss" ratio from two percentages that don't need to sum to 100 (the Projected block's win% and loss% are each their own independent estimate). Rounds to one decimal under 10:1, whole numbers above that so it doesn't get noisy. */
+function wcFormatRatioFromPercents(winPct, lossPct) {
+  if (winPct <= 0 && lossPct <= 0) return "—";
+  if (lossPct <= 0) return "All wins";
+  if (winPct <= 0) return "All losses";
+  const ratio = winPct / lossPct;
+  return `${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)} : 1`;
+}
+
+/** Win:loss expressed as a simplified whole-number ratio from actual logged game counts (e.g. 6 wins/3 losses -> "2 : 1"). */
+function wcFormatRatioFromCounts(wins, losses) {
+  if (wins === 0 && losses === 0) return "—";
+  if (losses === 0) return "All wins";
+  if (wins === 0) return "All losses";
+  const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+  const g = gcd(wins, losses);
+  return `${wins / g} : ${losses / g}`;
+}
+
+/** One labeled, color-coded stat box (a percentage or a ratio) for a winloss-row. */
+function wcBuildWinLossStat(label, valueText, tier, extraClass) {
+  const box = document.createElement("div");
+  box.className = `winloss-stat is-${tier}${extraClass ? ` ${extraClass}` : ""}`;
+  const lab = document.createElement("p");
+  lab.className = "winloss-stat-label";
+  lab.textContent = label;
+  const val = document.createElement("p");
+  val.className = "winloss-stat-value";
+  val.textContent = valueText;
+  box.append(lab, val);
+  return box;
+}
+
 /** A compact "logged record" readout for the active team, sourced from the results tracker below. */
 function renderMatchRecord() {
   const active = getActiveTeam();
@@ -1742,10 +1790,39 @@ function renderMatchTracker() {
   const team = getActiveTeam();
   if (!team) return;
   const summary = wcMatchRecordSummary(team);
-  trackerSummaryEl.textContent =
-    summary.total === 0
-      ? "No results logged yet for this team."
-      : `${summary.wins}W – ${summary.losses}L (${summary.winRate}% win rate) across ${summary.total} logged game${summary.total === 1 ? "" : "s"}.`;
+  trackerSummaryEl.innerHTML = "";
+
+  if (summary.total === 0) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.style.margin = "0";
+    p.textContent = "No results logged yet for this team.";
+    trackerSummaryEl.appendChild(p);
+  } else {
+    // winRate is already rounded by wcMatchRecordSummary; lossRate is its
+    // own independent rounding of losses/total, so the two don't always
+    // sum to exactly 100 — a normal, minor artifact of rounding two
+    // integers separately, not a bug.
+    const lossRate = Math.round((summary.losses / summary.total) * 100);
+    const winTier = wcStatTier(summary.winRate);
+    const lossTier = wcStatTier(100 - lossRate);
+    const ratioTier = winTier;
+
+    const caption = document.createElement("p");
+    caption.className = "hint";
+    caption.style.margin = "0 0 8px";
+    caption.textContent = `${summary.wins}W – ${summary.losses}L across ${summary.total} logged game${summary.total === 1 ? "" : "s"}.`;
+
+    const row = document.createElement("div");
+    row.className = "winloss-row";
+    row.append(
+      wcBuildWinLossStat("Win rate", `${summary.winRate}%`, winTier),
+      wcBuildWinLossStat("Loss rate", `${lossRate}%`, lossTier),
+      wcBuildWinLossStat("Win ratio", wcFormatRatioFromCounts(summary.wins, summary.losses), ratioTier)
+    );
+
+    trackerSummaryEl.append(caption, row);
+  }
 
   trackerLogListEl.innerHTML = "";
   const log = Array.isArray(team.matchLog) ? team.matchLog : [];
@@ -1880,6 +1957,35 @@ function renderRival(rival) {
   rivalNoteEl.hidden = true;
   rivalResultEl.hidden = false;
   rivalResultEl.innerHTML = "";
+
+  // rival.myResult.score and rival.rivalSuccessRate are two ends of the
+  // same head-to-head estimate (they're defined as complements of each
+  // other — see findYourRival()), so the second number doubles as "your
+  // loss rate against this specific rival" without any extra scoring work.
+  const winPct = rival.myResult.score;
+  const lossPct = rival.rivalSuccessRate;
+  const winTier = wcStatTier(winPct);
+  const lossTier = wcStatTier(100 - lossPct);
+  const ratioTier = winTier;
+
+  const winlossBlock = document.createElement("div");
+  winlossBlock.className = "winloss-block";
+  const winlossHeading = document.createElement("h3");
+  winlossHeading.className = "section-title";
+  winlossHeading.textContent = "Projected Win/Loss Ratio";
+  const winlossHint = document.createElement("p");
+  winlossHint.className = "hint";
+  winlossHint.textContent =
+    "From your Matchup Score against this specific synthesized rival — a heuristic estimate, not a simulated battle or a measured win rate.";
+  const winlossRow = document.createElement("div");
+  winlossRow.className = "winloss-row";
+  winlossRow.append(
+    wcBuildWinLossStat("Your win rate", `${winPct}%`, winTier),
+    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, lossTier),
+    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), ratioTier)
+  );
+  winlossBlock.append(winlossHeading, winlossHint, winlossRow);
+  rivalResultEl.appendChild(winlossBlock);
 
   const hero = document.createElement("div");
   hero.className = "score-hero";
