@@ -1041,7 +1041,20 @@ function generateDreamTeam() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const { chosen: picked, reasoning, megaNote } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6);
+  const { chosen: picked, reasoning, megaNote, excludedNames } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes);
+
+  if (picked.length < 6) {
+    dreamTeamNoteEl.hidden = false;
+    dreamTeamNoteEl.innerHTML = "";
+    const p = document.createElement("p");
+    const excludedText = excludedNames && excludedNames.length ? ` after leaving out ${excludedNames.join(", ")} per your team notes` : "";
+    p.textContent =
+      `Generate Dream Team needs at least 6 eligible Pokémon${excludedText} -- only ${picked.length} ${picked.length === 1 ? "is" : "are"} left. ` +
+      `Mark more as obtained, or adjust your notes.`;
+    dreamTeamNoteEl.appendChild(p);
+    return;
+  }
+
   const members = picked.map((name) => eligible.find((m) => m.name === name));
 
   chosen = picked;
@@ -1052,15 +1065,22 @@ function generateDreamTeam() {
 
   renderPicker();
   renderSlots();
-  renderDreamTeamNote(reasoning, megaNote);
+  renderDreamTeamNote(reasoning, megaNote, excludedNames);
 
   autogenHint.textContent = "";
   saveStatus.textContent = "Dream Team picked and built — click Auto-build strategy below when you're ready to see a recommended team strategy, then Save team when you're happy with it.";
 }
 
-function renderDreamTeamNote(reasoning, megaNote) {
+function renderDreamTeamNote(reasoning, megaNote, excludedNames) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
+
+  if (excludedNames && excludedNames.length) {
+    const excludedP = document.createElement("p");
+    excludedP.className = "hint dream-team-excluded-note";
+    excludedP.textContent = `Left out per your team notes: ${excludedNames.join(", ")}.`;
+    dreamTeamNoteEl.appendChild(excludedP);
+  }
 
   const heading = document.createElement("p");
   const strong = document.createElement("strong");

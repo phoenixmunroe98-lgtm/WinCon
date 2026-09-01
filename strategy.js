@@ -1357,9 +1357,33 @@ function wcDreamTeamCandidateScore(candidate, teamTypesList, threats, typeChart,
   return offense * 2 + defense * 1.5 + coverage * 1 + (bst / 600) * 0.5 - dup * 1.5;
 }
 
-function wcPickDreamTeam(pool, threats, typeChart, size) {
+/**
+ * Species Dream Team must never pick, parsed straight out of the team
+ * notes text (e.g. "no Gholdengo", "don't want Absol") -- checked only
+ * against Pokemon actually in the eligible pool, and only ever an exact
+ * name match against something the player typed. This never guesses at
+ * a Pokemon the player didn't name.
+ */
+const WINCON_EXCLUDE_TRIGGERS = ["no ", "not ", "don't want ", "dont want ", "exclude ", "without ", "skip ", "leave out ", "hate ", "avoid "];
+
+function wcNotesExcludedSpecies(notes, pool) {
+  const text = (notes || "").toLowerCase();
+  const excluded = [];
+  if (!text.trim()) return excluded;
+  pool.forEach((candidate) => {
+    const lowerName = candidate.name.toLowerCase();
+    if (WINCON_EXCLUDE_TRIGGERS.some((trigger) => text.includes(trigger + lowerName))) {
+      excluded.push(candidate.name);
+    }
+  });
+  return excluded;
+}
+
+function wcPickDreamTeam(pool, threats, typeChart, size, notes) {
   const allTypes = typeChart.types;
-  const remaining = [...pool];
+  const excludedNames = wcNotesExcludedSpecies(notes, pool);
+  const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
+  const remaining = [...usablePool];
   const team = [];
   const reasoning = [];
 
@@ -1401,7 +1425,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size) {
   // their own stone — so two Mega-capable teammates means a genuine
   // matchup-by-matchup choice of which one to bring out as this game's
   // Mega, not just a single fixed answer every game.
-  const eligibleInPool = pool.filter(wcHasKnownMegaOption);
+  const eligibleInPool = usablePool.filter(wcHasKnownMegaOption);
   const guaranteedMegaCount = Math.min(2, eligibleInPool.length, size);
   for (let g = 0; g < guaranteedMegaCount; g++) {
     const best = bestMegaEligibleFromRemaining();
@@ -1433,5 +1457,5 @@ function wcPickDreamTeam(pool, threats, typeChart, size) {
         ? `This team includes one Mega-capable pick — the only currently-obtained option with a real, tournament-informed Mega build (the others don't have confirmed data yet — see README.md).`
         : `None of your currently obtained, eligible Pokémon have a real, tournament-informed Mega build yet (only Mega Charizard Y, Mega Floette, and Mega Staraptor do right now), so this team has no guaranteed Mega option this time.`;
 
-  return { chosen: team.map((m) => m.name), reasoning, megaNote };
+  return { chosen: team.map((m) => m.name), reasoning, megaNote, excludedNames };
 }
