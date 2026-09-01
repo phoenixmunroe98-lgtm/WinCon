@@ -138,7 +138,11 @@
   }
 
   function wcSpritePathFor(species) {
-    return species && wcSpriteManifest[species] ? wcSpriteManifest[species] : null;
+    // sprites.json's values are relative to data/ (e.g. "sprites/charizard.png"),
+    // same as every other place in this app that renders a sprite (see
+    // app.js's card sprites and builder.js's spriteImg()) -- this was missing
+    // that "data/" prefix, which is why avatars weren't loading.
+    return species && wcSpriteManifest[species] ? `data/${wcSpriteManifest[species]}` : null;
   }
 
   function wcAvatarImgHTML(species, sizeClass) {
