@@ -1348,13 +1348,203 @@ function wcHasKnownMegaOption(candidate) {
   return Array.isArray(candidate.megaForms) && candidate.megaForms.some((m) => WINCON_MEGA_STONES[m.name] && WINCON_META_KNOWN_SETS[m.name]);
 }
 
-function wcDreamTeamCandidateScore(candidate, teamTypesList, threats, typeChart, allTypes) {
-  const offense = wcTeamOffenseScore(candidate.types, threats, typeChart);
-  const defense = wcTeamDefenseScore(candidate.types, threats, typeChart);
+/**
+ * Milestone 21: a per-pair matchup estimate for TEAM-PICKING purposes,
+ * before any real build exists yet -- reuses the exact points/verdict
+ * model wcScoreMatchup already applies to a BUILT Pokémon on the Matchup
+ * Score page, just with no moves (falls back to raw types, same as an
+ * unbuilt slot there) and a neutral-nature/0-SP Speed estimate from base
+ * stats alone (also the same fallback the matrix already uses). This is
+ * what candidate scoring below is built on, replacing the old flat
+ * "average effectiveness across every threat" approach: an average
+ * smooths away exactly the signal that matters for picking a TEAM rather
+ * than rating one Pokémon in isolation -- see wcCandidateCoverageGain.
+ */
+function wcPreBuildMatchupPoints(candidate, threat, natures, typeChart, movesData) {
+  return wcScoreMatchup(candidate, {}, candidate.baseStats, threat, threat.baseStats, natures, typeChart, movesData, {});
+}
+
+/**
+ * For each threat, the best points any CURRENT team member already scores
+ * against it (-Infinity when the team is still empty, so the very first
+ * pick is judged purely on its own matchup quality). This is the
+ * "coverage state" wcCandidateCoverageGain below measures improvement
+ * against.
+ */
+function wcThreatCoverageState(teamMembers, threats, natures, typeChart, movesData) {
+  return threats.map((threat) => {
+    let bestPoints = -Infinity;
+    teamMembers.forEach((member) => {
+      const { points } = wcPreBuildMatchupPoints(member, threat, natures, typeChart, movesData);
+      if (points > bestPoints) bestPoints = points;
+    });
+    return { threat, bestPoints };
+  });
+}
+
+/**
+ * Milestone 21: how much this ONE candidate would improve the team's
+ * weakest matchups if added right now -- summed across every threat,
+ * weighted so flipping a threat nothing on the team currently beats into
+ * a genuinely favorable answer counts far more than shaving a point off
+ * a matchup a teammate already handles fine. This is the fix for "the
+ * rival team always has the same rotating Pokémon": the old scoring
+ * averaged a candidate's matchup across every threat, so a Pokémon that's
+ * merely decent against everything and great against nothing always beat
+ * a Pokémon that's a genuine hard counter to one specific, otherwise-
+ * unanswered threat -- and "merely decent against everything" tends to be
+ * the SAME few high-stat, well-typed Pokémon regardless of which team
+ * they're actually up against. Rewarding marginal, threat-specific
+ * improvement instead means different opposing teams pull in different
+ * answers: whichever Pokémon in the pool specifically beats whichever of
+ * YOUR team's members nothing else on the rival roster beats yet (e.g.
+ * Charizard is the pool's best answer to Venusaur, but Venusaur itself
+ * might be the pool's best answer to a different teammate, and neither is
+ * necessarily the right answer to a third) -- rather than the pool's one
+ * "best on average" Pokémon winning every single time.
+ */
+function wcCandidateCoverageGain(candidate, coverageState, natures, typeChart, movesData) {
+  let gain = 0;
+  coverageState.forEach(({ threat, bestPoints }) => {
+    const { points } = wcPreBuildMatchupPoints(candidate, threat, natures, typeChart, movesData);
+    const improvement = points - bestPoints;
+    if (improvement <= 0) return;
+    let weight = 1;
+    if (bestPoints < 2 && points >= 2) weight = 2.5; // flips an unanswered threat into a real answer
+    else if (bestPoints <= -2) weight = 1.5; // the team was actively losing to this one
+    gain += improvement * weight;
+  });
+  return gain;
+}
+
+/** Which threats this candidate specifically flips from "nothing on the team beats it yet" to a genuinely favorable answer -- used only to explain a pick in plain language (see the reasoning text in wcPickDreamTeam), not to score it. */
+function wcCoverageWinsFor(candidate, coverageState, natures, typeChart, movesData) {
+  const wins = [];
+  coverageState.forEach(({ threat, bestPoints }) => {
+    if (bestPoints >= 2) return;
+    const { points } = wcPreBuildMatchupPoints(candidate, threat, natures, typeChart, movesData);
+    if (points >= 2) wins.push(threat.name);
+  });
+  return wins;
+}
+
+/**
+ * Milestone 21: does this threat list read as a real weather-abuse team --
+ * not just "happens to be Water-heavy," but has an actual way to put the
+ * weather up: a signature weather-setting ABILITY (Drizzle/Drought/Sand
+ * Stream/Snow Warning) on one of the threats, or -- when a threat's real
+ * moveset is known, e.g. Your Rival scoring the player's own built team --
+ * a confirmed Rain Dance/Sunny Day in that moveset. Requires at least one
+ * direct setter signal before flagging anything, on purpose: a team
+ * that's merely Water-heavy without any way to start rain already gets
+ * full credit from the ordinary per-threat matchup scoring above, and
+ * flagging a weather archetype with no setter behind it would push picks
+ * toward answering a threat that isn't actually there.
+ */
+function wcDetectWeatherArchetype(threats, abilitiesData) {
+  const setterNames = { sun: [], rain: [], sand: [], snow: [] };
+  threats.forEach((threat) => {
+    const ability = threat.ability || wcAbilityOf(abilitiesData, threat.name);
+    const abilityWeather = ability && WINCON_WEATHER_SETTING_ABILITIES[ability];
+    if (abilityWeather) setterNames[abilityWeather].push(threat.name);
+    const moves = (threat.build && threat.build.moves) || [];
+    if (moves.includes("Sunny Day")) setterNames.sun.push(threat.name);
+    if (moves.includes("Rain Dance")) setterNames.rain.push(threat.name);
+  });
+  let winner = null;
+  let winnerCount = 0;
+  Object.keys(setterNames).forEach((weather) => {
+    const uniqueNames = [...new Set(setterNames[weather])];
+    setterNames[weather] = uniqueNames;
+    if (uniqueNames.length > winnerCount) {
+      winner = weather;
+      winnerCount = uniqueNames.length;
+    }
+  });
+  return winner ? { weather: winner, setters: setterNames[winner] } : null;
+}
+
+/** The type that gets a same-weather power boost for STAB purposes (rain boosts Water, sun boosts Fire) -- sand and snow don't boost a specific attacking type this way, they instead toughen one type's own bulk (WINCON_WEATHER_PASSIVE_BULK_TYPE), so there's no entry for those two here. */
+const WINCON_WEATHER_BOOSTED_ATTACK_TYPE = { rain: "Water", sun: "Fire" };
+
+/** The weather that directly cancels this one when set -- sun and rain override each other outright; sand and snow don't have a canonical opposite, so any other weather taking over the field still stops their chip/boost. */
+const WINCON_WEATHER_OPPOSITE = { rain: "sun", sun: "rain" };
+
+/**
+ * Milestone 21: rewards a candidate for being a genuine answer to a
+ * detected weather archetype (see wcDetectWeatherArchetype) -- resisting
+ * whatever type that weather boosts, or, for sand/snow, being immune to
+ * its passive chip -- plus a further bonus for being able to shut the
+ * weather off outright via a signature weather-setting ability of its
+ * own (Drought/Drizzle/Sand Stream/Snow Warning). This is the "grass and
+ * sunny day beat a rain team" idea generalized to every weather: not just
+ * "is decent against a Water-type," but specifically built to survive the
+ * weather's extra bite and, where possible, cancel it.
+ *
+ * Deliberately NOT counted: whether the candidate's learnset happens to
+ * include Sunny Day/Rain Dance. Checked against the data, ~75% of the
+ * entire roster can learn either move via TM -- it's one of the most
+ * common TMs in the games, not a meaningful sign this specific Pokémon
+ * would actually be built to use it. Crediting "knows the TM" would
+ * reward nearly everyone equally and stop meaning anything, so only the
+ * much rarer, always-on signature ABILITY counts here -- same "explain
+ * real reasons, don't dress up a coin flip as insight" rule as the rest
+ * of this file.
+ */
+function wcWeatherCounterBonus(candidate, weatherInfo, typeChart, abilitiesData) {
+  if (!weatherInfo) return 0;
+  const { weather } = weatherInfo;
+  let bonus = 0;
+
+  const boostedType = WINCON_WEATHER_BOOSTED_ATTACK_TYPE[weather];
+  if (boostedType) {
+    const mult = wcEffectivenessOf(typeChart, boostedType, candidate.types);
+    if (mult < 1) bonus += 1.5;
+    else if (mult > 1) bonus -= 1;
+  } else {
+    const bulkType = WINCON_WEATHER_PASSIVE_BULK_TYPE[weather];
+    const chipImmuneTypes = weather === "sand" ? ["Steel", "Ground", "Rock"] : ["Ice"];
+    if (bulkType && candidate.types.includes(bulkType)) bonus += 1;
+    if (candidate.types.some((t) => chipImmuneTypes.includes(t))) bonus += 0.5;
+  }
+
+  const ownAbility = wcAbilityOf(abilitiesData, candidate.name);
+  const ownWeather = ownAbility && WINCON_WEATHER_SETTING_ABILITIES[ownAbility];
+  if (ownWeather === WINCON_WEATHER_OPPOSITE[weather]) bonus += 2;
+  else if (ownWeather && ownWeather !== weather) bonus += 1;
+
+  return bonus;
+}
+
+/**
+ * Milestone 21: candidate scoring for team-picking, now built on marginal,
+ * threat-specific coverage (wcCandidateCoverageGain) instead of a flat
+ * average, plus a weather-archetype bonus (wcWeatherCounterBonus) when the
+ * threat list reads as a real weather team. `natures`/`movesData` are
+ * required for the new per-pair scoring; a caller that hasn't been
+ * updated to pass them yet falls back to the old flat average rather than
+ * throwing, so this never hard-breaks an un-migrated call site.
+ */
+function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, opts) {
+  const options = opts || {};
+  const teamTypesList = team.map((m) => m.types);
+
+  const coverageGain =
+    options.natures && options.movesData
+      ? wcCandidateCoverageGain(
+          candidate,
+          wcThreatCoverageState(team, threats, options.natures, typeChart, options.movesData),
+          options.natures,
+          typeChart,
+          options.movesData
+        )
+      : wcTeamOffenseScore(candidate.types, threats, typeChart) * 2 + wcTeamDefenseScore(candidate.types, threats, typeChart) * 1.5;
+
+  const weatherBonus = wcWeatherCounterBonus(candidate, options.weatherInfo, typeChart, options.abilitiesData);
   const coverage = wcDefenseCoverageBonus(candidate.types, teamTypesList, allTypes, typeChart);
   const dup = wcSameTypingPenalty(candidate.types, teamTypesList);
   const bst = wcBaseStatTotal(candidate.baseStats);
-  return offense * 2 + defense * 1.5 + coverage * 1 + (bst / 600) * 0.5 - dup * 1.5;
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5;
 }
 
 /**
@@ -1456,7 +1646,15 @@ function wcNotesIncludedSpecies(notes, pool) {
  * past that comes back as droppedForcedNames so the caller can explain
  * why it didn't all fit).
  */
-function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames) {
+/**
+ * Milestone 21: `natures`/`movesData`/`abilitiesData` unlock the
+ * threat-specific coverage scoring and weather-archetype awareness in
+ * wcDreamTeamCandidateScore above (see that function and
+ * wcCandidateCoverageGain/wcDetectWeatherArchetype for the reasoning) --
+ * optional so an un-migrated caller still gets a working, if less sharp,
+ * pick using the old flat-average fallback rather than an error.
+ */
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
@@ -1473,6 +1671,10 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
   notesIncludedNames.forEach((name) => {
     if (!forcedSource.has(name)) forcedSource.set(name, "notes");
   });
+
+  const canScoreCoverage = Boolean(natures && movesData);
+  const weatherInfo = canScoreCoverage ? wcDetectWeatherArchetype(threats, abilitiesData) : null;
+  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo };
 
   const remaining = [...usablePool];
   const team = [];
@@ -1491,12 +1693,12 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     );
   });
 
-  const bestFromRemaining = () => {
-    const teamTypesList = team.map((m) => m.types);
+  const bestFromRemaining = (filterFn) => {
     let best = null;
     let bestScore = -Infinity;
     remaining.forEach((candidate) => {
-      const score = wcDreamTeamCandidateScore(candidate, teamTypesList, threats, typeChart, allTypes);
+      if (filterFn && !filterFn(candidate)) return;
+      const score = wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, scoreOpts);
       if (score > bestScore) {
         bestScore = score;
         best = candidate;
@@ -1505,19 +1707,28 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     return best;
   };
 
-  const bestMegaEligibleFromRemaining = () => {
-    const teamTypesList = team.map((m) => m.types);
-    let best = null;
-    let bestScore = -Infinity;
-    remaining.forEach((candidate) => {
-      if (!wcHasKnownMegaOption(candidate)) return;
-      const score = wcDreamTeamCandidateScore(candidate, teamTypesList, threats, typeChart, allTypes);
-      if (score > bestScore) {
-        bestScore = score;
-        best = candidate;
+  /**
+   * Milestone 21: describes a pick by the SPECIFIC threats it newly
+   * answers (via wcCoverageWinsFor) rather than a generic "balances
+   * matchup strength, type coverage, and raw stats" line, whenever the
+   * coverage-aware scoring is active and it actually flipped something --
+   * this is the same per-threat reasoning the score itself is now based
+   * on, made visible rather than left implicit.
+   */
+  const describePick = (candidate, isFirst) => {
+    if (canScoreCoverage) {
+      const coverageState = wcThreatCoverageState(team, threats, natures, typeChart, movesData);
+      const wins = wcCoverageWinsFor(candidate, coverageState, natures, typeChart, movesData);
+      if (wins.length > 0 && wins.length <= 3) {
+        return `${candidate.name} — specifically answers ${wins.join(", ")}, which nothing else on this team beats yet.`;
       }
-    });
-    return best;
+      if (wins.length > 3) {
+        return `${candidate.name} — specifically answers ${wins.length} threats nothing else on this team beats yet, including ${wins.slice(0, 2).join(", ")}.`;
+      }
+    }
+    return isFirst
+      ? `${candidate.name} — the strongest starting point: the best overall matchup against the threat list.`
+      : `${candidate.name} — the best remaining fit alongside ${team.map((m) => m.name).join(", ")}, balancing matchup strength, type coverage, and raw stats.`;
   };
 
   // Milestone 12: guarantee at least one Mega-capable pick — two, when
@@ -1533,11 +1744,15 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
   // itself be Mega-capable, so this now counts those in already, both to
   // avoid guaranteeing MORE than two total and to never try to guarantee
   // past however many slots the forced picks left open.
+  // Milestone 21: which TWO Mega-capable picks win this guaranteed spot
+  // now also depends on the coverage-aware score above -- so a rival (or
+  // Dream Team) doesn't always reach for the same one or two "generically
+  // best" Mega options regardless of what they're actually up against.
   const megaAlreadyOnTeam = team.filter(wcHasKnownMegaOption).length;
   const eligibleInPool = remaining.filter(wcHasKnownMegaOption);
   const guaranteedMegaCount = Math.max(0, Math.min(2 - megaAlreadyOnTeam, eligibleInPool.length, size - team.length));
   for (let g = 0; g < guaranteedMegaCount; g++) {
-    const best = bestMegaEligibleFromRemaining();
+    const best = bestFromRemaining(wcHasKnownMegaOption);
     if (!best) break;
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
@@ -1549,14 +1764,29 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
   for (let i = team.length; i < size && remaining.length > 0; i++) {
     const best = bestFromRemaining();
     if (!best) break;
+    const reasonText = describePick(best, i === 0);
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
+    reasoning.push(reasonText);
+  }
 
-    reasoning.push(
-      i === 0
-        ? `${best.name} — the strongest starting point: the best average matchup against the reference threat list.`
-        : `${best.name} — the best remaining fit alongside ${team.slice(0, -1).map((m) => m.name).join(", ")}, balancing matchup strength, type coverage, and raw stats.`
-    );
+  // Milestone 21: name-check the weather archetype in the same reasoning
+  // list, if wcDetectWeatherArchetype found one and the finished team
+  // actually leans on it -- "grass and sunny day beat a rain team," made
+  // explicit rather than left as an invisible scoring nudge.
+  if (weatherInfo) {
+    const weatherLabel = { rain: "rain", sun: "harsh sunlight", sand: "sandstorm", snow: "snow" }[weatherInfo.weather];
+    const setterNote = weatherInfo.setters.length ? ` (via ${weatherInfo.setters.join(", ")})` : "";
+    const contributors = team
+      .map((m) => ({ name: m.name, bonus: wcWeatherCounterBonus(m, weatherInfo, typeChart, abilitiesData) }))
+      .filter((c) => c.bonus > 0)
+      .sort((a, b) => b.bonus - a.bonus);
+    if (contributors.length > 0) {
+      const names = contributors.slice(0, 3).map((c) => c.name).join(", ");
+      reasoning.push(
+        `This team also specifically answers the opponent's ${weatherLabel}${setterNote}: ${names} resist it or can shut it off outright, not just happen to have decent types.`
+      );
+    }
   }
 
   const finalMegaCount = team.filter(wcHasKnownMegaOption).length;
@@ -1575,5 +1805,6 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     notesIncludedNames,
     keepSelectedNames,
     droppedForcedNames,
+    weatherInfo,
   };
 }

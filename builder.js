@@ -230,7 +230,9 @@ function getObtainedNames() {
 function getThreatsWithTypes() {
   return data.threats.map((t) => {
     const p = data.pokemon.find((x) => x.name === t.name);
-    return { ...t, types: p ? p.types : [] };
+    const baseStats = data.baseStats.find((b) => b.name === t.name);
+    const ability = wcAbilityOf(data.abilities, t.name);
+    return { ...t, types: p ? p.types : [], baseStats, ability };
   });
 }
 
@@ -1233,7 +1235,7 @@ function generateDreamTeam() {
     excludedNames,
     notesIncludedNames,
     droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick);
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities);
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
@@ -2113,12 +2115,27 @@ function buildRivalPool() {
   return pool;
 }
 
-/** Your current 6 (effective identity — Mega-aware), shaped as a "threats" list so wcPickDreamTeam can pick a team that scores well specifically against IT, in reverse. */
+/**
+ * Your current 6 (effective identity — Mega-aware), shaped as a "threats"
+ * list so wcPickDreamTeam can pick a team that scores well specifically
+ * against IT, in reverse. Milestone 21: also carries baseStats/ability
+ * (for the new per-pair coverage scoring) and the actual build (moves,
+ * item) each slot already has -- this is the one threats list where a
+ * real moveset is genuinely known, since it's the player's own built
+ * team, so it's also the one place wcDetectWeatherArchetype can spot a
+ * confirmed Rain Dance/Sunny Day rather than only an innate ability.
+ */
 function myTeamAsThreats() {
   return chosen
-    .map((name) => effectivePokemonFor(name, builds[name] || {}))
-    .filter(Boolean)
-    .map((p) => ({ name: p.name, types: p.types, role: "Your team" }));
+    .map((name) => {
+      const build = builds[name] || {};
+      const effective = effectivePokemonFor(name, build);
+      if (!effective) return null;
+      const baseStats = data.baseStats.find((b) => b.name === effective.name);
+      const ability = wcAbilityOf(data.abilities, effective.name);
+      return { name: effective.name, types: effective.types, role: "Your team", baseStats, ability, build };
+    })
+    .filter(Boolean);
 }
 
 function findYourRival() {
@@ -2148,7 +2165,7 @@ function findYourRival() {
   // 8) — run here in reverse, with the pool being the WHOLE roster and
   // the "threats" being your own team, so it picks a 6 that specifically
   // answers your typing/stats well instead of a generic reference list.
-  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6);
+  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities);
   const rivalMembers = rivalNames.map((name) => pool.find((m) => m.name === name));
 
   pendingRival = { rivalMembers, rivalBuilds: {}, reasoning, rivalSuccessRate: 0, myResult: null, customized: false };
