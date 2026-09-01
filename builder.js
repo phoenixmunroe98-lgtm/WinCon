@@ -273,10 +273,10 @@ function renderTeamNotes() {
 // treatment instead of quietly drifting apart.
 // ---------------------------------------------------------------------------
 
-/** Buckets a 0-100 "goodness" percentage into the three-tier color scale. Kept as one tunable spot: 60+ reads as a real edge, 40-59 as a coin flip, under 40 as trouble. */
+/** Buckets a 0-100 "goodness" percentage into the three-tier color scale. Kept as one tunable spot, applied identically everywhere a win/loss/ratio pill shows up: over 80% is green, 35-80% is yellow, under 35% is red. */
 function wcStatTier(goodnessPercent) {
-  if (goodnessPercent >= 60) return "good";
-  if (goodnessPercent >= 40) return "mediocre";
+  if (goodnessPercent > 80) return "good";
+  if (goodnessPercent >= 35) return "mediocre";
   return "bad";
 }
 

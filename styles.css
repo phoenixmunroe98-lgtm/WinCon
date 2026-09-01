@@ -29,13 +29,15 @@
   --link: #2E6FE0;
   /* Win/loss stat pills (Matchup Score's Projected Win/Loss Ratio, and the
      results tracker's actual record) — deliberately NOT re-picked per
-     Pokémon theme below, unlike --positive: green/orange/red here are a
+     Pokémon theme below, unlike --positive: green/yellow/red here are a
      functional status signal, not a brand color, so they stay constant
-     across every theme and only shift for light/dark. --negative reuses
-     the same red already used for .btn-danger/.verdict-unfavorable
-     elsewhere in this file, so "bad" reads the same everywhere. */
-  --mediocre: #B8760B;
-  --mediocre-soft: #FFF0D6;
+     across every theme and only shift for light/dark. --mediocre is a
+     true yellow (not amber/orange) so it reads as clearly distinct from
+     both --positive and --negative at a glance. --negative reuses the
+     same red already used for .btn-danger/.verdict-unfavorable elsewhere
+     in this file, so "bad" reads the same everywhere. */
+  --mediocre: #A88500;
+  --mediocre-soft: #FFF3C4;
   --negative: #C0463B;
   --negative-soft: #FBE4E1;
 }
@@ -53,8 +55,8 @@
     --positive: #3FBB9D;
     --positive-soft: #1B332C;
     --link: #7FB0FF;
-    --mediocre: #E0A542;
-    --mediocre-soft: #3A2C10;
+    --mediocre: #E8C547;
+    --mediocre-soft: #3D3419;
     --negative: #E27469;
     --negative-soft: #3A1815;
   }
