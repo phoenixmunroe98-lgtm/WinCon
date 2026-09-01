@@ -1,0 +1,1209 @@
+{
+  "Abomasnow": {
+    "ability": "Snow Warning",
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+  },
+  "Absol": {
+    "ability": "Justified",
+    "description": "Raises its Attack by one stage whenever it's hit by a Dark-type move."
+  },
+  "Aegislash": {
+    "ability": "Stance Change",
+    "description": "Automatically switches between a defensive Shield Forme and an offensive Blade Forme depending on whether it uses King's Shield or an attacking move."
+  },
+  "Aerodactyl": {
+    "ability": "Pressure",
+    "confidence": "low",
+    "description": "Doubles the PP cost of any move an opponent uses against it."
+  },
+  "Aggron": {
+    "ability": "Sturdy",
+    "description": "Prevents it from being knocked out by a single hit while at full HP."
+  },
+  "Alakazam": {
+    "ability": "Magic Guard",
+    "description": "Prevents it from taking any damage except from a direct attack, blocking damage from status conditions, weather, hazards, and recoil."
+  },
+  "Alcremie": {
+    "ability": "Sweet Veil",
+    "description": "Prevents itself and its allies from falling asleep."
+  },
+  "Alolan Ninetales": {
+    "ability": "Snow Warning",
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+  },
+  "Alolan Raichu": {
+    "ability": "Surge Surfer",
+    "description": "Doubles its Speed for as long as Electric Terrain is active on the field."
+  },
+  "Altaria": {
+    "ability": "Natural Cure",
+    "description": "Cures its own status condition the moment it switches out of battle."
+  },
+  "Ampharos": {
+    "ability": "Static",
+    "description": "Has a 30% chance to paralyze any Pokémon that hits it with a move that makes contact."
+  },
+  "Annihilape": {
+    "ability": "Defiant",
+    "description": "Sharply raises its Attack whenever an opponent's move or ability lowers one of its stats."
+  },
+  "Appletun": {
+    "ability": "Thick Fat",
+    "description": "Halves the damage it takes from Fire- and Ice-type moves."
+  },
+  "Araquanid": {
+    "ability": "Water Bubble",
+    "description": "Doubles the power of its own Water-type moves and halves the damage it takes from Fire-type moves."
+  },
+  "Arbok": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+  },
+  "Arcanine": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+  },
+  "Archaludon": {
+    "ability": "Sturdy",
+    "confidence": "low",
+    "description": "Prevents it from being knocked out by a single hit while at full HP."
+  },
+  "Ariados": {
+    "ability": "Insomnia",
+    "confidence": "low",
+    "description": "Prevents it from being put to sleep."
+  },
+  "Armarouge": {
+    "ability": "Flash Fire",
+    "description": "Takes no damage from Fire-type moves and instead powers up its own Fire-type moves afterward."
+  },
+  "Aromatisse": {
+    "ability": "Aroma Veil",
+    "description": "Protects itself and its allies from moves and effects that target their mental state, like Taunt, Encore, Torment, and Attract."
+  },
+  "Audino": {
+    "ability": "Regenerator",
+    "description": "Restores about a third of its maximum HP whenever it switches out of battle."
+  },
+  "Aurorus": {
+    "ability": "Snow Warning",
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+  },
+  "Avalugg": {
+    "ability": "Sturdy",
+    "description": "Prevents it from being knocked out by a single hit while at full HP."
+  },
+  "Azumarill": {
+    "ability": "Huge Power",
+    "description": "Doubles its Attack stat."
+  },
+  "Banette": {
+    "ability": "Cursed Body",
+    "description": "Has a 30% chance to disable the move an opponent just used to hit it."
+  },
+  "Barbaracle": {
+    "ability": "Tough Claws",
+    "description": "Boosts the power of its contact moves by 30%."
+  },
+  "Basculegion": {
+    "ability": "Swift Swim",
+    "description": "Doubles its Speed while it's raining."
+  },
+  "Bastiodon": {
+    "ability": "Sturdy",
+    "description": "Prevents it from being knocked out by a single hit while at full HP."
+  },
+  "Beartic": {
+    "ability": "Slush Rush",
+    "confidence": "low",
+    "description": "Doubles its Speed while it's snowing or hailing."
+  },
+  "Beedrill": {
+    "ability": "Swarm",
+    "description": "Boosts the power of its Bug-type moves by 50% once its HP drops below one third."
+  },
+  "Bellibolt": {
+    "ability": "Electromorphosis",
+    "description": "Charges itself up whenever it's hit by an attack, doubling the power of the next Electric-type move it uses."
+  },
+  "Blastoise": {
+    "ability": "Torrent",
+    "description": "Boosts the power of its Water-type moves by 50% once its HP drops below one third."
+  },
+  "Blaziken": {
+    "ability": "Speed Boost",
+    "description": "Raises its own Speed by one stage at the end of every turn."
+  },
+  "Camerupt": {
+    "ability": "Solid Rock",
+    "description": "Reduces the damage it takes from super-effective moves by 25%."
+  },
+  "Castform": {
+    "ability": "Forecast",
+    "description": "Changes its type to match the current weather (Water in rain, Fire in harsh sunlight, Ice in hail/snow)."
+  },
+  "Ceruledge": {
+    "ability": "Flash Fire",
+    "description": "Takes no damage from Fire-type moves and instead powers up its own Fire-type moves afterward."
+  },
+  "Chandelure": {
+    "ability": "Flash Fire",
+    "description": "Takes no damage from Fire-type moves and instead powers up its own Fire-type moves afterward."
+  },
+  "Charizard": {
+    "ability": "Solar Power",
+    "description": "Boosts its Special Attack by 50% in harsh sunlight, at the cost of losing 1/8 of its max HP every turn the sun is out."
+  },
+  "Chesnaught": {
+    "ability": "Bulletproof",
+    "description": "Makes it completely immune to ball- and bomb-based moves like Shadow Ball, Sludge Bomb, and Focus Blast."
+  },
+  "Chimecho": {
+    "ability": "Levitate",
+    "description": "Grants immunity to Ground-type moves."
+  },
+  "Clawitzer": {
+    "ability": "Mega Launcher",
+    "description": "Boosts the power of its aura and pulse moves, like Water Pulse and Dark Pulse, by 50%."
+  },
+  "Clefable": {
+    "ability": "Magic Guard",
+    "description": "Prevents it from taking any damage except from a direct attack, blocking status, weather, hazard, and recoil damage."
+  },
+  "Cofagrigus": {
+    "ability": "Mummy",
+    "description": "Changes the ability of any Pokémon that hits it with a contact move to Mummy, spreading the effect onward."
+  },
+  "Conkeldurr": {
+    "ability": "Guts",
+    "description": "Boosts its Attack by 50% while it has a status condition, and ignores the Attack drop normally caused by a burn."
+  },
+  "Corviknight": {
+    "ability": "Pressure",
+    "description": "Doubles the PP cost of any move an opponent uses against it."
+  },
+  "Crabominable": {
+    "ability": "Iron Fist",
+    "description": "Boosts the power of its punching moves, like Ice Hammer and Focus Punch, by 20%."
+  },
+  "Decidueye": {
+    "ability": "Long Reach",
+    "description": "Lets it use moves without making contact, so it avoids contact-triggered effects like Rocky Helmet or Static."
+  },
+  "Dedenne": {
+    "ability": "Pickup",
+    "description": "Gives it a small chance to find and pick up an item at the end of each turn."
+  },
+  "Delphox": {
+    "ability": "Blaze",
+    "description": "Boosts the power of its Fire-type moves by 50% once its HP drops below one third."
+  },
+  "Diggersby": {
+    "ability": "Huge Power",
+    "description": "Doubles its Attack stat."
+  },
+  "Ditto": {
+    "ability": "Imposter",
+    "description": "Transforms into the Pokémon it faces as soon as it switches in, copying its stats, moves, and ability."
+  },
+  "Dragalge": {
+    "ability": "Adaptability",
+    "description": "Increases the power boost its same-type moves get, from the usual 50% up to 100%."
+  },
+  "Dragapult": {
+    "ability": "Infiltrator",
+    "description": "Lets its moves bypass the opponent's Substitute, Light Screen, Reflect, and Safeguard."
+  },
+  "Dragonite": {
+    "ability": "Multiscale",
+    "description": "Halves the damage it takes from any attack as long as it's at full HP."
+  },
+  "Drampa": {
+    "ability": "Berserk",
+    "description": "Raises its Special Attack by one stage when an attack drops its HP below half."
+  },
+  "Eelektross": {
+    "ability": "Levitate",
+    "description": "Grants immunity to Ground-type moves."
+  },
+  "Emboar": {
+    "ability": "Reckless",
+    "description": "Boosts the power of its recoil and crash-damage moves, like Flare Blitz and Wild Charge, by 20%."
+  },
+  "Emolga": {
+    "ability": "Motor Drive",
+    "description": "Raises its Speed by one stage instead of taking damage when hit by an Electric-type move."
+  },
+  "Empoleon": {
+    "ability": "Competitive",
+    "description": "Sharply raises its Special Attack whenever one of its stats is lowered by an opponent's move or ability."
+  },
+  "Espathra": {
+    "ability": "Speed Boost",
+    "description": "Raises its own Speed by one stage at the end of every turn."
+  },
+  "Espeon": {
+    "ability": "Magic Bounce",
+    "description": "Reflects most status moves, like Taunt or Toxic, back at whoever used them instead of being affected."
+  },
+  "Excadrill": {
+    "ability": "Sand Rush",
+    "description": "Doubles its Speed while a sandstorm is active."
+  },
+  "Falinks": {
+    "ability": "No Guard",
+    "description": "Makes every move used by or against it hit without fail, ignoring accuracy and evasion."
+  },
+  "Farigiraf": {
+    "ability": "Armor Tail",
+    "description": "Prevents opposing Pokémon from targeting it with priority moves."
+  },
+  "Feraligatr": {
+    "ability": "Sheer Force",
+    "description": "Boosts the power of moves that have a secondary effect by 30%, but removes that secondary effect (like a stat drop or flinch chance)."
+  },
+  "Flapple": {
+    "ability": "Hustle",
+    "description": "Boosts its Attack by 50% but lowers the accuracy of its physical moves to 80%."
+  },
+  "Flareon": {
+    "ability": "Flash Fire",
+    "description": "Takes no damage from Fire-type moves and instead powers up its own Fire-type moves afterward."
+  },
+  "Floette": {
+    "ability": "Flower Veil",
+    "description": "Shields every Grass-type Pokémon on its team (not necessarily itself) from status conditions and stat-lowering effects."
+  },
+  "Florges": {
+    "ability": "Flower Veil",
+    "description": "Shields every Grass-type Pokémon on its team (not necessarily itself) from status conditions and stat-lowering effects."
+  },
+  "Forretress": {
+    "ability": "Sturdy",
+    "description": "Prevents it from being knocked out by a single hit while at full HP."
+  },
+  "Froslass": {
+    "ability": "Snow Cloak",
+    "description": "Raises its evasion by one stage while it's hailing or snowing."
+  },
+  "Furfrou": {
+    "ability": "Fur Coat",
+    "description": "Halves the damage it takes from physical moves."
+  },
+  "Galarian Slowbro": {
+    "ability": "Quick Draw",
+    "description": "Gives it a chance to act first within its priority bracket, regardless of its Speed."
+  },
+  "Galarian Slowking": {
+    "ability": "Regenerator",
+    "description": "Restores about a third of its maximum HP whenever it switches out of battle."
+  },
+  "Galarian Stunfisk": {
+    "ability": "Mimicry",
+    "description": "Changes its type to match the current terrain, for example becoming Electric-type during Electric Terrain."
+  },
+  "Gallade": {
+    "ability": "Sharpness",
+    "description": "Boosts the power of slicing moves (like Psycho Cut and Sacred Sword) by 50%."
+  },
+  "Garbodor": {
+    "ability": "Aftermath",
+    "description": "If Garbodor is knocked out by a move that makes direct contact, the attacker loses 1/4 of its max HP."
+  },
+  "Garchomp": {
+    "ability": "Rough Skin",
+    "description": "Damages any attacker by 1/8 of its max HP whenever it hits Garchomp with a contact move."
+  },
+  "Gardevoir": {
+    "ability": "Trace",
+    "description": "Copies the Ability of an adjacent opposing Pokémon as soon as Gardevoir enters battle."
+  },
+  "Garganacl": {
+    "ability": "Purifying Salt",
+    "description": "Halves damage taken from Ghost-type moves and makes Garganacl completely immune to status conditions."
+  },
+  "Gengar": {
+    "ability": "Cursed Body",
+    "description": "Whenever a move hits Gengar, there is a 30% chance that move becomes disabled for the attacker."
+  },
+  "Gholdengo": {
+    "ability": "Good as Gold",
+    "description": "Makes Gholdengo fully immune to other Pokémon's status (non-damaging) moves."
+  },
+  "Glaceon": {
+    "ability": "Snow Cloak",
+    "description": "Raises Glaceon's evasion while snow or hail is falling."
+  },
+  "Glalie": {
+    "ability": "Inner Focus",
+    "confidence": "low",
+    "description": "Prevents Glalie from flinching when hit by moves that could otherwise cause flinching."
+  },
+  "Glimmora": {
+    "ability": "Toxic Debris",
+    "description": "Whenever Glimmora is hit by a physical move, it scatters Toxic Spikes on the opposing side of the field."
+  },
+  "Gliscor": {
+    "ability": "Poison Heal",
+    "description": "If Gliscor is poisoned, it restores HP each turn instead of losing it."
+  },
+  "Golurk": {
+    "ability": "No Guard",
+    "description": "Makes every move used by or against Golurk hit unfailingly, ignoring accuracy and evasion."
+  },
+  "Goodra": {
+    "ability": "Sap Sipper",
+    "description": "Makes Goodra completely immune to Grass-type moves and raises its Attack by one stage whenever hit by one."
+  },
+  "Gourgeist": {
+    "ability": "Frisk",
+    "description": "Reveals the held item of the opposing Pokémon as soon as Gourgeist enters battle."
+  },
+  "Greninja": {
+    "ability": "Protean",
+    "description": "Changes Greninja's type to match the type of the move it is about to use, guaranteeing a same-type-attack boost."
+  },
+  "Grimmsnarl": {
+    "ability": "Prankster",
+    "description": "Gives all of Grimmsnarl's status (non-damaging) moves priority, so they go first in the turn."
+  },
+  "Gyarados": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Gyarados enters battle."
+  },
+  "Hatterene": {
+    "ability": "Magic Bounce",
+    "description": "Reflects most status (non-damaging) moves back at the Pokémon that used them instead of being affected."
+  },
+  "Hawlucha": {
+    "ability": "Unburden",
+    "description": "Doubles Hawlucha's Speed the moment its held item is consumed or removed."
+  },
+  "Heliolisk": {
+    "ability": "Dry Skin",
+    "description": "Heals HP each turn in rain and takes extra damage from Water moves, while taking 1/8 HP damage each turn in harsh sunlight and reduced damage from Fire moves."
+  },
+  "Heracross": {
+    "ability": "Guts",
+    "description": "Boosts Heracross's Attack by 50% whenever it is suffering from a status condition (and ignores the burn attack drop)."
+  },
+  "Hippowdon": {
+    "ability": "Sand Stream",
+    "description": "Summons a sandstorm that lasts several turns as soon as Hippowdon enters battle."
+  },
+  "Hisuian Arcanine": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Hisuian Arcanine enters battle."
+  },
+  "Hisuian Avalugg": {
+    "ability": "Strong Jaw",
+    "confidence": "low",
+    "description": "Boosts the power of biting moves (like Crunch and Ice Fang) by 50%."
+  },
+  "Hisuian Decidueye": {
+    "ability": "Scrappy",
+    "description": "Allows Normal- and Fighting-type moves to hit Ghost-type Pokémon, which they would otherwise completely miss."
+  },
+  "Hisuian Goodra": {
+    "ability": "Sap Sipper",
+    "description": "Makes Hisuian Goodra completely immune to Grass-type moves and raises its Attack by one stage whenever hit by one."
+  },
+  "Hisuian Samurott": {
+    "ability": "Sharpness",
+    "description": "Boosts the power of slicing moves (like its signature move Ceaseless Edge) by 50%."
+  },
+  "Hisuian Typhlosion": {
+    "ability": "Blaze",
+    "confidence": "low",
+    "description": "Boosts the power of Fire-type moves by 50% once Typhlosion's HP drops below one third."
+  },
+  "Hisuian Zoroark": {
+    "ability": "Illusion",
+    "description": "Makes Hisuian Zoroark enter battle disguised as the last Pokémon in its party, fooling the opponent until it is hit by an attack."
+  },
+  "Houndoom": {
+    "ability": "Flash Fire",
+    "description": "Grants immunity to Fire-type moves and, once hit by one, boosts the power of Houndoom's own Fire-type moves by 50%."
+  },
+  "Houndstone": {
+    "ability": "Sand Rush",
+    "description": "Doubles Houndstone's Speed while a sandstorm is active."
+  },
+  "Hydrapple": {
+    "ability": "Regenerator",
+    "description": "Restores about 1/3 of Hydrapple's max HP whenever it switches out of battle."
+  },
+  "Hydreigon": {
+    "ability": "Levitate",
+    "description": "Grants complete immunity to Ground-type moves."
+  },
+  "Incineroar": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Incineroar enters battle."
+  },
+  "Infernape": {
+    "ability": "Iron Fist",
+    "description": "Boosts the power of punching moves (like Mach Punch and Fire Punch) by 20%."
+  },
+  "Jolteon": {
+    "ability": "Volt Absorb",
+    "description": "Grants complete immunity to Electric-type moves and heals HP instead of taking damage from them."
+  },
+  "Kangaskhan": {
+    "ability": "Scrappy",
+    "description": "Allows Normal- and Fighting-type moves to hit Ghost-type Pokémon, which they would otherwise completely miss."
+  },
+  "Kingambit": {
+    "ability": "Supreme Overlord",
+    "description": "Boosts Kingambit's Attack and Special Attack based on how many of its teammates have already fainted, up to +30% with a full team down."
+  },
+  "Kleavor": {
+    "ability": "Sharpness",
+    "description": "Boosts the power of slicing moves (like Stone Axe and X-Scissor) by 50%."
+  },
+  "Klefki": {
+    "ability": "Prankster",
+    "description": "Gives all of Klefki's status (non-damaging) moves priority, so they go first in the turn."
+  },
+  "Kommo-o": {
+    "ability": "Bulletproof",
+    "description": "Grants immunity to ball- and bomb-based moves such as Sludge Bomb, Shadow Ball, and Focus Blast."
+  },
+  "Krookodile": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Krookodile enters battle."
+  },
+  "Leafeon": {
+    "ability": "Chlorophyll",
+    "description": "Doubles Leafeon's Speed while harsh sunlight is active."
+  },
+  "Liepard": {
+    "ability": "Prankster",
+    "description": "Gives all of Liepard's status (non-damaging) moves priority, so they go first in the turn."
+  },
+  "Lopunny": {
+    "ability": "Klutz",
+    "description": "Stops Lopunny's own held item from having any effect on it (though this doesn't stop it from using moves like Trick to pass a crippling item to an opponent)."
+  },
+  "Lucario": {
+    "ability": "Justified",
+    "description": "Raises Lucario's Attack by one stage whenever it is hit by a Dark-type move."
+  },
+  "Luxray": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Luxray enters battle."
+  },
+  "Lycanroc": {
+    "ability": "Sand Rush",
+    "description": "Doubles Lycanroc's Speed while a sandstorm is active."
+  },
+  "Machamp": {
+    "ability": "No Guard",
+    "description": "Makes every move used by or against Machamp hit unfailingly, ignoring accuracy and evasion."
+  },
+  "Malamar": {
+    "ability": "Contrary",
+    "description": "Reverses the effect of any stat change, so moves and effects that would lower Malamar's stats raise them instead, and vice versa."
+  },
+  "Mamoswine": {
+    "ability": "Oblivious",
+    "description": "Prevents Mamoswine from becoming infatuated and makes it immune to Taunt and to Attack drops from an opponent's Intimidate."
+  },
+  "Manectric": {
+    "ability": "Lightning Rod",
+    "description": "Draws in Electric-type moves aimed at Manectric's side and raises its Special Attack by one stage instead of taking normal damage."
+  },
+  "Maushold": {
+    "ability": "Technician",
+    "description": "Boosts the power of moves with a base power of 60 or less by 50%, greatly benefiting its multi-hit moves like Population Bomb."
+  },
+  "Mawile": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Mawile enters battle."
+  },
+  "Medicham": {
+    "ability": "Pure Power",
+    "description": "Doubles Medicham's Attack stat."
+  },
+  "Mega Abomasnow": {
+    "ability": "Snow Warning",
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+  },
+  "Mega Absol": {
+    "ability": "Magic Bounce",
+    "description": "Reflects most status moves, like Taunt or Toxic, back at whoever used them instead of being affected."
+  },
+  "Mega Aerodactyl": {
+    "ability": "Tough Claws",
+    "description": "Boosts the power of its contact moves by 30%."
+  },
+  "Mega Aggron": {
+    "ability": "Filter",
+    "description": "Reduces the damage it takes from super-effective moves by 25%."
+  },
+  "Mega Alakazam": {
+    "ability": "Trace",
+    "description": "Copies the Ability of an adjacent opposing Pokémon as soon as it enters battle."
+  },
+  "Mega Altaria": {
+    "ability": "Pixilate",
+    "description": "Turns its Normal-type moves into Fairy-type moves and boosts their power by 30%."
+  },
+  "Mega Ampharos": {
+    "ability": "Mold Breaker",
+    "description": "Lets its moves ignore the target's Ability if that Ability would otherwise block or reduce the move's effect."
+  },
+  "Mega Audino": {
+    "ability": "Healer",
+    "description": "Gives it a chance to cure the status condition of an adjacent ally at the end of each turn."
+  },
+  "Mega Banette": {
+    "ability": "Prankster",
+    "description": "Gives all of its status moves priority, so they go first in the turn."
+  },
+  "Mega Barbaracle": {
+    "ability": "Tough Claws",
+    "description": "Boosts the power of its contact moves by 30%."
+  },
+  "Mega Beedrill": {
+    "ability": "Adaptability",
+    "description": "Increases the power boost its same-type moves get, from the usual 50% up to 100%."
+  },
+  "Mega Blastoise": {
+    "ability": "Mega Launcher",
+    "description": "Boosts the power of its aura and pulse moves, like Water Pulse and Dark Pulse, by 50%."
+  },
+  "Mega Blaziken": {
+    "ability": "Speed Boost",
+    "description": "Raises its own Speed by one stage at the end of every turn."
+  },
+  "Mega Camerupt": {
+    "ability": "Sheer Force",
+    "description": "Boosts the power of moves that have a secondary effect by 30%, but removes that secondary effect."
+  },
+  "Mega Chandelure": {
+    "ability": "Infiltrator",
+    "description": "Lets its moves bypass the opponent's Substitute, Light Screen, Reflect, and Safeguard."
+  },
+  "Mega Charizard X": {
+    "ability": "Tough Claws",
+    "description": "Boosts the power of its contact moves by 30%."
+  },
+  "Mega Charizard Y": {
+    "ability": "Drought",
+    "description": "Summons harsh sunlight that lasts several turns as soon as it enters battle."
+  },
+  "Mega Chesnaught": {
+    "ability": "Bulletproof",
+    "description": "Makes it completely immune to ball- and bomb-based moves like Shadow Ball, Sludge Bomb, and Focus Blast."
+  },
+  "Mega Chimecho": {
+    "ability": "Levitate",
+    "description": "Grants immunity to Ground-type moves."
+  },
+  "Mega Clefable": {
+    "ability": "Magic Bounce",
+    "description": "Reflects most status moves, like Taunt or Toxic, back at whoever used them instead of being affected."
+  },
+  "Mega Crabominable": {
+    "ability": "Iron Fist",
+    "description": "Boosts the power of its punching moves, like Ice Hammer and Focus Punch, by 20%."
+  },
+  "Mega Delphox": {
+    "ability": "Levitate",
+    "description": "Grants immunity to Ground-type moves."
+  },
+  "Mega Dragalge": {
+    "ability": "Regenerator",
+    "description": "Restores about a third of its maximum HP whenever it switches out of battle."
+  },
+  "Mega Dragonite": {
+    "ability": "Multiscale",
+    "description": "Halves the damage it takes from any attack as long as it's at full HP."
+  },
+  "Mega Drampa": {
+    "ability": "Berserk",
+    "description": "Raises its Special Attack by one stage when an attack drops its HP below half."
+  },
+  "Mega Eelektross": {
+    "ability": "Eelevate",
+    "confidence": "low",
+    "description": "A Champions-exclusive ability that raises one of its stats the moment it enters battle, building on its Electric-type utility."
+  },
+  "Mega Emboar": {
+    "ability": "Mold Breaker",
+    "description": "Lets its moves ignore the target's Ability if that Ability would otherwise block or reduce the move's effect."
+  },
+  "Mega Excadrill": {
+    "ability": "Piercing Drill",
+    "confidence": "low",
+    "description": "A Champions-exclusive ability that lets its drilling and piercing moves bypass Protect-style moves and boosts their power."
+  },
+  "Mega Falinks": {
+    "ability": "Defiant",
+    "description": "Sharply raises its Attack whenever an opponent's move or ability lowers one of its stats."
+  },
+  "Mega Feraligatr": {
+    "ability": "Dragonize",
+    "confidence": "low",
+    "description": "A Champions-exclusive ability that grants some of its moves Dragon-type properties, letting it hit around common Water-type checks."
+  },
+  "Mega Floette": {
+    "ability": "Fairy Aura",
+    "description": "Boosts the power of every Fairy-type move on the field, for both sides."
+  },
+  "Mega Froslass": {
+    "ability": "Snow Warning",
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+  },
+  "Mega Gallade": {
+    "ability": "Inner Focus",
+    "description": "Prevents it from flinching when hit by moves that could otherwise cause flinching."
+  },
+  "Mega Garchomp": {
+    "ability": "Sand Force",
+    "description": "Boosts the power of its Rock-, Ground-, and Steel-type moves by 30% while a sandstorm is active."
+  },
+  "Mega Gardevoir": {
+    "ability": "Pixilate",
+    "description": "Turns its Normal-type moves into Fairy-type moves and boosts their power by 30%."
+  },
+  "Mega Gengar": {
+    "ability": "Shadow Tag",
+    "description": "Prevents opposing Pokémon from switching out while it's on the field."
+  },
+  "Mega Glalie": {
+    "ability": "Refrigerate",
+    "description": "Turns its Normal-type moves into Ice-type moves and boosts their power by 30%."
+  },
+  "Mega Glimmora": {
+    "ability": "Adaptability",
+    "description": "Increases the power boost its same-type moves get, from the usual 50% up to 100%."
+  },
+  "Mega Golurk": {
+    "ability": "Unseen Fist",
+    "description": "Lets its contact moves bypass the protection of moves like Protect and Detect."
+  },
+  "Mega Greninja": {
+    "ability": "Protean",
+    "description": "Changes its type to match the type of the move it's about to use, guaranteeing a same-type-attack boost."
+  },
+  "Mega Gyarados": {
+    "ability": "Mold Breaker",
+    "description": "Lets its moves ignore the target's Ability if that Ability would otherwise block or reduce the move's effect."
+  },
+  "Mega Hawlucha": {
+    "ability": "No Guard",
+    "description": "Makes every move used by or against it hit unfailingly, ignoring accuracy and evasion."
+  },
+  "Mega Heracross": {
+    "ability": "Skill Link",
+    "description": "Guarantees that its multi-hit moves, like Pin Missile and Rock Blast, always strike the maximum number of times."
+  },
+  "Mega Houndoom": {
+    "ability": "Solar Power",
+    "description": "Boosts its Special Attack by 50% in harsh sunlight, at the cost of losing 1/8 of its max HP every turn the sun is out."
+  },
+  "Mega Kangaskhan": {
+    "ability": "Parental Bond",
+    "description": "Lets it strike with a second, weaker hit every time it attacks."
+  },
+  "Mega Lopunny": {
+    "ability": "Scrappy",
+    "description": "Allows its Normal- and Fighting-type moves to hit Ghost-type Pokémon, which they would otherwise completely miss."
+  },
+  "Mega Lucario": {
+    "ability": "Adaptability",
+    "description": "Increases the power boost its same-type moves get, from the usual 50% up to 100%."
+  },
+  "Mega Malamar": {
+    "ability": "Contrary",
+    "description": "Reverses the effect of any stat change, so moves and effects that would lower its stats raise them instead, and vice versa."
+  },
+  "Mega Manectric": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+  },
+  "Mega Mawile": {
+    "ability": "Huge Power",
+    "description": "Doubles its Attack stat."
+  },
+  "Mega Medicham": {
+    "ability": "Pure Power",
+    "description": "Doubles its Attack stat."
+  },
+  "Mega Meganium": {
+    "ability": "Mega Sol",
+    "confidence": "low",
+    "description": "A Champions-exclusive ability that intensifies harsh sunlight, boosting the power of its Grass- and Fire-type moves while the sun is out."
+  },
+  "Mega Meowstic": {
+    "ability": "Trace",
+    "description": "Copies the Ability of an adjacent opposing Pokémon as soon as it enters battle."
+  },
+  "Mega Metagross": {
+    "ability": "Tough Claws",
+    "description": "Boosts the power of its contact moves by 30%."
+  },
+  "Mega Pidgeot": {
+    "ability": "No Guard",
+    "description": "Makes every move used by or against it hit unfailingly, ignoring accuracy and evasion."
+  },
+  "Mega Pinsir": {
+    "ability": "Aerilate",
+    "description": "Turns its Normal-type moves into Flying-type moves and boosts their power by 30%."
+  },
+  "Mega Pyroar": {
+    "ability": "Fire Mane",
+    "confidence": "low",
+    "description": "A Champions-exclusive ability that intensifies its Fire-type moves, boosting their power the longer it stays in battle."
+  },
+  "Mega Raichu X": {
+    "ability": "Electric Surge",
+    "description": "Summons Electric Terrain the instant it enters battle, powering up grounded Pokémon's Electric-type moves and preventing them from falling asleep."
+  },
+  "Mega Raichu Y": {
+    "ability": "No Guard",
+    "description": "Makes every move used by or against it hit unfailingly, ignoring accuracy and evasion."
+  },
+  "Mega Sableye": {
+    "ability": "Magic Bounce",
+    "description": "Reflects most status moves, like Taunt or Toxic, back at whoever used them instead of being affected."
+  },
+  "Mega Sceptile": {
+    "ability": "Lightning Rod",
+    "description": "Draws in Electric-type moves aimed at its side and raises its Special Attack by one stage instead of taking normal damage."
+  },
+  "Mega Scizor": {
+    "ability": "Technician",
+    "description": "Boosts the power of moves with a base power of 60 or less by 50%."
+  },
+  "Mega Scolipede": {
+    "ability": "Shell Armor",
+    "description": "Prevents it from being struck by critical hits."
+  },
+  "Mega Scovillain": {
+    "ability": "Spicy Spray",
+    "confidence": "low",
+    "description": "A Champions-exclusive ability that hazes the field with a spicy cloud, lowering the Speed of opposing Pokémon that switch in."
+  },
+  "Mega Scrafty": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+  },
+  "Mega Sharpedo": {
+    "ability": "Strong Jaw",
+    "description": "Boosts the power of its biting moves, like Crunch and Ice Fang, by 50%."
+  },
+  "Mega Skarmory": {
+    "ability": "Stalwart",
+    "description": "Prevents it from being redirected by moves and Abilities that draw in attacks, such as Follow Me or Lightning Rod."
+  },
+  "Mega Slowbro": {
+    "ability": "Shell Armor",
+    "description": "Prevents it from being struck by critical hits."
+  },
+  "Mega Staraptor": {
+    "ability": "Contrary",
+    "description": "Reverses the effect of any stat change, so moves and effects that would lower its stats raise them instead, and vice versa."
+  },
+  "Mega Starmie": {
+    "ability": "Huge Power",
+    "description": "Doubles its Attack stat."
+  },
+  "Mega Steelix": {
+    "ability": "Sand Force",
+    "description": "Boosts the power of its Rock-, Ground-, and Steel-type moves by 30% while a sandstorm is active."
+  },
+  "Mega Swampert": {
+    "ability": "Swift Swim",
+    "description": "Doubles its Speed while it's raining."
+  },
+  "Mega Tyranitar": {
+    "ability": "Sand Stream",
+    "description": "Summons a sandstorm that lasts several turns as soon as it enters battle."
+  },
+  "Mega Venusaur": {
+    "ability": "Thick Fat",
+    "description": "Halves the damage it takes from Fire- and Ice-type moves."
+  },
+  "Mega Victreebel": {
+    "ability": "Innards Out",
+    "description": "Damages the attacker for an amount equal to its own remaining HP whenever it's knocked out by a direct hit."
+  },
+  "Meganium": {
+    "ability": "Leaf Guard",
+    "confidence": "low",
+    "description": "Prevents Meganium from being afflicted with any status condition while harsh sunlight is active."
+  },
+  "Meowscarada": {
+    "ability": "Protean",
+    "description": "Changes Meowscarada's type to match the type of the move it is about to use, guaranteeing a same-type-attack boost."
+  },
+  "Meowstic": {
+    "ability": "Prankster",
+    "description": "Gives all of Meowstic's status (non-damaging) moves priority, so they go first in the turn."
+  },
+  "Metagross": {
+    "ability": "Clear Body",
+    "description": "Prevents other Pokémon's moves and Abilities from lowering Metagross's stats."
+  },
+  "Milotic": {
+    "ability": "Competitive",
+    "description": "Sharply raises Milotic's Special Attack by two stages whenever one of its stats is lowered by an opponent."
+  },
+  "Mimikyu": {
+    "ability": "Disguise",
+    "description": "Lets Mimikyu absorb the first hit that would otherwise damage it for free, tearing its disguise instead of taking damage."
+  },
+  "Morpeko": {
+    "ability": "Hunger Switch",
+    "description": "Automatically switches Morpeko between its Full Belly Mode and Hangry Mode (changing its typing and stats) at the end of every turn."
+  },
+  "Mr. Rime": {
+    "ability": "Screen Cleaner",
+    "description": "Removes the effects of Light Screen, Reflect, and Aurora Veil from both sides of the field as soon as Mr. Rime enters battle."
+  },
+  "Mudsdale": {
+    "ability": "Stamina",
+    "description": "Raises Mudsdale's Defense by one stage every time it is hit by an attack."
+  },
+  "Musharna": {
+    "ability": "Synchronize",
+    "confidence": "low",
+    "description": "Passes on any burn, poison, or paralysis Musharna receives to whatever Pokémon inflicted it."
+  },
+  "Ninetales": {
+    "ability": "Drought",
+    "description": "Summons harsh sunlight that lasts several turns as soon as Ninetales enters battle."
+  },
+  "Noivern": {
+    "ability": "Infiltrator",
+    "description": "Lets Noivern's moves bypass the target's Substitute, Reflect, Light Screen, Aurora Veil, and Safeguard."
+  },
+  "Oranguru": {
+    "ability": "Inner Focus",
+    "description": "Prevents Oranguru from flinching when hit by moves that could otherwise cause flinching."
+  },
+  "Orthworm": {
+    "ability": "Earth Eater",
+    "description": "Makes Orthworm immune to Ground-type moves and heals it instead of dealing damage when hit by one."
+  },
+  "Overqwil": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Overqwil enters battle."
+  },
+  "Palafin": {
+    "ability": "Zero to Hero",
+    "description": "Permanently transforms Palafin from its weak Zero Form into its far more powerful Hero Form the first time it switches out of battle."
+  },
+  "Paldean Tauros": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
+  },
+  "Pangoro": {
+    "ability": "Iron Fist",
+    "description": "Boosts the power of punching moves (like Drain Punch and Bullet Punch) by 20%."
+  },
+  "Passimian": {
+    "ability": "Receiver",
+    "description": "Copies the Ability of an ally Pokémon the instant that ally faints."
+  },
+  "Pelipper": {
+    "ability": "Drizzle",
+    "description": "Summons rain that lasts several turns as soon as Pelipper enters battle."
+  },
+  "Pidgeot": {
+    "ability": "Keen Eye",
+    "confidence": "low",
+    "description": "Prevents its accuracy from ever being lowered by an opponent's move or ability."
+  },
+  "Pikachu": {
+    "ability": "Static",
+    "description": "Gives any Pokémon that hits it with a contact move a chance to become paralyzed."
+  },
+  "Pinsir": {
+    "ability": "Moxie",
+    "description": "Raises its Attack stat by one stage every time it knocks out a Pokémon."
+  },
+  "Politoed": {
+    "ability": "Drizzle",
+    "description": "Summons rain for as long as it stays in battle, boosting Water-type moves and weakening Fire-type moves."
+  },
+  "Polteageist": {
+    "ability": "Weak Armor",
+    "description": "Lowers its own Defense but sharply raises its Speed each time it's hit by a physical move."
+  },
+  "Primarina": {
+    "ability": "Liquid Voice",
+    "description": "Turns all of its sound-based moves into Water-type moves."
+  },
+  "Pyroar": {
+    "ability": "Moxie",
+    "description": "Raises its Attack stat by one stage every time it knocks out a Pokémon."
+  },
+  "Quaquaval": {
+    "ability": "Moxie",
+    "description": "Raises its Attack stat by one stage every time it knocks out a Pokémon."
+  },
+  "Qwilfish": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of the opposing Pokémon as soon as it switches in."
+  },
+  "Raichu": {
+    "ability": "Static",
+    "description": "Gives any Pokémon that hits it with a contact move a chance to become paralyzed."
+  },
+  "Rampardos": {
+    "ability": "Sheer Force",
+    "description": "Boosts the power of moves that have a secondary effect by 30%, but removes that secondary effect entirely (e.g., a flinch chance or stat drop)."
+  },
+  "Reuniclus": {
+    "ability": "Magic Guard",
+    "description": "Prevents it from taking any damage that isn't from a direct attack, blocking weather damage, status damage, entry hazards, and recoil."
+  },
+  "Rhyperior": {
+    "ability": "Lightning Rod",
+    "description": "Draws in opposing Electric-type moves and takes no damage from them, instead getting a Special Attack boost."
+  },
+  "Roserade": {
+    "ability": "Natural Cure",
+    "confidence": "low",
+    "description": "Cures itself of any status condition (burn, poison, paralysis, etc.) the moment it's switched out of battle."
+  },
+  "Rotom": {
+    "ability": "Levitate",
+    "description": "Grants full immunity to Ground-type moves."
+  },
+  "Runerigus": {
+    "ability": "Wandering Spirit",
+    "description": "Swaps abilities with any Pokémon that hits it with a contact move."
+  },
+  "Sableye": {
+    "ability": "Prankster",
+    "description": "Gives all of its status moves increased priority so they go first in the turn."
+  },
+  "Salazzle": {
+    "ability": "Corrosion",
+    "description": "Lets it inflict the poison status on Steel- and Poison-type Pokémon, which are normally immune to poison."
+  },
+  "Samurott": {
+    "ability": "Torrent",
+    "description": "Powers up its Water-type moves by 50% once its HP drops below one-third."
+  },
+  "Sandaconda": {
+    "ability": "Sand Spit",
+    "description": "Automatically summons a sandstorm the instant it's struck by an attack."
+  },
+  "Sceptile": {
+    "ability": "Unburden",
+    "description": "Doubles its Speed the moment its held item is used up or removed."
+  },
+  "Scizor": {
+    "ability": "Technician",
+    "description": "Increases the power of any move with a base power of 60 or less by 50%."
+  },
+  "Scolipede": {
+    "ability": "Speed Boost",
+    "description": "Raises its own Speed stat by one stage at the end of every turn it's on the field."
+  },
+  "Scovillain": {
+    "ability": "Chlorophyll",
+    "description": "Doubles its Speed stat whenever the weather is harsh sunlight."
+  },
+  "Scrafty": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of the opposing Pokémon as soon as it switches in."
+  },
+  "Serperior": {
+    "ability": "Contrary",
+    "description": "Reverses the direction of any of its own stat changes, so moves that would normally lower a stat raise it instead (and vice versa)."
+  },
+  "Sharpedo": {
+    "ability": "Speed Boost",
+    "description": "Raises its own Speed stat by one stage at the end of every turn it's on the field."
+  },
+  "Simipour": {
+    "ability": "Torrent",
+    "confidence": "low",
+    "description": "Powers up its Water-type moves by 50% once its HP drops below one-third."
+  },
+  "Simisage": {
+    "ability": "Overgrow",
+    "confidence": "low",
+    "description": "Powers up its Grass-type moves by 50% once its HP drops below one-third."
+  },
+  "Simisear": {
+    "ability": "Blaze",
+    "confidence": "low",
+    "description": "Powers up its Fire-type moves by 50% once its HP drops below one-third."
+  },
+  "Sinistcha": {
+    "ability": "Hospitality",
+    "description": "Restores a portion of its ally's HP when it switches into a Double Battle."
+  },
+  "Skarmory": {
+    "ability": "Sturdy",
+    "description": "Prevents it from being knocked out by a single hit when at full HP, always leaving it with at least 1 HP."
+  },
+  "Skeledirge": {
+    "ability": "Unaware",
+    "description": "Ignores the opposing Pokémon's stat changes when calculating both the damage it deals and the damage it takes."
+  },
+  "Slowbro": {
+    "ability": "Regenerator",
+    "description": "Restores about one-third of its max HP whenever it switches out of battle."
+  },
+  "Slowking": {
+    "ability": "Regenerator",
+    "description": "Restores about one-third of its max HP whenever it switches out of battle."
+  },
+  "Slurpuff": {
+    "ability": "Unburden",
+    "description": "Doubles its Speed the moment its held item is used up or removed."
+  },
+  "Sneasler": {
+    "ability": "Unburden",
+    "description": "Doubles its Speed the moment its held item is used up or removed."
+  },
+  "Snorlax": {
+    "ability": "Thick Fat",
+    "description": "Halves the damage it takes from Fire-type and Ice-type moves."
+  },
+  "Spiritomb": {
+    "ability": "Infiltrator",
+    "description": "Lets its moves bypass the target's Substitute, Reflect, Light Screen, and Safeguard."
+  },
+  "Staraptor": {
+    "ability": "Reckless",
+    "description": "Increases the power of its recoil moves, such as Double-Edge and Brave Bird, by 20%."
+  },
+  "Starmie": {
+    "ability": "Natural Cure",
+    "confidence": "low",
+    "description": "Cures itself of any status condition the moment it's switched out of battle."
+  },
+  "Steelix": {
+    "ability": "Sturdy",
+    "confidence": "low",
+    "description": "Prevents it from being knocked out by a single hit when at full HP, always leaving it with at least 1 HP."
+  },
+  "Stunfisk": {
+    "ability": "Static",
+    "description": "Gives any Pokémon that hits it with a contact move a chance to become paralyzed."
+  },
+  "Swampert": {
+    "ability": "Torrent",
+    "description": "Powers up its Water-type moves by 50% once its HP drops below one-third."
+  },
+  "Sylveon": {
+    "ability": "Pixilate",
+    "description": "Turns its Normal-type moves into Fairy-type moves and boosts their power by 20%."
+  },
+  "Talonflame": {
+    "ability": "Gale Wings",
+    "description": "Gives its Flying-type moves priority so they go first, though in current games this only applies while it's at full HP."
+  },
+  "Tauros": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of the opposing Pokémon as soon as it switches in."
+  },
+  "Tinkaton": {
+    "ability": "Mold Breaker",
+    "description": "Lets its moves ignore the target's ability whenever that ability would otherwise block or weaken the move."
+  },
+  "Torkoal": {
+    "ability": "Drought",
+    "description": "Summons harsh sunlight for as long as it stays in battle, boosting Fire-type moves and weakening Water-type moves."
+  },
+  "Torterra": {
+    "ability": "Overgrow",
+    "description": "Powers up its Grass-type moves by 50% once its HP drops below one-third."
+  },
+  "Toucannon": {
+    "ability": "Skill Link",
+    "description": "Guarantees that its multi-hit moves, like Bullet Seed and Rock Blast, always strike the maximum number of times."
+  },
+  "Toxapex": {
+    "ability": "Regenerator",
+    "description": "Restores about one-third of its max HP whenever it switches out of battle."
+  },
+  "Toxicroak": {
+    "ability": "Dry Skin",
+    "description": "Heals HP each turn in rain, loses HP each turn in harsh sunlight, and takes extra damage from Fire moves but reduced damage from Water moves."
+  },
+  "Trevenant": {
+    "ability": "Harvest",
+    "description": "Gives it a chance to regenerate a used-up Berry at the end of each turn."
+  },
+  "Tsareena": {
+    "ability": "Queenly Majesty",
+    "description": "Prevents opposing Pokémon from hitting it with priority moves."
+  },
+  "Typhlosion": {
+    "ability": "Flash Fire",
+    "description": "Makes it immune to Fire-type moves and instead powers up its own Fire-type moves after being hit by one."
+  },
+  "Tyranitar": {
+    "ability": "Sand Stream",
+    "description": "Summons a sandstorm that lasts for as long as it stays in battle."
+  },
+  "Tyrantrum": {
+    "ability": "Rock Head",
+    "description": "Protects it from recoil damage caused by its own moves, such as Head Smash or Double-Edge."
+  },
+  "Umbreon": {
+    "ability": "Synchronize",
+    "description": "Passes back the same status condition (burn, poison, or paralysis) to whichever Pokémon just inflicted it with that status."
+  },
+  "Vanilluxe": {
+    "ability": "Snow Warning",
+    "description": "Summons a snowstorm/hailstorm for as long as it stays in battle."
+  },
+  "Vaporeon": {
+    "ability": "Water Absorb",
+    "description": "Heals HP instead of taking damage whenever it's hit by a Water-type move."
+  },
+  "Venusaur": {
+    "ability": "Chlorophyll",
+    "description": "Doubles its Speed stat whenever the weather is harsh sunlight."
+  },
+  "Victreebel": {
+    "ability": "Chlorophyll",
+    "description": "Doubles its Speed stat whenever the weather is harsh sunlight."
+  },
+  "Vileplume": {
+    "ability": "Effect Spore",
+    "description": "Gives opposing Pokémon a chance to be poisoned, paralyzed, or put to sleep whenever they make contact with it."
+  },
+  "Vivillon": {
+    "ability": "Compound Eyes",
+    "description": "Raises the accuracy of all of its moves by 30%."
+  },
+  "Volcarona": {
+    "ability": "Flame Body",
+    "description": "Gives opposing Pokémon a chance to be burned whenever they make contact with it."
+  },
+  "Watchog": {
+    "ability": "Analytic",
+    "confidence": "low",
+    "description": "Boosts the power of its move by 30% whenever it ends up moving last in the turn."
+  },
+  "Weavile": {
+    "ability": "Pressure",
+    "description": "Makes any move an opponent uses against it cost twice the normal amount of PP."
+  },
+  "Whimsicott": {
+    "ability": "Prankster",
+    "description": "Gives all of its status moves increased priority so they go first in the turn."
+  },
+  "Wyrdeer": {
+    "ability": "Sap Sipper",
+    "description": "Makes it immune to Grass-type moves and instead raises its own Attack stat by one stage when hit by one."
+  },
+  "Zoroark": {
+    "ability": "Illusion",
+    "description": "Lets it enter battle disguised as the last Pokémon in its party until it's hit by a move or the disguise is otherwise broken."
+  }
+}

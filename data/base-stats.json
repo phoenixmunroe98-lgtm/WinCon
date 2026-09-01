@@ -1,0 +1,2666 @@
+[
+  {
+    "name": "Mega Venusaur",
+    "hp": 80,
+    "atk": 100,
+    "def": 123,
+    "spa": 122,
+    "spd": 120,
+    "spe": 80
+  },
+  {
+    "name": "Venusaur",
+    "hp": 80,
+    "atk": 82,
+    "def": 83,
+    "spa": 100,
+    "spd": 100,
+    "spe": 80
+  },
+  {
+    "name": "Charizard",
+    "hp": 78,
+    "atk": 84,
+    "def": 78,
+    "spa": 109,
+    "spd": 85,
+    "spe": 100
+  },
+  {
+    "name": "Mega Charizard X",
+    "hp": 78,
+    "atk": 130,
+    "def": 111,
+    "spa": 130,
+    "spd": 85,
+    "spe": 100
+  },
+  {
+    "name": "Mega Charizard Y",
+    "hp": 78,
+    "atk": 104,
+    "def": 78,
+    "spa": 159,
+    "spd": 115,
+    "spe": 100
+  },
+  {
+    "name": "Blastoise",
+    "hp": 79,
+    "atk": 83,
+    "def": 100,
+    "spa": 85,
+    "spd": 105,
+    "spe": 78
+  },
+  {
+    "name": "Mega Blastoise",
+    "hp": 79,
+    "atk": 103,
+    "def": 120,
+    "spa": 135,
+    "spd": 115,
+    "spe": 78
+  },
+  {
+    "name": "Beedrill",
+    "hp": 65,
+    "atk": 90,
+    "def": 40,
+    "spa": 45,
+    "spd": 80,
+    "spe": 75
+  },
+  {
+    "name": "Mega Beedrill",
+    "hp": 65,
+    "atk": 150,
+    "def": 40,
+    "spa": 15,
+    "spd": 80,
+    "spe": 145
+  },
+  {
+    "name": "Mega Pidgeot",
+    "hp": 83,
+    "atk": 80,
+    "def": 80,
+    "spa": 135,
+    "spd": 80,
+    "spe": 121
+  },
+  {
+    "name": "Pidgeot",
+    "hp": 83,
+    "atk": 80,
+    "def": 75,
+    "spa": 70,
+    "spd": 70,
+    "spe": 101
+  },
+  {
+    "name": "Arbok",
+    "hp": 60,
+    "atk": 95,
+    "def": 69,
+    "spa": 65,
+    "spd": 79,
+    "spe": 80
+  },
+  {
+    "name": "Pikachu",
+    "hp": 35,
+    "atk": 55,
+    "def": 40,
+    "spa": 50,
+    "spd": 50,
+    "spe": 90
+  },
+  {
+    "name": "Alolan Raichu",
+    "hp": 60,
+    "atk": 85,
+    "def": 50,
+    "spa": 95,
+    "spd": 85,
+    "spe": 110
+  },
+  {
+    "name": "Raichu",
+    "hp": 60,
+    "atk": 90,
+    "def": 55,
+    "spa": 90,
+    "spd": 80,
+    "spe": 110
+  },
+  {
+    "name": "Clefable",
+    "hp": 95,
+    "atk": 70,
+    "def": 73,
+    "spa": 95,
+    "spd": 90,
+    "spe": 60
+  },
+  {
+    "name": "Mega Clefable",
+    "hp": 95,
+    "atk": 80,
+    "def": 93,
+    "spa": 135,
+    "spd": 110,
+    "spe": 70
+  },
+  {
+    "name": "Alolan Ninetales",
+    "hp": 73,
+    "atk": 67,
+    "def": 75,
+    "spa": 81,
+    "spd": 100,
+    "spe": 109
+  },
+  {
+    "name": "Ninetales",
+    "hp": 73,
+    "atk": 76,
+    "def": 75,
+    "spa": 81,
+    "spd": 100,
+    "spe": 100
+  },
+  {
+    "name": "Arcanine",
+    "hp": 90,
+    "atk": 110,
+    "def": 80,
+    "spa": 100,
+    "spd": 80,
+    "spe": 95
+  },
+  {
+    "name": "Hisuian Arcanine",
+    "hp": 95,
+    "atk": 115,
+    "def": 80,
+    "spa": 95,
+    "spd": 80,
+    "spe": 90
+  },
+  {
+    "name": "Alakazam",
+    "hp": 55,
+    "atk": 50,
+    "def": 45,
+    "spa": 135,
+    "spd": 95,
+    "spe": 120
+  },
+  {
+    "name": "Mega Alakazam",
+    "hp": 55,
+    "atk": 50,
+    "def": 65,
+    "spa": 175,
+    "spd": 105,
+    "spe": 150
+  },
+  {
+    "name": "Machamp",
+    "hp": 90,
+    "atk": 130,
+    "def": 80,
+    "spa": 65,
+    "spd": 85,
+    "spe": 55
+  },
+  {
+    "name": "Mega Victreebel",
+    "hp": 80,
+    "atk": 125,
+    "def": 85,
+    "spa": 135,
+    "spd": 95,
+    "spe": 70
+  },
+  {
+    "name": "Victreebel",
+    "hp": 80,
+    "atk": 105,
+    "def": 65,
+    "spa": 100,
+    "spd": 70,
+    "spe": 70
+  },
+  {
+    "name": "Galarian Slowbro",
+    "hp": 95,
+    "atk": 100,
+    "def": 95,
+    "spa": 100,
+    "spd": 70,
+    "spe": 30
+  },
+  {
+    "name": "Mega Slowbro",
+    "hp": 95,
+    "atk": 75,
+    "def": 180,
+    "spa": 130,
+    "spd": 80,
+    "spe": 30
+  },
+  {
+    "name": "Slowbro",
+    "hp": 95,
+    "atk": 75,
+    "def": 110,
+    "spa": 100,
+    "spd": 80,
+    "spe": 30
+  },
+  {
+    "name": "Gengar",
+    "hp": 60,
+    "atk": 65,
+    "def": 60,
+    "spa": 130,
+    "spd": 75,
+    "spe": 110
+  },
+  {
+    "name": "Mega Gengar",
+    "hp": 60,
+    "atk": 65,
+    "def": 80,
+    "spa": 170,
+    "spd": 95,
+    "spe": 130
+  },
+  {
+    "name": "Kangaskhan",
+    "hp": 105,
+    "atk": 95,
+    "def": 80,
+    "spa": 40,
+    "spd": 80,
+    "spe": 90
+  },
+  {
+    "name": "Mega Kangaskhan",
+    "hp": 105,
+    "atk": 125,
+    "def": 100,
+    "spa": 60,
+    "spd": 100,
+    "spe": 100
+  },
+  {
+    "name": "Mega Starmie",
+    "hp": 60,
+    "atk": 100,
+    "def": 105,
+    "spa": 130,
+    "spd": 105,
+    "spe": 120
+  },
+  {
+    "name": "Starmie",
+    "hp": 60,
+    "atk": 75,
+    "def": 85,
+    "spa": 100,
+    "spd": 85,
+    "spe": 115
+  },
+  {
+    "name": "Mega Pinsir",
+    "hp": 65,
+    "atk": 155,
+    "def": 120,
+    "spa": 65,
+    "spd": 90,
+    "spe": 105
+  },
+  {
+    "name": "Pinsir",
+    "hp": 65,
+    "atk": 125,
+    "def": 100,
+    "spa": 55,
+    "spd": 70,
+    "spe": 85
+  },
+  {
+    "name": "Paldean Tauros",
+    "hp": 75,
+    "atk": 110,
+    "def": 105,
+    "spa": 30,
+    "spd": 70,
+    "spe": 100
+  },
+  {
+    "name": "Tauros",
+    "hp": 75,
+    "atk": 100,
+    "def": 95,
+    "spa": 40,
+    "spd": 70,
+    "spe": 110
+  },
+  {
+    "name": "Gyarados",
+    "hp": 95,
+    "atk": 125,
+    "def": 79,
+    "spa": 60,
+    "spd": 100,
+    "spe": 81
+  },
+  {
+    "name": "Mega Gyarados",
+    "hp": 95,
+    "atk": 155,
+    "def": 109,
+    "spa": 70,
+    "spd": 130,
+    "spe": 81
+  },
+  {
+    "name": "Ditto",
+    "hp": 48,
+    "atk": 48,
+    "def": 48,
+    "spa": 48,
+    "spd": 48,
+    "spe": 48
+  },
+  {
+    "name": "Vaporeon",
+    "hp": 130,
+    "atk": 65,
+    "def": 60,
+    "spa": 110,
+    "spd": 95,
+    "spe": 65
+  },
+  {
+    "name": "Jolteon",
+    "hp": 65,
+    "atk": 65,
+    "def": 60,
+    "spa": 110,
+    "spd": 95,
+    "spe": 130
+  },
+  {
+    "name": "Flareon",
+    "hp": 65,
+    "atk": 130,
+    "def": 60,
+    "spa": 95,
+    "spd": 110,
+    "spe": 65
+  },
+  {
+    "name": "Aerodactyl",
+    "hp": 80,
+    "atk": 105,
+    "def": 65,
+    "spa": 60,
+    "spd": 75,
+    "spe": 130
+  },
+  {
+    "name": "Mega Aerodactyl",
+    "hp": 80,
+    "atk": 135,
+    "def": 85,
+    "spa": 70,
+    "spd": 95,
+    "spe": 150
+  },
+  {
+    "name": "Snorlax",
+    "hp": 160,
+    "atk": 110,
+    "def": 65,
+    "spa": 65,
+    "spd": 110,
+    "spe": 30
+  },
+  {
+    "name": "Dragonite",
+    "hp": 91,
+    "atk": 134,
+    "def": 95,
+    "spa": 100,
+    "spd": 100,
+    "spe": 80
+  },
+  {
+    "name": "Mega Dragonite",
+    "hp": 91,
+    "atk": 124,
+    "def": 115,
+    "spa": 145,
+    "spd": 125,
+    "spe": 100
+  },
+  {
+    "name": "Mega Meganium",
+    "hp": 80,
+    "atk": 92,
+    "def": 115,
+    "spa": 143,
+    "spd": 115,
+    "spe": 80
+  },
+  {
+    "name": "Meganium",
+    "hp": 80,
+    "atk": 82,
+    "def": 100,
+    "spa": 83,
+    "spd": 100,
+    "spe": 80
+  },
+  {
+    "name": "Hisuian Typhlosion",
+    "hp": 73,
+    "atk": 84,
+    "def": 78,
+    "spa": 119,
+    "spd": 85,
+    "spe": 95
+  },
+  {
+    "name": "Typhlosion",
+    "hp": 78,
+    "atk": 84,
+    "def": 78,
+    "spa": 109,
+    "spd": 85,
+    "spe": 100
+  },
+  {
+    "name": "Feraligatr",
+    "hp": 85,
+    "atk": 105,
+    "def": 100,
+    "spa": 79,
+    "spd": 83,
+    "spe": 78
+  },
+  {
+    "name": "Mega Feraligatr",
+    "hp": 85,
+    "atk": 160,
+    "def": 125,
+    "spa": 89,
+    "spd": 93,
+    "spe": 78
+  },
+  {
+    "name": "Ariados",
+    "hp": 70,
+    "atk": 90,
+    "def": 70,
+    "spa": 60,
+    "spd": 70,
+    "spe": 40
+  },
+  {
+    "name": "Ampharos",
+    "hp": 90,
+    "atk": 75,
+    "def": 85,
+    "spa": 115,
+    "spd": 90,
+    "spe": 55
+  },
+  {
+    "name": "Mega Ampharos",
+    "hp": 90,
+    "atk": 95,
+    "def": 105,
+    "spa": 165,
+    "spd": 110,
+    "spe": 45
+  },
+  {
+    "name": "Azumarill",
+    "hp": 100,
+    "atk": 50,
+    "def": 80,
+    "spa": 60,
+    "spd": 80,
+    "spe": 50
+  },
+  {
+    "name": "Politoed",
+    "hp": 90,
+    "atk": 75,
+    "def": 75,
+    "spa": 90,
+    "spd": 100,
+    "spe": 70
+  },
+  {
+    "name": "Espeon",
+    "hp": 65,
+    "atk": 65,
+    "def": 60,
+    "spa": 130,
+    "spd": 95,
+    "spe": 110
+  },
+  {
+    "name": "Umbreon",
+    "hp": 95,
+    "atk": 65,
+    "def": 110,
+    "spa": 60,
+    "spd": 130,
+    "spe": 65
+  },
+  {
+    "name": "Galarian Slowking",
+    "hp": 95,
+    "atk": 65,
+    "def": 80,
+    "spa": 110,
+    "spd": 110,
+    "spe": 30
+  },
+  {
+    "name": "Slowking",
+    "hp": 95,
+    "atk": 75,
+    "def": 80,
+    "spa": 100,
+    "spd": 110,
+    "spe": 30
+  },
+  {
+    "name": "Forretress",
+    "hp": 75,
+    "atk": 90,
+    "def": 140,
+    "spa": 60,
+    "spd": 60,
+    "spe": 40
+  },
+  {
+    "name": "Mega Steelix",
+    "hp": 75,
+    "atk": 125,
+    "def": 230,
+    "spa": 55,
+    "spd": 95,
+    "spe": 30
+  },
+  {
+    "name": "Steelix",
+    "hp": 75,
+    "atk": 85,
+    "def": 200,
+    "spa": 55,
+    "spd": 65,
+    "spe": 30
+  },
+  {
+    "name": "Mega Scizor",
+    "hp": 70,
+    "atk": 150,
+    "def": 140,
+    "spa": 65,
+    "spd": 100,
+    "spe": 75
+  },
+  {
+    "name": "Scizor",
+    "hp": 70,
+    "atk": 130,
+    "def": 100,
+    "spa": 55,
+    "spd": 80,
+    "spe": 65
+  },
+  {
+    "name": "Heracross",
+    "hp": 80,
+    "atk": 125,
+    "def": 75,
+    "spa": 40,
+    "spd": 95,
+    "spe": 85
+  },
+  {
+    "name": "Mega Heracross",
+    "hp": 80,
+    "atk": 185,
+    "def": 115,
+    "spa": 40,
+    "spd": 105,
+    "spe": 75
+  },
+  {
+    "name": "Mega Skarmory",
+    "hp": 65,
+    "atk": 140,
+    "def": 110,
+    "spa": 40,
+    "spd": 100,
+    "spe": 110
+  },
+  {
+    "name": "Skarmory",
+    "hp": 65,
+    "atk": 80,
+    "def": 140,
+    "spa": 40,
+    "spd": 70,
+    "spe": 70
+  },
+  {
+    "name": "Houndoom",
+    "hp": 75,
+    "atk": 90,
+    "def": 50,
+    "spa": 110,
+    "spd": 80,
+    "spe": 95
+  },
+  {
+    "name": "Mega Houndoom",
+    "hp": 75,
+    "atk": 90,
+    "def": 90,
+    "spa": 140,
+    "spd": 90,
+    "spe": 115
+  },
+  {
+    "name": "Mega Tyranitar",
+    "hp": 100,
+    "atk": 164,
+    "def": 150,
+    "spa": 95,
+    "spd": 120,
+    "spe": 71
+  },
+  {
+    "name": "Tyranitar",
+    "hp": 100,
+    "atk": 134,
+    "def": 110,
+    "spa": 95,
+    "spd": 100,
+    "spe": 61
+  },
+  {
+    "name": "Pelipper",
+    "hp": 60,
+    "atk": 50,
+    "def": 100,
+    "spa": 95,
+    "spd": 70,
+    "spe": 65
+  },
+  {
+    "name": "Gardevoir",
+    "hp": 68,
+    "atk": 65,
+    "def": 65,
+    "spa": 125,
+    "spd": 115,
+    "spe": 80
+  },
+  {
+    "name": "Mega Gardevoir",
+    "hp": 68,
+    "atk": 85,
+    "def": 65,
+    "spa": 165,
+    "spd": 135,
+    "spe": 100
+  },
+  {
+    "name": "Mega Sableye",
+    "hp": 50,
+    "atk": 85,
+    "def": 125,
+    "spa": 85,
+    "spd": 115,
+    "spe": 20
+  },
+  {
+    "name": "Sableye",
+    "hp": 50,
+    "atk": 75,
+    "def": 75,
+    "spa": 65,
+    "spd": 65,
+    "spe": 50
+  },
+  {
+    "name": "Aggron",
+    "hp": 70,
+    "atk": 110,
+    "def": 180,
+    "spa": 60,
+    "spd": 60,
+    "spe": 50
+  },
+  {
+    "name": "Mega Aggron",
+    "hp": 70,
+    "atk": 140,
+    "def": 230,
+    "spa": 60,
+    "spd": 80,
+    "spe": 50
+  },
+  {
+    "name": "Medicham",
+    "hp": 60,
+    "atk": 60,
+    "def": 75,
+    "spa": 60,
+    "spd": 75,
+    "spe": 80
+  },
+  {
+    "name": "Mega Medicham",
+    "hp": 60,
+    "atk": 100,
+    "def": 85,
+    "spa": 80,
+    "spd": 85,
+    "spe": 100
+  },
+  {
+    "name": "Manectric",
+    "hp": 70,
+    "atk": 75,
+    "def": 60,
+    "spa": 105,
+    "spd": 60,
+    "spe": 105
+  },
+  {
+    "name": "Mega Manectric",
+    "hp": 70,
+    "atk": 75,
+    "def": 80,
+    "spa": 135,
+    "spd": 80,
+    "spe": 135
+  },
+  {
+    "name": "Mega Sharpedo",
+    "hp": 70,
+    "atk": 140,
+    "def": 70,
+    "spa": 110,
+    "spd": 65,
+    "spe": 105
+  },
+  {
+    "name": "Sharpedo",
+    "hp": 70,
+    "atk": 120,
+    "def": 40,
+    "spa": 95,
+    "spd": 40,
+    "spe": 95
+  },
+  {
+    "name": "Camerupt",
+    "hp": 70,
+    "atk": 100,
+    "def": 70,
+    "spa": 105,
+    "spd": 75,
+    "spe": 40
+  },
+  {
+    "name": "Mega Camerupt",
+    "hp": 70,
+    "atk": 120,
+    "def": 100,
+    "spa": 145,
+    "spd": 105,
+    "spe": 20
+  },
+  {
+    "name": "Torkoal",
+    "hp": 70,
+    "atk": 85,
+    "def": 140,
+    "spa": 85,
+    "spd": 70,
+    "spe": 20
+  },
+  {
+    "name": "Altaria",
+    "hp": 75,
+    "atk": 70,
+    "def": 90,
+    "spa": 70,
+    "spd": 105,
+    "spe": 80
+  },
+  {
+    "name": "Mega Altaria",
+    "hp": 75,
+    "atk": 110,
+    "def": 110,
+    "spa": 110,
+    "spd": 105,
+    "spe": 80
+  },
+  {
+    "name": "Milotic",
+    "hp": 95,
+    "atk": 60,
+    "def": 79,
+    "spa": 100,
+    "spd": 125,
+    "spe": 81
+  },
+  {
+    "name": "Castform",
+    "hp": 70,
+    "atk": 70,
+    "def": 70,
+    "spa": 70,
+    "spd": 70,
+    "spe": 70
+  },
+  {
+    "name": "Banette",
+    "hp": 64,
+    "atk": 115,
+    "def": 65,
+    "spa": 83,
+    "spd": 63,
+    "spe": 65
+  },
+  {
+    "name": "Mega Banette",
+    "hp": 64,
+    "atk": 165,
+    "def": 75,
+    "spa": 93,
+    "spd": 83,
+    "spe": 75
+  },
+  {
+    "name": "Chimecho",
+    "hp": 75,
+    "atk": 50,
+    "def": 80,
+    "spa": 95,
+    "spd": 90,
+    "spe": 65
+  },
+  {
+    "name": "Mega Chimecho",
+    "hp": 75,
+    "atk": 50,
+    "def": 110,
+    "spa": 135,
+    "spd": 120,
+    "spe": 65
+  },
+  {
+    "name": "Absol",
+    "hp": 65,
+    "atk": 130,
+    "def": 60,
+    "spa": 75,
+    "spd": 60,
+    "spe": 75
+  },
+  {
+    "name": "Mega Absol",
+    "hp": 65,
+    "atk": 150,
+    "def": 60,
+    "spa": 115,
+    "spd": 60,
+    "spe": 115
+  },
+  {
+    "name": "Glalie",
+    "hp": 80,
+    "atk": 80,
+    "def": 80,
+    "spa": 80,
+    "spd": 80,
+    "spe": 80
+  },
+  {
+    "name": "Mega Glalie",
+    "hp": 80,
+    "atk": 120,
+    "def": 80,
+    "spa": 120,
+    "spd": 80,
+    "spe": 100
+  },
+  {
+    "name": "Torterra",
+    "hp": 95,
+    "atk": 109,
+    "def": 105,
+    "spa": 75,
+    "spd": 85,
+    "spe": 56
+  },
+  {
+    "name": "Infernape",
+    "hp": 76,
+    "atk": 104,
+    "def": 71,
+    "spa": 104,
+    "spd": 71,
+    "spe": 108
+  },
+  {
+    "name": "Empoleon",
+    "hp": 84,
+    "atk": 86,
+    "def": 88,
+    "spa": 111,
+    "spd": 101,
+    "spe": 60
+  },
+  {
+    "name": "Luxray",
+    "hp": 80,
+    "atk": 120,
+    "def": 79,
+    "spa": 95,
+    "spd": 79,
+    "spe": 70
+  },
+  {
+    "name": "Roserade",
+    "hp": 60,
+    "atk": 70,
+    "def": 65,
+    "spa": 125,
+    "spd": 105,
+    "spe": 90
+  },
+  {
+    "name": "Rampardos",
+    "hp": 97,
+    "atk": 165,
+    "def": 60,
+    "spa": 65,
+    "spd": 50,
+    "spe": 58
+  },
+  {
+    "name": "Bastiodon",
+    "hp": 60,
+    "atk": 52,
+    "def": 168,
+    "spa": 47,
+    "spd": 138,
+    "spe": 30
+  },
+  {
+    "name": "Lopunny",
+    "hp": 65,
+    "atk": 76,
+    "def": 84,
+    "spa": 54,
+    "spd": 96,
+    "spe": 105
+  },
+  {
+    "name": "Mega Lopunny",
+    "hp": 65,
+    "atk": 136,
+    "def": 94,
+    "spa": 54,
+    "spd": 96,
+    "spe": 135
+  },
+  {
+    "name": "Spiritomb",
+    "hp": 50,
+    "atk": 92,
+    "def": 108,
+    "spa": 92,
+    "spd": 108,
+    "spe": 35
+  },
+  {
+    "name": "Garchomp",
+    "hp": 108,
+    "atk": 130,
+    "def": 95,
+    "spa": 80,
+    "spd": 85,
+    "spe": 102
+  },
+  {
+    "name": "Mega Garchomp",
+    "hp": 108,
+    "atk": 170,
+    "def": 115,
+    "spa": 120,
+    "spd": 95,
+    "spe": 92
+  },
+  {
+    "name": "Lucario",
+    "hp": 70,
+    "atk": 110,
+    "def": 70,
+    "spa": 115,
+    "spd": 70,
+    "spe": 90
+  },
+  {
+    "name": "Mega Lucario",
+    "hp": 70,
+    "atk": 145,
+    "def": 88,
+    "spa": 140,
+    "spd": 70,
+    "spe": 112
+  },
+  {
+    "name": "Hippowdon",
+    "hp": 108,
+    "atk": 112,
+    "def": 118,
+    "spa": 68,
+    "spd": 72,
+    "spe": 47
+  },
+  {
+    "name": "Toxicroak",
+    "hp": 83,
+    "atk": 106,
+    "def": 65,
+    "spa": 86,
+    "spd": 65,
+    "spe": 85
+  },
+  {
+    "name": "Abomasnow",
+    "hp": 90,
+    "atk": 92,
+    "def": 75,
+    "spa": 92,
+    "spd": 85,
+    "spe": 60
+  },
+  {
+    "name": "Mega Abomasnow",
+    "hp": 90,
+    "atk": 132,
+    "def": 105,
+    "spa": 132,
+    "spd": 105,
+    "spe": 30
+  },
+  {
+    "name": "Weavile",
+    "hp": 70,
+    "atk": 120,
+    "def": 65,
+    "spa": 45,
+    "spd": 85,
+    "spe": 125
+  },
+  {
+    "name": "Rhyperior",
+    "hp": 115,
+    "atk": 140,
+    "def": 130,
+    "spa": 55,
+    "spd": 55,
+    "spe": 40
+  },
+  {
+    "name": "Leafeon",
+    "hp": 65,
+    "atk": 110,
+    "def": 130,
+    "spa": 60,
+    "spd": 65,
+    "spe": 95
+  },
+  {
+    "name": "Glaceon",
+    "hp": 65,
+    "atk": 60,
+    "def": 110,
+    "spa": 130,
+    "spd": 95,
+    "spe": 65
+  },
+  {
+    "name": "Gliscor",
+    "hp": 75,
+    "atk": 95,
+    "def": 125,
+    "spa": 45,
+    "spd": 75,
+    "spe": 95
+  },
+  {
+    "name": "Mamoswine",
+    "hp": 110,
+    "atk": 130,
+    "def": 80,
+    "spa": 70,
+    "spd": 60,
+    "spe": 80
+  },
+  {
+    "name": "Gallade",
+    "hp": 68,
+    "atk": 125,
+    "def": 65,
+    "spa": 65,
+    "spd": 115,
+    "spe": 80
+  },
+  {
+    "name": "Mega Gallade",
+    "hp": 68,
+    "atk": 165,
+    "def": 95,
+    "spa": 65,
+    "spd": 115,
+    "spe": 110
+  },
+  {
+    "name": "Froslass",
+    "hp": 70,
+    "atk": 80,
+    "def": 70,
+    "spa": 80,
+    "spd": 70,
+    "spe": 110
+  },
+  {
+    "name": "Mega Froslass",
+    "hp": 70,
+    "atk": 80,
+    "def": 70,
+    "spa": 140,
+    "spd": 100,
+    "spe": 120
+  },
+  {
+    "name": "Rotom",
+    "hp": 50,
+    "atk": 50,
+    "def": 77,
+    "spa": 95,
+    "spd": 77,
+    "spe": 91
+  },
+  {
+    "name": "Serperior",
+    "hp": 75,
+    "atk": 75,
+    "def": 95,
+    "spa": 75,
+    "spd": 95,
+    "spe": 113
+  },
+  {
+    "name": "Emboar",
+    "hp": 110,
+    "atk": 123,
+    "def": 65,
+    "spa": 100,
+    "spd": 65,
+    "spe": 65
+  },
+  {
+    "name": "Mega Emboar",
+    "hp": 110,
+    "atk": 148,
+    "def": 75,
+    "spa": 110,
+    "spd": 110,
+    "spe": 75
+  },
+  {
+    "name": "Hisuian Samurott",
+    "hp": 90,
+    "atk": 108,
+    "def": 80,
+    "spa": 100,
+    "spd": 65,
+    "spe": 85
+  },
+  {
+    "name": "Samurott",
+    "hp": 95,
+    "atk": 100,
+    "def": 85,
+    "spa": 108,
+    "spd": 70,
+    "spe": 70
+  },
+  {
+    "name": "Watchog",
+    "hp": 60,
+    "atk": 85,
+    "def": 69,
+    "spa": 60,
+    "spd": 69,
+    "spe": 77
+  },
+  {
+    "name": "Liepard",
+    "hp": 64,
+    "atk": 88,
+    "def": 50,
+    "spa": 88,
+    "spd": 50,
+    "spe": 106
+  },
+  {
+    "name": "Simisage",
+    "hp": 75,
+    "atk": 98,
+    "def": 63,
+    "spa": 98,
+    "spd": 63,
+    "spe": 101
+  },
+  {
+    "name": "Simisear",
+    "hp": 75,
+    "atk": 98,
+    "def": 63,
+    "spa": 98,
+    "spd": 63,
+    "spe": 101
+  },
+  {
+    "name": "Simipour",
+    "hp": 75,
+    "atk": 98,
+    "def": 63,
+    "spa": 98,
+    "spd": 63,
+    "spe": 101
+  },
+  {
+    "name": "Excadrill",
+    "hp": 110,
+    "atk": 135,
+    "def": 60,
+    "spa": 50,
+    "spd": 65,
+    "spe": 88
+  },
+  {
+    "name": "Mega Excadrill",
+    "hp": 110,
+    "atk": 165,
+    "def": 100,
+    "spa": 65,
+    "spd": 65,
+    "spe": 103
+  },
+  {
+    "name": "Audino",
+    "hp": 103,
+    "atk": 60,
+    "def": 86,
+    "spa": 60,
+    "spd": 86,
+    "spe": 50
+  },
+  {
+    "name": "Mega Audino",
+    "hp": 103,
+    "atk": 60,
+    "def": 126,
+    "spa": 80,
+    "spd": 126,
+    "spe": 50
+  },
+  {
+    "name": "Conkeldurr",
+    "hp": 105,
+    "atk": 140,
+    "def": 95,
+    "spa": 55,
+    "spd": 65,
+    "spe": 45
+  },
+  {
+    "name": "Whimsicott",
+    "hp": 60,
+    "atk": 67,
+    "def": 85,
+    "spa": 77,
+    "spd": 75,
+    "spe": 116
+  },
+  {
+    "name": "Krookodile",
+    "hp": 95,
+    "atk": 117,
+    "def": 80,
+    "spa": 65,
+    "spd": 70,
+    "spe": 92
+  },
+  {
+    "name": "Cofagrigus",
+    "hp": 58,
+    "atk": 50,
+    "def": 145,
+    "spa": 95,
+    "spd": 105,
+    "spe": 30
+  },
+  {
+    "name": "Garbodor",
+    "hp": 80,
+    "atk": 95,
+    "def": 82,
+    "spa": 60,
+    "spd": 82,
+    "spe": 75
+  },
+  {
+    "name": "Hisuian Zoroark",
+    "hp": 55,
+    "atk": 100,
+    "def": 60,
+    "spa": 125,
+    "spd": 60,
+    "spe": 110
+  },
+  {
+    "name": "Zoroark",
+    "hp": 60,
+    "atk": 105,
+    "def": 60,
+    "spa": 120,
+    "spd": 60,
+    "spe": 105
+  },
+  {
+    "name": "Reuniclus",
+    "hp": 110,
+    "atk": 65,
+    "def": 75,
+    "spa": 125,
+    "spd": 85,
+    "spe": 30
+  },
+  {
+    "name": "Vanilluxe",
+    "hp": 71,
+    "atk": 95,
+    "def": 85,
+    "spa": 110,
+    "spd": 95,
+    "spe": 79
+  },
+  {
+    "name": "Emolga",
+    "hp": 55,
+    "atk": 75,
+    "def": 60,
+    "spa": 75,
+    "spd": 60,
+    "spe": 103
+  },
+  {
+    "name": "Chandelure",
+    "hp": 60,
+    "atk": 55,
+    "def": 90,
+    "spa": 145,
+    "spd": 90,
+    "spe": 80
+  },
+  {
+    "name": "Mega Chandelure",
+    "hp": 60,
+    "atk": 75,
+    "def": 110,
+    "spa": 175,
+    "spd": 110,
+    "spe": 90
+  },
+  {
+    "name": "Beartic",
+    "hp": 95,
+    "atk": 130,
+    "def": 80,
+    "spa": 70,
+    "spd": 80,
+    "spe": 50
+  },
+  {
+    "name": "Galarian Stunfisk",
+    "hp": 109,
+    "atk": 81,
+    "def": 99,
+    "spa": 66,
+    "spd": 84,
+    "spe": 32
+  },
+  {
+    "name": "Stunfisk",
+    "hp": 109,
+    "atk": 66,
+    "def": 84,
+    "spa": 81,
+    "spd": 99,
+    "spe": 32
+  },
+  {
+    "name": "Golurk",
+    "hp": 89,
+    "atk": 124,
+    "def": 80,
+    "spa": 55,
+    "spd": 80,
+    "spe": 55
+  },
+  {
+    "name": "Mega Golurk",
+    "hp": 89,
+    "atk": 159,
+    "def": 105,
+    "spa": 70,
+    "spd": 105,
+    "spe": 55
+  },
+  {
+    "name": "Hydreigon",
+    "hp": 92,
+    "atk": 105,
+    "def": 90,
+    "spa": 125,
+    "spd": 90,
+    "spe": 98
+  },
+  {
+    "name": "Volcarona",
+    "hp": 85,
+    "atk": 60,
+    "def": 65,
+    "spa": 135,
+    "spd": 105,
+    "spe": 100
+  },
+  {
+    "name": "Chesnaught",
+    "hp": 88,
+    "atk": 107,
+    "def": 122,
+    "spa": 74,
+    "spd": 75,
+    "spe": 64
+  },
+  {
+    "name": "Mega Chesnaught",
+    "hp": 88,
+    "atk": 137,
+    "def": 172,
+    "spa": 74,
+    "spd": 115,
+    "spe": 44
+  },
+  {
+    "name": "Delphox",
+    "hp": 75,
+    "atk": 69,
+    "def": 72,
+    "spa": 114,
+    "spd": 100,
+    "spe": 104
+  },
+  {
+    "name": "Mega Delphox",
+    "hp": 75,
+    "atk": 69,
+    "def": 72,
+    "spa": 159,
+    "spd": 125,
+    "spe": 134
+  },
+  {
+    "name": "Greninja",
+    "hp": 72,
+    "atk": 95,
+    "def": 67,
+    "spa": 103,
+    "spd": 71,
+    "spe": 122
+  },
+  {
+    "name": "Mega Greninja",
+    "hp": 72,
+    "atk": 125,
+    "def": 77,
+    "spa": 133,
+    "spd": 81,
+    "spe": 142
+  },
+  {
+    "name": "Diggersby",
+    "hp": 85,
+    "atk": 56,
+    "def": 77,
+    "spa": 50,
+    "spd": 77,
+    "spe": 78
+  },
+  {
+    "name": "Talonflame",
+    "hp": 78,
+    "atk": 81,
+    "def": 71,
+    "spa": 74,
+    "spd": 69,
+    "spe": 126
+  },
+  {
+    "name": "Vivillon",
+    "hp": 80,
+    "atk": 52,
+    "def": 50,
+    "spa": 90,
+    "spd": 50,
+    "spe": 89
+  },
+  {
+    "name": "Floette",
+    "hp": 54,
+    "atk": 45,
+    "def": 47,
+    "spa": 75,
+    "spd": 98,
+    "spe": 52
+  },
+  {
+    "name": "Mega Floette",
+    "hp": 74,
+    "atk": 85,
+    "def": 87,
+    "spa": 155,
+    "spd": 148,
+    "spe": 102
+  },
+  {
+    "name": "Florges",
+    "hp": 78,
+    "atk": 65,
+    "def": 68,
+    "spa": 112,
+    "spd": 154,
+    "spe": 75
+  },
+  {
+    "name": "Pangoro",
+    "hp": 95,
+    "atk": 124,
+    "def": 78,
+    "spa": 69,
+    "spd": 71,
+    "spe": 58
+  },
+  {
+    "name": "Furfrou",
+    "hp": 75,
+    "atk": 80,
+    "def": 60,
+    "spa": 65,
+    "spd": 90,
+    "spe": 102
+  },
+  {
+    "name": "Mega Meowstic",
+    "hp": 74,
+    "atk": 48,
+    "def": 76,
+    "spa": 143,
+    "spd": 101,
+    "spe": 124
+  },
+  {
+    "name": "Meowstic",
+    "hp": 74,
+    "atk": 48,
+    "def": 76,
+    "spa": 83,
+    "spd": 81,
+    "spe": 104
+  },
+  {
+    "name": "Aegislash",
+    "hp": 60,
+    "atk": 50,
+    "def": 140,
+    "spa": 50,
+    "spd": 140,
+    "spe": 60
+  },
+  {
+    "name": "Aromatisse",
+    "hp": 101,
+    "atk": 72,
+    "def": 72,
+    "spa": 99,
+    "spd": 89,
+    "spe": 29
+  },
+  {
+    "name": "Slurpuff",
+    "hp": 82,
+    "atk": 80,
+    "def": 86,
+    "spa": 85,
+    "spd": 75,
+    "spe": 72
+  },
+  {
+    "name": "Clawitzer",
+    "hp": 71,
+    "atk": 73,
+    "def": 88,
+    "spa": 120,
+    "spd": 89,
+    "spe": 59
+  },
+  {
+    "name": "Heliolisk",
+    "hp": 62,
+    "atk": 55,
+    "def": 52,
+    "spa": 109,
+    "spd": 94,
+    "spe": 109
+  },
+  {
+    "name": "Tyrantrum",
+    "hp": 82,
+    "atk": 121,
+    "def": 119,
+    "spa": 69,
+    "spd": 59,
+    "spe": 71
+  },
+  {
+    "name": "Aurorus",
+    "hp": 123,
+    "atk": 77,
+    "def": 72,
+    "spa": 99,
+    "spd": 92,
+    "spe": 58
+  },
+  {
+    "name": "Sylveon",
+    "hp": 95,
+    "atk": 65,
+    "def": 65,
+    "spa": 110,
+    "spd": 130,
+    "spe": 60
+  },
+  {
+    "name": "Hawlucha",
+    "hp": 78,
+    "atk": 92,
+    "def": 75,
+    "spa": 74,
+    "spd": 63,
+    "spe": 118
+  },
+  {
+    "name": "Mega Hawlucha",
+    "hp": 78,
+    "atk": 137,
+    "def": 100,
+    "spa": 74,
+    "spd": 93,
+    "spe": 118
+  },
+  {
+    "name": "Dedenne",
+    "hp": 67,
+    "atk": 58,
+    "def": 57,
+    "spa": 81,
+    "spd": 67,
+    "spe": 101
+  },
+  {
+    "name": "Goodra",
+    "hp": 90,
+    "atk": 100,
+    "def": 70,
+    "spa": 110,
+    "spd": 150,
+    "spe": 80
+  },
+  {
+    "name": "Hisuian Goodra",
+    "hp": 80,
+    "atk": 100,
+    "def": 100,
+    "spa": 110,
+    "spd": 150,
+    "spe": 60
+  },
+  {
+    "name": "Klefki",
+    "hp": 57,
+    "atk": 80,
+    "def": 91,
+    "spa": 80,
+    "spd": 87,
+    "spe": 75
+  },
+  {
+    "name": "Trevenant",
+    "hp": 85,
+    "atk": 110,
+    "def": 76,
+    "spa": 65,
+    "spd": 82,
+    "spe": 56
+  },
+  {
+    "name": "Gourgeist",
+    "hp": 65,
+    "atk": 90,
+    "def": 122,
+    "spa": 58,
+    "spd": 75,
+    "spe": 84
+  },
+  {
+    "name": "Avalugg",
+    "hp": 95,
+    "atk": 117,
+    "def": 184,
+    "spa": 44,
+    "spd": 46,
+    "spe": 28
+  },
+  {
+    "name": "Hisuian Avalugg",
+    "hp": 95,
+    "atk": 127,
+    "def": 184,
+    "spa": 34,
+    "spd": 36,
+    "spe": 38
+  },
+  {
+    "name": "Noivern",
+    "hp": 85,
+    "atk": 70,
+    "def": 80,
+    "spa": 97,
+    "spd": 80,
+    "spe": 123
+  },
+  {
+    "name": "Decidueye",
+    "hp": 78,
+    "atk": 107,
+    "def": 75,
+    "spa": 100,
+    "spd": 100,
+    "spe": 70
+  },
+  {
+    "name": "Hisuian Decidueye",
+    "hp": 88,
+    "atk": 112,
+    "def": 80,
+    "spa": 95,
+    "spd": 95,
+    "spe": 60
+  },
+  {
+    "name": "Incineroar",
+    "hp": 95,
+    "atk": 115,
+    "def": 90,
+    "spa": 80,
+    "spd": 90,
+    "spe": 60
+  },
+  {
+    "name": "Primarina",
+    "hp": 80,
+    "atk": 74,
+    "def": 74,
+    "spa": 126,
+    "spd": 116,
+    "spe": 60
+  },
+  {
+    "name": "Toucannon",
+    "hp": 80,
+    "atk": 120,
+    "def": 75,
+    "spa": 75,
+    "spd": 75,
+    "spe": 60
+  },
+  {
+    "name": "Crabominable",
+    "hp": 97,
+    "atk": 132,
+    "def": 77,
+    "spa": 62,
+    "spd": 67,
+    "spe": 43
+  },
+  {
+    "name": "Mega Crabominable",
+    "hp": 97,
+    "atk": 157,
+    "def": 122,
+    "spa": 62,
+    "spd": 107,
+    "spe": 33
+  },
+  {
+    "name": "Lycanroc",
+    "hp": 75,
+    "atk": 115,
+    "def": 65,
+    "spa": 55,
+    "spd": 65,
+    "spe": 112
+  },
+  {
+    "name": "Toxapex",
+    "hp": 50,
+    "atk": 63,
+    "def": 152,
+    "spa": 53,
+    "spd": 142,
+    "spe": 35
+  },
+  {
+    "name": "Mudsdale",
+    "hp": 100,
+    "atk": 125,
+    "def": 100,
+    "spa": 55,
+    "spd": 85,
+    "spe": 35
+  },
+  {
+    "name": "Araquanid",
+    "hp": 68,
+    "atk": 70,
+    "def": 92,
+    "spa": 50,
+    "spd": 132,
+    "spe": 42
+  },
+  {
+    "name": "Salazzle",
+    "hp": 68,
+    "atk": 64,
+    "def": 60,
+    "spa": 111,
+    "spd": 60,
+    "spe": 117
+  },
+  {
+    "name": "Tsareena",
+    "hp": 72,
+    "atk": 120,
+    "def": 98,
+    "spa": 50,
+    "spd": 98,
+    "spe": 72
+  },
+  {
+    "name": "Oranguru",
+    "hp": 90,
+    "atk": 60,
+    "def": 80,
+    "spa": 90,
+    "spd": 110,
+    "spe": 60
+  },
+  {
+    "name": "Passimian",
+    "hp": 100,
+    "atk": 120,
+    "def": 90,
+    "spa": 40,
+    "spd": 60,
+    "spe": 80
+  },
+  {
+    "name": "Mimikyu",
+    "hp": 55,
+    "atk": 90,
+    "def": 80,
+    "spa": 50,
+    "spd": 105,
+    "spe": 96
+  },
+  {
+    "name": "Drampa",
+    "hp": 78,
+    "atk": 60,
+    "def": 85,
+    "spa": 135,
+    "spd": 91,
+    "spe": 36
+  },
+  {
+    "name": "Mega Drampa",
+    "hp": 78,
+    "atk": 85,
+    "def": 110,
+    "spa": 160,
+    "spd": 116,
+    "spe": 36
+  },
+  {
+    "name": "Kommo-o",
+    "hp": 75,
+    "atk": 110,
+    "def": 125,
+    "spa": 100,
+    "spd": 105,
+    "spe": 85
+  },
+  {
+    "name": "Corviknight",
+    "hp": 98,
+    "atk": 87,
+    "def": 105,
+    "spa": 53,
+    "spd": 85,
+    "spe": 67
+  },
+  {
+    "name": "Flapple",
+    "hp": 70,
+    "atk": 110,
+    "def": 80,
+    "spa": 95,
+    "spd": 60,
+    "spe": 70
+  },
+  {
+    "name": "Appletun",
+    "hp": 110,
+    "atk": 85,
+    "def": 80,
+    "spa": 100,
+    "spd": 80,
+    "spe": 30
+  },
+  {
+    "name": "Sandaconda",
+    "hp": 72,
+    "atk": 107,
+    "def": 125,
+    "spa": 65,
+    "spd": 70,
+    "spe": 71
+  },
+  {
+    "name": "Polteageist",
+    "hp": 60,
+    "atk": 65,
+    "def": 65,
+    "spa": 134,
+    "spd": 114,
+    "spe": 70
+  },
+  {
+    "name": "Hatterene",
+    "hp": 57,
+    "atk": 90,
+    "def": 95,
+    "spa": 136,
+    "spd": 103,
+    "spe": 29
+  },
+  {
+    "name": "Mr. Rime",
+    "hp": 80,
+    "atk": 85,
+    "def": 75,
+    "spa": 110,
+    "spd": 100,
+    "spe": 70
+  },
+  {
+    "name": "Runerigus",
+    "hp": 58,
+    "atk": 95,
+    "def": 145,
+    "spa": 50,
+    "spd": 105,
+    "spe": 30
+  },
+  {
+    "name": "Alcremie",
+    "hp": 65,
+    "atk": 60,
+    "def": 75,
+    "spa": 110,
+    "spd": 121,
+    "spe": 64
+  },
+  {
+    "name": "Morpeko",
+    "hp": 58,
+    "atk": 95,
+    "def": 58,
+    "spa": 70,
+    "spd": 58,
+    "spe": 97
+  },
+  {
+    "name": "Dragapult",
+    "hp": 88,
+    "atk": 120,
+    "def": 75,
+    "spa": 100,
+    "spd": 75,
+    "spe": 142
+  },
+  {
+    "name": "Wyrdeer",
+    "hp": 103,
+    "atk": 105,
+    "def": 72,
+    "spa": 105,
+    "spd": 75,
+    "spe": 65
+  },
+  {
+    "name": "Kleavor",
+    "hp": 70,
+    "atk": 135,
+    "def": 95,
+    "spa": 45,
+    "spd": 70,
+    "spe": 85
+  },
+  {
+    "name": "Basculegion",
+    "hp": 120,
+    "atk": 112,
+    "def": 65,
+    "spa": 80,
+    "spd": 75,
+    "spe": 78
+  },
+  {
+    "name": "Sneasler",
+    "hp": 80,
+    "atk": 130,
+    "def": 60,
+    "spa": 40,
+    "spd": 80,
+    "spe": 120
+  },
+  {
+    "name": "Meowscarada",
+    "hp": 76,
+    "atk": 110,
+    "def": 70,
+    "spa": 81,
+    "spd": 70,
+    "spe": 123
+  },
+  {
+    "name": "Skeledirge",
+    "hp": 104,
+    "atk": 75,
+    "def": 100,
+    "spa": 110,
+    "spd": 75,
+    "spe": 66
+  },
+  {
+    "name": "Quaquaval",
+    "hp": 85,
+    "atk": 120,
+    "def": 80,
+    "spa": 85,
+    "spd": 75,
+    "spe": 85
+  },
+  {
+    "name": "Maushold",
+    "hp": 74,
+    "atk": 75,
+    "def": 70,
+    "spa": 65,
+    "spd": 75,
+    "spe": 111
+  },
+  {
+    "name": "Garganacl",
+    "hp": 100,
+    "atk": 100,
+    "def": 130,
+    "spa": 45,
+    "spd": 90,
+    "spe": 35
+  },
+  {
+    "name": "Armarouge",
+    "hp": 85,
+    "atk": 60,
+    "def": 100,
+    "spa": 125,
+    "spd": 80,
+    "spe": 75
+  },
+  {
+    "name": "Ceruledge",
+    "hp": 75,
+    "atk": 125,
+    "def": 80,
+    "spa": 60,
+    "spd": 100,
+    "spe": 85
+  },
+  {
+    "name": "Bellibolt",
+    "hp": 109,
+    "atk": 64,
+    "def": 91,
+    "spa": 103,
+    "spd": 83,
+    "spe": 45
+  },
+  {
+    "name": "Mega Scovillain",
+    "hp": 65,
+    "atk": 138,
+    "def": 85,
+    "spa": 138,
+    "spd": 85,
+    "spe": 75
+  },
+  {
+    "name": "Scovillain",
+    "hp": 65,
+    "atk": 108,
+    "def": 65,
+    "spa": 108,
+    "spd": 65,
+    "spe": 75
+  },
+  {
+    "name": "Espathra",
+    "hp": 95,
+    "atk": 60,
+    "def": 60,
+    "spa": 101,
+    "spd": 60,
+    "spe": 105
+  },
+  {
+    "name": "Tinkaton",
+    "hp": 85,
+    "atk": 75,
+    "def": 77,
+    "spa": 70,
+    "spd": 105,
+    "spe": 94
+  },
+  {
+    "name": "Palafin",
+    "hp": 100,
+    "atk": 70,
+    "def": 72,
+    "spa": 53,
+    "spd": 62,
+    "spe": 100
+  },
+  {
+    "name": "Orthworm",
+    "hp": 70,
+    "atk": 85,
+    "def": 145,
+    "spa": 60,
+    "spd": 55,
+    "spe": 65
+  },
+  {
+    "name": "Glimmora",
+    "hp": 83,
+    "atk": 55,
+    "def": 90,
+    "spa": 130,
+    "spd": 81,
+    "spe": 86
+  },
+  {
+    "name": "Mega Glimmora",
+    "hp": 83,
+    "atk": 90,
+    "def": 105,
+    "spa": 150,
+    "spd": 96,
+    "spe": 101
+  },
+  {
+    "name": "Farigiraf",
+    "hp": 120,
+    "atk": 90,
+    "def": 70,
+    "spa": 110,
+    "spd": 70,
+    "spe": 60
+  },
+  {
+    "name": "Kingambit",
+    "hp": 100,
+    "atk": 135,
+    "def": 120,
+    "spa": 60,
+    "spd": 85,
+    "spe": 50
+  },
+  {
+    "name": "Sinistcha",
+    "hp": 71,
+    "atk": 60,
+    "def": 106,
+    "spa": 121,
+    "spd": 80,
+    "spe": 70
+  },
+  {
+    "name": "Archaludon",
+    "hp": 90,
+    "atk": 105,
+    "def": 130,
+    "spa": 125,
+    "spd": 65,
+    "spe": 85
+  },
+  {
+    "name": "Hydrapple",
+    "hp": 106,
+    "atk": 80,
+    "def": 110,
+    "spa": 120,
+    "spd": 80,
+    "spe": 44
+  },
+  {
+    "name": "Vileplume",
+    "hp": 75,
+    "atk": 80,
+    "def": 85,
+    "spa": 110,
+    "spd": 90,
+    "spe": 50
+  },
+  {
+    "name": "Qwilfish",
+    "hp": 65,
+    "atk": 95,
+    "def": 85,
+    "spa": 55,
+    "spd": 55,
+    "spe": 85
+  },
+  {
+    "name": "Overqwil",
+    "hp": 85,
+    "atk": 115,
+    "def": 95,
+    "spa": 65,
+    "spd": 65,
+    "spe": 85
+  },
+  {
+    "name": "Musharna",
+    "hp": 116,
+    "atk": 55,
+    "def": 85,
+    "spa": 107,
+    "spd": 95,
+    "spe": 29
+  },
+  {
+    "name": "Grimmsnarl",
+    "hp": 95,
+    "atk": 120,
+    "def": 65,
+    "spa": 95,
+    "spd": 75,
+    "spe": 60
+  },
+  {
+    "name": "Mega Raichu X",
+    "hp": 60,
+    "atk": 135,
+    "def": 95,
+    "spa": 90,
+    "spd": 95,
+    "spe": 110
+  },
+  {
+    "name": "Mega Raichu Y",
+    "hp": 60,
+    "atk": 100,
+    "def": 55,
+    "spa": 160,
+    "spd": 80,
+    "spe": 130
+  },
+  {
+    "name": "Sceptile",
+    "hp": 70,
+    "atk": 85,
+    "def": 65,
+    "spa": 105,
+    "spd": 85,
+    "spe": 120
+  },
+  {
+    "name": "Mega Sceptile",
+    "hp": 70,
+    "atk": 110,
+    "def": 75,
+    "spa": 145,
+    "spd": 85,
+    "spe": 145
+  },
+  {
+    "name": "Blaziken",
+    "hp": 80,
+    "atk": 120,
+    "def": 70,
+    "spa": 110,
+    "spd": 70,
+    "spe": 80
+  },
+  {
+    "name": "Mega Blaziken",
+    "hp": 80,
+    "atk": 160,
+    "def": 80,
+    "spa": 130,
+    "spd": 80,
+    "spe": 100
+  },
+  {
+    "name": "Swampert",
+    "hp": 100,
+    "atk": 110,
+    "def": 90,
+    "spa": 85,
+    "spd": 90,
+    "spe": 60
+  },
+  {
+    "name": "Mega Swampert",
+    "hp": 100,
+    "atk": 150,
+    "def": 110,
+    "spa": 95,
+    "spd": 110,
+    "spe": 70
+  },
+  {
+    "name": "Mawile",
+    "hp": 50,
+    "atk": 85,
+    "def": 85,
+    "spa": 55,
+    "spd": 55,
+    "spe": 50
+  },
+  {
+    "name": "Mega Mawile",
+    "hp": 50,
+    "atk": 105,
+    "def": 125,
+    "spa": 55,
+    "spd": 95,
+    "spe": 50
+  },
+  {
+    "name": "Metagross",
+    "hp": 80,
+    "atk": 135,
+    "def": 130,
+    "spa": 95,
+    "spd": 90,
+    "spe": 70
+  },
+  {
+    "name": "Mega Metagross",
+    "hp": 80,
+    "atk": 145,
+    "def": 150,
+    "spa": 105,
+    "spd": 110,
+    "spe": 110
+  },
+  {
+    "name": "Staraptor",
+    "hp": 85,
+    "atk": 120,
+    "def": 70,
+    "spa": 50,
+    "spd": 60,
+    "spe": 100
+  },
+  {
+    "name": "Mega Staraptor",
+    "hp": 85,
+    "atk": 140,
+    "def": 100,
+    "spa": 60,
+    "spd": 90,
+    "spe": 110
+  },
+  {
+    "name": "Scolipede",
+    "hp": 60,
+    "atk": 100,
+    "def": 89,
+    "spa": 55,
+    "spd": 69,
+    "spe": 112
+  },
+  {
+    "name": "Mega Scolipede",
+    "hp": 60,
+    "atk": 140,
+    "def": 149,
+    "spa": 75,
+    "spd": 99,
+    "spe": 62
+  },
+  {
+    "name": "Scrafty",
+    "hp": 65,
+    "atk": 90,
+    "def": 115,
+    "spa": 45,
+    "spd": 115,
+    "spe": 58
+  },
+  {
+    "name": "Mega Scrafty",
+    "hp": 65,
+    "atk": 130,
+    "def": 135,
+    "spa": 55,
+    "spd": 135,
+    "spe": 68
+  },
+  {
+    "name": "Eelektross",
+    "hp": 85,
+    "atk": 115,
+    "def": 80,
+    "spa": 105,
+    "spd": 80,
+    "spe": 50
+  },
+  {
+    "name": "Mega Eelektross",
+    "hp": 85,
+    "atk": 145,
+    "def": 80,
+    "spa": 135,
+    "spd": 90,
+    "spe": 80
+  },
+  {
+    "name": "Pyroar",
+    "hp": 86,
+    "atk": 68,
+    "def": 72,
+    "spa": 109,
+    "spd": 66,
+    "spe": 106
+  },
+  {
+    "name": "Mega Pyroar",
+    "hp": 86,
+    "atk": 88,
+    "def": 92,
+    "spa": 129,
+    "spd": 86,
+    "spe": 126
+  },
+  {
+    "name": "Malamar",
+    "hp": 86,
+    "atk": 92,
+    "def": 88,
+    "spa": 68,
+    "spd": 75,
+    "spe": 73
+  },
+  {
+    "name": "Mega Malamar",
+    "hp": 86,
+    "atk": 102,
+    "def": 88,
+    "spa": 98,
+    "spd": 120,
+    "spe": 88
+  },
+  {
+    "name": "Barbaracle",
+    "hp": 72,
+    "atk": 105,
+    "def": 115,
+    "spa": 54,
+    "spd": 86,
+    "spe": 68
+  },
+  {
+    "name": "Mega Barbaracle",
+    "hp": 72,
+    "atk": 140,
+    "def": 130,
+    "spa": 64,
+    "spd": 106,
+    "spe": 88
+  },
+  {
+    "name": "Dragalge",
+    "hp": 65,
+    "atk": 75,
+    "def": 90,
+    "spa": 97,
+    "spd": 123,
+    "spe": 44
+  },
+  {
+    "name": "Mega Dragalge",
+    "hp": 65,
+    "atk": 85,
+    "def": 105,
+    "spa": 132,
+    "spd": 163,
+    "spe": 44
+  },
+  {
+    "name": "Falinks",
+    "hp": 65,
+    "atk": 100,
+    "def": 100,
+    "spa": 70,
+    "spd": 60,
+    "spe": 75
+  },
+  {
+    "name": "Mega Falinks",
+    "hp": 65,
+    "atk": 135,
+    "def": 135,
+    "spa": 70,
+    "spd": 65,
+    "spe": 100
+  },
+  {
+    "name": "Houndstone",
+    "hp": 72,
+    "atk": 101,
+    "def": 100,
+    "spa": 50,
+    "spd": 97,
+    "spe": 68
+  },
+  {
+    "name": "Annihilape",
+    "hp": 110,
+    "atk": 115,
+    "def": 80,
+    "spa": 50,
+    "spd": 90,
+    "spe": 90
+  },
+  {
+    "name": "Gholdengo",
+    "hp": 87,
+    "atk": 60,
+    "def": 95,
+    "spa": 133,
+    "spd": 91,
+    "spe": 84
+  }
+]

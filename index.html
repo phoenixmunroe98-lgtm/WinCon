@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WinCon — Pokédex Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231E9C86%22/><text x=%2216%22 y=%2222%22 font-size=%2214%22 font-family=%22sans-serif%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>WC</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="site-bg" aria-hidden="true">
+    <img src="data/sprites/mega-charizard-x.png" class="bg-mega bg-mega-tl" alt="" />
+    <img src="data/sprites/mega-charizard-y.png" class="bg-mega bg-mega-tr" alt="" />
+    <img src="data/sprites/mega-tyranitar.png" class="bg-mega bg-mega-bl" alt="" />
+    <img src="data/sprites/mega-gengar.png" class="bg-mega bg-mega-br" alt="" />
+    <img src="data/sprites/mega-greninja.png" class="bg-mega bg-mega-tc" alt="" />
+    <img src="data/sprites/mega-steelix.png" class="bg-mega bg-mega-bc" alt="" />
+    <img src="data/sprites/mega-raichu-x.png" class="bg-mega bg-mega-ml" alt="" />
+    <img src="data/sprites/mega-raichu-y.png" class="bg-mega bg-mega-mr" alt="" />
+  </div>
+
+  <!--
+    MILESTONE 0: the Pokédex tracker.
+    This page does three things, on purpose, and nothing more yet:
+      1. Loads the list of every Champions Pokémon from data/pokemon.json
+      2. Draws one card per Pokémon with a checkbox
+      3. Remembers which ones are checked, in this browser, using localStorage
+
+    There's no server, no login, no build step. Open index.html and it works.
+    That's deliberate — every later phase (saved teams, the win-rate engine)
+    builds on top of this same shape: data in, a screen on top of it.
+
+    MILESTONE 11: Mega Pokémon are no longer tracked here on their own. You
+    obtain the base species (e.g. Charizard); its Mega form(s), if it has
+    any, become available automatically in the Team Builder once you have —
+    a card with a Mega form says so, right under its types. This matches
+    how Mega Evolution actually works in-game: it's not a separate Pokémon
+    you catch, it's the same one holding its own Mega Stone mid-battle. See
+    megas.js and team-builder.html's own Milestone 11 note for the rest of
+    that change.
+
+    MILESTONE 11 FOLLOW-UP FIX: a card's name could get clipped mid-word
+    (e.g. "Alolan Ninet…") and, on a card with two type tags, the second
+    tag could spill past the card's own right edge into its neighbor's
+    space. Both were CSS sizing bugs, not JS bugs — names now wrap onto a
+    second line instead of truncating, and type tags wrap onto their own
+    row inside the card instead of overflowing it. See the `.card`,
+    `.card-name`, and `.card-types` rules in styles.css.
+
+    MILESTONE 11 FOLLOW-UP: the faint creatures tiled behind the page
+    (`.site-bg`) were originally the 9 Mega Evolutions unique to Pokémon
+    Champions, tinted toward the site's teal accent — replaced, by
+    request, with a fixed set of 8 fan-favorites: Mega Charizard X & Y,
+    Mega Raichu X & Y, Mega Greninja, Mega Gengar, Mega Steelix, and Mega
+    Tyranitar, at their true colors (no hue-shift filter this time — see
+    `.bg-mega` in styles.css). Same 8, same positions, on every page. Kept
+    low-opacity on purpose so they never compete with the actual content
+    in front of them.
+
+    MILESTONE 14: the old single "Team Builder" and "Matchup Score" pages
+    (team-builder.html/team-builder.js and matchup-score.html/
+    matchup-score.js, referenced by their old names in the Milestone 11
+    note above) are gone — replaced by singles-builder.html and
+    doubles-builder.html, one page per competitive format, each doing
+    both team-building and matchup scoring live, plus a new "Your Rival"
+    section and an Open/Closed Team Sheet toggle. See either page's own
+    header comment and README.md's Milestone 14 section for the full
+    writeup.
+  -->
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row">
+        <div class="brand">
+          <span class="brand-mark">WC</span>
+          <span class="brand-name">WinCon</span>
+        </div>
+        <nav class="page-nav">
+          <a href="index.html" class="current">Pokédex</a>
+          <a href="singles-builder.html">Singles Builder</a>
+          <a href="doubles-builder.html">Doubles Builder</a>
+        </nav>
+      </div>
+      <p class="tagline">Pokédex tracker — Pokémon Champions, Reg. M-B</p>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="progress-bar" aria-live="polite">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <p class="progress-label"><span id="caught-count">0</span> of <span id="total-count">0</span> obtained</p>
+    </section>
+
+    <section class="controls">
+      <input
+        id="search"
+        type="search"
+        placeholder="Search by name…"
+        aria-label="Search Pokémon by name"
+      />
+      <select id="type-filter" aria-label="Filter by type">
+        <option value="">All types</option>
+      </select>
+      <select id="status-filter" aria-label="Filter by obtained status">
+        <option value="all">All</option>
+        <option value="obtained">Obtained</option>
+        <option value="missing">Missing</option>
+      </select>
+    </section>
+
+    <section id="grid" class="grid" aria-label="Pokémon list"></section>
+    <p id="empty-state" class="empty-state" hidden>No Pokémon match your search/filters.</p>
+  </main>
+
+  <footer class="foot-note">
+    <p>
+      Roster data from the community
+      <a href="https://github.com/otterlyclueless/pokemon-champions-data" target="_blank" rel="noopener">Pokémon Champions Data</a>
+      project (CC BY 4.0) — not affiliated with Nintendo, Game Freak, or The Pokémon Company.
+    </p>
+  </footer>
+
+  <script src="megas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

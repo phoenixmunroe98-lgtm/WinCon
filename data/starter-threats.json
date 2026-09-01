@@ -1,0 +1,66 @@
+[
+  {
+    "name": "Mega Garchomp",
+    "role": "Physical powerhouse"
+  },
+  {
+    "name": "Mega Tyranitar",
+    "role": "Bulky mixed attacker"
+  },
+  {
+    "name": "Mega Gardevoir",
+    "role": "Special sweeper / support"
+  },
+  {
+    "name": "Mega Lucario",
+    "role": "Fast mixed attacker"
+  },
+  {
+    "name": "Mega Gengar",
+    "role": "Fast special sweeper"
+  },
+  {
+    "name": "Mega Alakazam",
+    "role": "Very fast special sweeper"
+  },
+  {
+    "name": "Dragapult",
+    "role": "Fast offensive pivot"
+  },
+  {
+    "name": "Hydreigon",
+    "role": "Bulky special attacker"
+  },
+  {
+    "name": "Mega Scizor",
+    "role": "Bulky priority attacker"
+  },
+  {
+    "name": "Mega Steelix",
+    "role": "Physical wall"
+  },
+  {
+    "name": "Mega Slowbro",
+    "role": "Bulky special wall"
+  },
+  {
+    "name": "Mega Kangaskhan",
+    "role": "Strong physical attacker"
+  },
+  {
+    "name": "Mega Altaria",
+    "role": "Bulky pivot"
+  },
+  {
+    "name": "Mega Charizard Y",
+    "role": "Special sweeper (sun)"
+  },
+  {
+    "name": "Kommo-o",
+    "role": "Bulky mixed attacker"
+  },
+  {
+    "name": "Mega Aerodactyl",
+    "role": "Very fast physical attacker"
+  }
+]

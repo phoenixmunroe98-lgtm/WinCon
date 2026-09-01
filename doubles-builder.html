@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WinCon — Doubles Builder</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231E9C86%22/><text x=%2216%22 y=%2222%22 font-size=%2214%22 font-family=%22sans-serif%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>WC</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>window.WINCON_BUILDER_FORMAT = "doubles";</script>
+</head>
+<body>
+
+  <div class="site-bg" aria-hidden="true">
+    <img src="data/sprites/mega-charizard-x.png" class="bg-mega bg-mega-tl" alt="" />
+    <img src="data/sprites/mega-charizard-y.png" class="bg-mega bg-mega-tr" alt="" />
+    <img src="data/sprites/mega-tyranitar.png" class="bg-mega bg-mega-bl" alt="" />
+    <img src="data/sprites/mega-gengar.png" class="bg-mega bg-mega-br" alt="" />
+    <img src="data/sprites/mega-greninja.png" class="bg-mega bg-mega-tc" alt="" />
+    <img src="data/sprites/mega-steelix.png" class="bg-mega bg-mega-bc" alt="" />
+    <img src="data/sprites/mega-raichu-x.png" class="bg-mega bg-mega-ml" alt="" />
+    <img src="data/sprites/mega-raichu-y.png" class="bg-mega bg-mega-mr" alt="" />
+  </div>
+
+  <!--
+    MILESTONE 14: Doubles Builder — the official competitive format
+    (Regulation M-B). This page and singles-builder.html replace the old
+    team-builder.html + matchup-score.html pair — instead of building a
+    team on one page and checking its matchup score on a separate one,
+    each format now gets ONE page that does both, plus a new "Your Rival"
+    section. Both pages share one file, builder.js — the only difference
+    between them is the inline script above setting
+    window.WINCON_BUILDER_FORMAT, and this page only ever shows/edits the
+    Doubles-tagged teams out of your shared pool of up to 5 (see
+    visibleTeams() in builder.js). See README.md's Milestone 14 section
+    for the full writeup and the competitive-play research this was built
+    from, and builder.js's own header comment for how each piece works.
+
+    A note on the "hard pivot to VGC Doubles" research that prompted this
+    milestone: casual Singles and competitive Doubles genuinely run on
+    different fundamentals — speed control (Trick Room/Tailwind), field
+    positioning, Protect reads, and weather/terrain all matter here in a
+    way flat single-file damage racing doesn't capture. Auto-build
+    strategy's archetype detection (Trick Room, Tailwind, weather,
+    redirection, hazards — see strategy.js) already leans toward this
+    page's tools when it runs here; what this milestone specifically adds
+    on top is the Open Team Sheet mindset below, since tournament Doubles
+    is exactly where that distinction (surprise tech on the ladder vs. a
+    fully scouted sheet on stream) actually bites. "Study the meta" (top
+    VGC creators, Victory Road, tournament usage stats) is real, ongoing
+    research WinCon can't automate from inside a static offline site with
+    no live network access — it's exactly what feeds updates to
+    data/starter-threats.json and WINCON_META_KNOWN_SETS (strategy.js)
+    over time, the same way Milestone 10's real tournament sets got in.
+
+    Quick orientation on what's new here versus the old two-page setup:
+      - Auto-generate/Auto-build strategy/Generate Dream Team: unchanged,
+        still strategy.js, still explainable-rules-not-optimal.
+      - Matchup Score / Team type coverage / results tracker: unchanged in
+        what they measure, but now live — they re-score the team you're
+        actively editing above, instead of a separately-selected saved
+        team on another page.
+      - Open/Closed Team Sheet toggle: a real VGC/competitive-play
+        distinction. On the ladder nobody's seen your set before Game 1;
+        in tournament play your opponent has your full sheet ahead of
+        time. Open mode discounts a "favorable" verdict that depends on a
+        specific move choice (down to "even") in both Matchup Score and
+        Your Rival, and tags every filled move field Expected or Tech so
+        you can see which of your moves are actually surprises.
+      - Your Rival: synthesizes a hypothetical 6-Pokémon team from the
+        FULL roster (not just what you've obtained) — picked specifically
+        to counter this team's typing and stats, the same greedy logic
+        Generate Dream Team uses to build YOUR best 6, run here in
+        reverse — plus an estimated success rate for it against you.
+  -->
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row">
+        <div class="brand">
+          <span class="brand-mark">WC</span>
+          <span class="brand-name">WinCon</span>
+        </div>
+        <nav class="page-nav">
+          <a href="index.html">Pokédex</a>
+          <a href="singles-builder.html">Singles Builder</a>
+          <a href="doubles-builder.html" class="current">Doubles Builder</a>
+        </nav>
+      </div>
+      <p class="tagline">Build, score, and scout for official competitive Doubles: pick 6, build, check your Matchup Score, meet Your Rival</p>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="teams-section">
+      <h2 class="section-title">Your Doubles teams</h2>
+      <p class="hint">
+        Up to 5 saved teams, shared with the Singles Builder — this page only shows the ones tagged Doubles. Switching
+        teams saves your current edits to the one you're leaving first.
+      </p>
+      <div id="team-tabs" class="team-tabs"></div>
+      <div class="team-controls">
+        <label class="field team-name-field">
+          <span class="field-label">Team name</span>
+          <input id="team-name-input" type="text" maxlength="24" />
+        </label>
+        <button id="rename-team-btn" class="btn-secondary">Rename</button>
+        <button id="new-team-btn" class="btn-secondary">+ New team</button>
+        <button id="move-format-btn" class="btn-secondary">Move to Singles builder</button>
+        <button id="delete-team-btn" class="btn-secondary btn-danger">Delete this team</button>
+      </div>
+      <div class="field format-field">
+        <span class="field-label">Team sheet</span>
+        <div id="sheet-toggle" class="format-toggle" role="group" aria-label="Open or Closed Team Sheet">
+          <button type="button" class="format-option" data-sheet="closed">Closed Sheet</button>
+          <button type="button" class="format-option" data-sheet="open">Open Sheet</button>
+        </div>
+      </div>
+      <p id="teams-hint" class="hint"></p>
+      <p class="hint">
+        Closed Sheet is the online-ladder default — nobody's seen your set before Game 1. Open Sheet models tournament
+        play, where your opponent has your full team sheet ahead of time: a "favorable" Matchup Score/Your Rival verdict
+        that only holds up because of a specific move gets discounted, and every filled move field below is tagged
+        Expected or Tech so you can see which of your moves are actually surprises worth keeping.
+      </p>
+      <label class="field team-notes-field">
+        <span class="field-label">Team notes</span>
+        <textarea
+          id="team-notes-input"
+          rows="2"
+          maxlength="300"
+          placeholder="What do you want out of this team? e.g. &quot;no trick room, I want a fast offense team&quot; — Auto-build strategy reads this."
+        ></textarea>
+      </label>
+      <p id="match-record-note" class="hint"></p>
+    </section>
+
+    <section id="dream-team-section">
+      <div class="slots-header">
+        <div>
+          <h2 class="section-title">Or, let WinCon build the whole team</h2>
+          <p class="hint">
+            Picks the best 6 from your obtained Pokémon, builds all 6, and analyzes a shared strategy — one click,
+            start to finish. Overwrites whatever's currently picked/built on this team.
+          </p>
+        </div>
+        <button id="dream-team-btn" class="btn-primary">Generate Dream Team</button>
+      </div>
+      <div id="dream-team-note" class="callout-box" hidden></div>
+    </section>
+
+    <section id="picker-section">
+      <h2 class="section-title">1. Pick your six</h2>
+      <p id="picker-hint" class="hint"></p>
+      <div id="picker-grid" class="picker-grid"></div>
+    </section>
+
+    <section id="slots-section" hidden>
+      <div class="slots-header">
+        <h2 class="section-title">2. Build each Pokémon</h2>
+        <div class="slots-header-actions">
+          <button id="autobuild-btn" class="btn-secondary">Auto-build team</button>
+          <button id="autostrategy-btn" class="btn-secondary" disabled>Auto-build strategy</button>
+        </div>
+      </div>
+      <p id="autogen-hint" class="hint"></p>
+      <p id="autostrategy-hint" class="hint"></p>
+      <div id="strategy-note" class="callout-box" hidden></div>
+      <div id="slots" class="slots"></div>
+    </section>
+
+    <section class="save-bar">
+      <button id="save-btn" class="btn-primary">Save team</button>
+      <span id="save-status" class="save-status" aria-live="polite"></span>
+    </section>
+
+    <section id="no-team" class="callout-box" hidden>
+      <p>Pick your six above to see your Matchup Score, team type coverage, and Your Rival.</p>
+    </section>
+
+    <section id="tracker-section" hidden>
+      <h3 class="section-title">Track your results</h3>
+      <p class="hint">
+        Log each real game's result for this team — stored with it for reference when deciding its strategy above.
+        There's no opponent-team or replay data behind this, just a running win/loss count and whatever note you
+        leave yourself (e.g. "vs Trick Room").
+      </p>
+      <div class="tracker-log-form">
+        <input id="tracker-note-input" type="text" maxlength="80" placeholder="Optional note (e.g. vs Trick Room)…" />
+        <button id="tracker-log-win-btn" type="button" class="btn-secondary tracker-win-btn">Log a win</button>
+        <button id="tracker-log-loss-btn" type="button" class="btn-secondary tracker-loss-btn">Log a loss</button>
+      </div>
+      <details id="tracker-opponent-details" class="tracker-opponent-details">
+        <summary>+ Add opponent's team (optional)</summary>
+        <p class="hint">
+          Never required to log a result — jot down whatever you remember of what they brought, if you want it
+          saved alongside this result. Leave any of these blank.
+        </p>
+        <div id="tracker-opponent-grid" class="tracker-opponent-grid"></div>
+      </details>
+      <p id="tracker-summary" class="tracker-summary"></p>
+      <ul id="tracker-log-list" class="tracker-log-list"></ul>
+    </section>
+
+    <section id="score-section" hidden>
+      <div class="score-hero">
+        <div class="score-ring" id="score-ring">
+          <span id="score-number">0</span>
+        </div>
+        <div class="score-meta">
+          <h2 class="section-title">Matchup Score</h2>
+          <p id="score-summary" class="hint"></p>
+        </div>
+      </div>
+
+      <h3 class="section-title">Toughest matchups</h3>
+      <p class="hint">Threats where none of your six currently has a clearly favorable answer.</p>
+      <div id="tough-list" class="tough-list"></div>
+
+      <h3 class="section-title">Every threat, member by member</h3>
+      <div class="table-scroll">
+        <table id="matrix" class="matrix"></table>
+      </div>
+
+      <p class="hint methodology">
+        <strong>How this is scored:</strong> for each reference Pokémon, every member of your team is checked both
+        ways — how hard the threat's likely STAB hits them (type effectiveness), how hard their own moves (or, if a
+        slot's moves aren't filled in yet, their own types) hit back, and a rough Speed comparison using their
+        Stat Points and Nature. Your team's answer to a threat is whichever of your six comes out best. This is
+        not a simulated battle and not a measured win rate — the 16 reference Pokémon are a hand-picked list, not
+        live usage data, and the Stat Point → stat-value math is the standard formula with SP treated as roughly
+        EV/8, which the community dataset itself flags as still unverified.
+      </p>
+    </section>
+
+    <section id="coverage-section" hidden>
+      <h3 class="section-title">Team type coverage</h3>
+      <p class="hint">
+        How your six hold up defensively against all 18 attacking types — independent of the reference threat list
+        above. Use this to spot a shared weakness before it costs you a game.
+      </p>
+      <div class="coverage-summary">
+        <div class="coverage-col">
+          <h4>Top strengths</h4>
+          <ul id="coverage-strengths" class="coverage-list"></ul>
+        </div>
+        <div class="coverage-col">
+          <h4>Top weaknesses</h4>
+          <ul id="coverage-weaknesses" class="coverage-list"></ul>
+        </div>
+      </div>
+      <details id="coverage-details">
+        <summary>Show full 18-type breakdown</summary>
+        <div class="table-scroll">
+          <table id="coverage-table" class="matrix"></table>
+        </div>
+      </details>
+    </section>
+
+    <section id="rival-section" hidden>
+      <div class="slots-header">
+        <div>
+          <h2 class="section-title">Your Rival</h2>
+          <p class="hint">
+            Synthesized from the full Champions roster — not just what you've obtained — specifically to give your
+            current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
+            reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
+            typing and stats.
+          </p>
+        </div>
+        <button id="rival-btn" class="btn-primary">Find Your Rival</button>
+      </div>
+      <div id="rival-note" class="callout-box" hidden></div>
+      <div id="rival-result" hidden></div>
+    </section>
+  </main>
+
+  <footer class="foot-note">
+    <p>
+      Move/item/Nature data from the community
+      <a href="https://github.com/otterlyclueless/pokemon-champions-data" target="_blank" rel="noopener">Pokémon Champions Data</a>
+      project (CC BY 4.0). Matchup Score and Your Rival are both explainable heuristics, not simulated battles or a
+      measured win rate — see the methodology note above.
+    </p>
+  </footer>
+
+  <div id="changes-modal" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="changes-modal-title">
+      <h3 id="changes-modal-title"></h3>
+      <p id="changes-modal-body"></p>
+      <div id="changes-modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="teams.js"></script>
+  <script src="megas.js"></script>
+  <script src="stats.js"></script>
+  <script src="type-utils.js"></script>
+  <script src="strategy.js"></script>
+  <script src="builder.js"></script>
+</body>
+</html>

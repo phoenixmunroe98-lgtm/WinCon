@@ -1,0 +1,1481 @@
+/*
+  All colors are defined as variables (custom properties) up here.
+  This is what lets the page support both light and dark mode cleanly —
+  every rule below reads a variable instead of a hardcoded color, so the
+  two blocks under "themes" are the only places colors actually live.
+*/
+
+/*
+  Milestone 4 color pass: sea foam green as the primary brand/interactive
+  color (nav, buttons, chosen states), with blue reserved for links and a
+  couple of small "accent" flourishes — a nod to Pokémon Winds (seafoam)
+  and its sister title Pokémon Waves (blue), themselves an homage to the
+  original Red/Blue/Green. --positive stays its own close-but-distinct
+  green so "success/obtained/favorable" states don't visually merge with
+  the brand color; --link is the new blue.
+*/
+
+:root {
+  --bg: #F1F6F4;
+  --surface: #FFFFFF;
+  --surface-muted: #E7F1EC;
+  --border: #D6E6DF;
+  --ink: #17231F;
+  --ink-muted: #55665D;
+  --accent: #1E9C86;
+  --accent-ink: #FFFFFF;
+  --positive: #1E8F73;
+  --positive-soft: #DEF3EC;
+  --link: #2E6FE0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12191A;
+    --surface: #1B2422;
+    --surface-muted: #22302C;
+    --border: #324039;
+    --ink: #E7EFEC;
+    --ink-muted: #96A8A0;
+    --accent: #4ED9BE;
+    --accent-ink: #12191A;
+    --positive: #3FBB9D;
+    --positive-soft: #1B332C;
+    --link: #7FB0FF;
+  }
+}
+
+/*
+  Pokémon type colors, once each, as variables — used as small identifying
+  tag backgrounds (.type-normal etc. below) AND, since Milestone 7, as the
+  move-field border color in the Team Builder (input.move-input.type-normal
+  etc., further down) — one set of hex values feeding both, so they can
+  never quietly drift apart into two different "fire orange"s.
+*/
+:root {
+  --type-normal: #A8A77A;
+  --type-fire: #EE8130;
+  --type-water: #6390F0;
+  --type-electric: #F7D02C;
+  --type-grass: #7AC74C;
+  --type-ice: #96D9D6;
+  --type-fighting: #C22E28;
+  --type-poison: #A33EA1;
+  --type-ground: #E2BF65;
+  --type-flying: #A98FF3;
+  --type-psychic: #F95587;
+  --type-bug: #A6B91A;
+  --type-rock: #B6A136;
+  --type-ghost: #735797;
+  --type-dragon: #6F35FC;
+  --type-dark: #705746;
+  --type-steel: #B7B7CE;
+  --type-fairy: #D685AD;
+  --type-stellar: #5AC8C8;
+}
+
+/* Pokémon type colors — used only as small identifying tags, not backgrounds */
+.type-normal   { background: var(--type-normal); }
+.type-fire     { background: var(--type-fire); }
+.type-water    { background: var(--type-water); }
+.type-electric { background: var(--type-electric); color: #40391A; }
+.type-grass    { background: var(--type-grass); }
+.type-ice      { background: var(--type-ice); color: #1A3B39; }
+.type-fighting { background: var(--type-fighting); }
+.type-poison   { background: var(--type-poison); }
+.type-ground   { background: var(--type-ground); color: #3B2F0F; }
+.type-flying   { background: var(--type-flying); }
+.type-psychic  { background: var(--type-psychic); }
+.type-bug      { background: var(--type-bug); }
+.type-rock     { background: var(--type-rock); }
+.type-ghost    { background: var(--type-ghost); }
+.type-dragon   { background: var(--type-dragon); }
+.type-dark     { background: var(--type-dark); }
+.type-steel    { background: var(--type-steel); color: #2C2C3A; }
+.type-fairy    { background: var(--type-fairy); }
+.type-stellar  { background: var(--type-stellar); color: #123433; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 20px 16px;
+}
+
+.topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.page-nav a {
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink-muted);
+  padding: 6px 12px;
+  border-radius: 7px;
+}
+
+.page-nav a:hover { background: var(--surface-muted); }
+.page-nav a.current { color: var(--accent-ink); background: var(--accent); }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.brand-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.tagline {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+}
+
+.shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.progress-bar {
+  margin-bottom: 20px;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 100px;
+  background: var(--surface-muted);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--positive);
+  border-radius: 100px;
+  transition: width 0.25s ease;
+}
+
+.progress-label {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.controls input,
+.controls select {
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.controls input {
+  flex: 1 1 220px;
+}
+
+.controls input:focus-visible,
+.controls select:focus-visible,
+.card input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  display: flex;
+  /* flex-start (not center) — a card's height now varies with how much
+     text it holds (a long name, a wrapped "Has a Mega form" note), so
+     centering the checkbox/sprite against a taller neighbor would float
+     them away from the name they belong to. */
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.card.is-obtained {
+  border-color: var(--positive);
+  background: var(--positive-soft);
+}
+
+.card input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--positive);
+  flex-shrink: 0;
+}
+
+.card-sprite {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* min-width: 0 lets this flex child actually shrink below its text's
+   natural width instead of forcing the card to grow wider than the grid
+   column — that's what makes the wrapping below possible at all. */
+.card-info { min-width: 0; flex: 1 1 auto; }
+
+.card-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.94rem;
+  /* Milestone 11 fix: this used to truncate with an ellipsis at a fixed
+     one-line height, which cut off longer names entirely (e.g. "Alolan
+     Ninetales", "Galarian Slowbro"). Wrapping instead means the full
+     name always reads, at the cost of a taller card for longer names —
+     see the .card align-items change above, which is what keeps that
+     from looking misaligned. */
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.card-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.type-tag { flex-shrink: 0; }
+
+.type-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--ink-muted);
+  padding: 40px 0;
+}
+
+.foot-note {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+.foot-note a { color: var(--link); }
+
+/* ---------- Team Builder ---------- */
+
+.section-title {
+  font-size: 1.05rem;
+  margin: 0 0 10px;
+}
+
+.hint {
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  margin: 0 0 14px;
+}
+
+.hint a { color: var(--link); }
+
+.picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+/* ---------- Generate Dream Team (Milestone 8) ---------- */
+
+#dream-team-section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+#dream-team-section .slots-header { align-items: flex-start; }
+#dream-team-section .hint { margin: 4px 0 0; max-width: 640px; }
+#dream-team-section .btn-primary { flex-shrink: 0; }
+
+#dream-team-note { margin-top: 16px; }
+#dream-team-note ol { margin: 0; padding-left: 20px; }
+#dream-team-note li { margin-bottom: 6px; }
+#dream-team-note li:last-child { margin-bottom: 0; }
+
+.pick-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 6px 14px 6px 6px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pick-chip:hover:not(:disabled) { border-color: var(--accent); }
+.pick-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.pick-chip.is-chosen {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.pick-chip-sprite {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.slot-sprite {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: var(--surface-muted);
+  border-radius: 10px;
+}
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.slot-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.slot-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.slot-header .card-name { font-size: 1.05rem; }
+
+.slot-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.move-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.field select,
+.field input[type="text"] {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.sp-allocator {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.sp-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 10px;
+}
+
+.sp-total {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--positive);
+}
+
+.sp-total.sp-over { color: #C0463B; }
+
+/* "input." here isn't decorative — .field input[type="text"]'s shorthand
+   `border` rule further up is one specificity tier higher than two plain
+   classes (it adds the input[type="text"] element+attribute match), so
+   without the repeated element selector this border-color would lose
+   that fight and silently never apply, even though the class is set. */
+input.item-input.is-duplicate {
+  border-color: #C0463B;
+  background: rgba(192, 70, 59, 0.07);
+}
+
+.field-error {
+  font-size: 0.78rem;
+  color: #C0463B;
+  line-height: 1.3;
+}
+
+/* ---------- Move type/category (Milestone 7) ---------- */
+
+.move-meta {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  line-height: 1.3;
+}
+
+.move-meta[hidden] { display: none; }
+
+/* A recognized move's field border picks up its type's color — a quick
+   visual cue for same-type-attack-bonus moves or an accidentally
+   mono-type set. Border width bumps up slightly so the color reads
+   clearly against both themes; background/text stay the normal field
+   colors so the move name itself is always legible. */
+input.move-input.type-normal   { border-color: var(--type-normal); border-width: 2px; }
+input.move-input.type-fire     { border-color: var(--type-fire); border-width: 2px; }
+input.move-input.type-water    { border-color: var(--type-water); border-width: 2px; }
+input.move-input.type-electric { border-color: var(--type-electric); border-width: 2px; }
+input.move-input.type-grass    { border-color: var(--type-grass); border-width: 2px; }
+input.move-input.type-ice      { border-color: var(--type-ice); border-width: 2px; }
+input.move-input.type-fighting { border-color: var(--type-fighting); border-width: 2px; }
+input.move-input.type-poison   { border-color: var(--type-poison); border-width: 2px; }
+input.move-input.type-ground   { border-color: var(--type-ground); border-width: 2px; }
+input.move-input.type-flying   { border-color: var(--type-flying); border-width: 2px; }
+input.move-input.type-psychic  { border-color: var(--type-psychic); border-width: 2px; }
+input.move-input.type-bug      { border-color: var(--type-bug); border-width: 2px; }
+input.move-input.type-rock     { border-color: var(--type-rock); border-width: 2px; }
+input.move-input.type-ghost    { border-color: var(--type-ghost); border-width: 2px; }
+input.move-input.type-dragon   { border-color: var(--type-dragon); border-width: 2px; }
+input.move-input.type-dark     { border-color: var(--type-dark); border-width: 2px; }
+input.move-input.type-steel    { border-color: var(--type-steel); border-width: 2px; }
+input.move-input.type-fairy    { border-color: var(--type-fairy); border-width: 2px; }
+input.move-input.type-stellar  { border-color: var(--type-stellar); border-width: 2px; }
+
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.sp-field input {
+  font: inherit;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  width: 100%;
+}
+
+.save-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 8px;
+}
+
+.btn-primary {
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.btn-primary:hover { opacity: 0.9; }
+
+.save-status {
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+}
+
+.btn-secondary {
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
+.btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-danger { color: #C0463B; }
+.btn-danger:hover:not(:disabled) { border-color: #C0463B; }
+
+/* ---------- Teams (Milestone 3) ---------- */
+
+#teams-section { margin-bottom: 28px; }
+
+.team-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.team-tab {
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.team-tab:hover { border-color: var(--accent); }
+
+.team-tab.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.team-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.team-name-field { min-width: 200px; }
+
+.format-field { margin-bottom: 10px; }
+
+.format-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.format-option {
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border: none;
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.format-option + .format-option { border-left: 1px solid var(--border); }
+.format-option:hover { color: var(--ink); }
+
+.format-option.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.slots-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.slots-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#strategy-note {
+  margin-bottom: 20px;
+}
+
+#strategy-note p { margin: 0 0 8px; }
+#strategy-note p:not(:last-child) { margin-bottom: 8px; }
+#strategy-note .btn-secondary { margin-top: 4px; }
+
+/* ---------- "Make changes" confirmation modal (Milestone 6) ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-overlay[hidden] { display: none; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.modal-box h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.modal-box p {
+  margin: 0 0 18px;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-actions .btn-primary,
+.modal-actions .btn-secondary {
+  width: 100%;
+  text-align: center;
+}
+
+/* ---------- Type coverage (Milestone 3c) ---------- */
+
+.coverage-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.coverage-col h4 {
+  font-size: 0.86rem;
+  margin: 0 0 8px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.coverage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coverage-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+}
+
+.coverage-item .type-tag { margin-right: 6px; }
+
+.coverage-item .coverage-detail {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+#coverage-details {
+  margin-bottom: 24px;
+}
+
+#coverage-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--link);
+  padding: 6px 0;
+}
+
+.typemult-weak { color: #C0463B; }
+.typemult-resist { color: var(--positive); }
+.typemult-immune { color: var(--link); }
+.typemult-neutral { color: var(--ink-muted); }
+
+.team-selector {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+/* Author styles that set `display` on an element otherwise beat the
+   browser's own [hidden] rule at equal specificity — without this, a
+   hidden .team-selector still shows up as an empty flex box. */
+.team-selector[hidden] { display: none; }
+
+.team-selector select {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* ---------- Matchup Score ---------- */
+
+.callout-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  color: var(--ink-muted);
+}
+
+.callout-box a { color: var(--link); }
+
+/* Milestone 10: the "real tournament synergy" line inside the strategy
+   callout — a small accent bar sets it apart as a second, independent
+   signal from the main archetype recommendation above it, not a
+   continuation of the same sentence. */
+.meta-synergy-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-muted);
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+
+.meta-synergy-note strong { color: var(--accent); }
+
+/* Milestone 12: same treatment as .meta-synergy-note above, for the
+   "guaranteed Mega pick(s)" line under Generate Dream Team's "Why these
+   six" list — a distinct signal from the numbered picks above it, not a
+   continuation of the last one. */
+.dream-team-mega-note {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-muted);
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+
+.score-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.score-ring {
+  --score: 0;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(var(--positive) calc(var(--score) * 1%), var(--surface-muted) 0);
+}
+
+.score-ring::before {
+  content: "";
+  position: absolute;
+}
+
+.score-ring span {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.score-meta .section-title { margin-bottom: 6px; }
+
+.tough-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.tough-card {
+  background: var(--surface);
+  border: 1px solid var(--critical, #C0463B);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.tough-best {
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.86rem;
+}
+
+.matrix th,
+.matrix td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.matrix th {
+  background: var(--surface-muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.matrix th.row-label {
+  position: sticky;
+  left: 0;
+  background: var(--surface-muted);
+}
+
+.matrix td {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-weight: 700;
+}
+
+.verdict-favorable { color: var(--positive); }
+.verdict-unfavorable { color: #C0463B; }
+.verdict-even { color: var(--ink-muted); }
+
+.methodology {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+/*
+  Milestone 9: hover tooltips for the Item and Move fields in the Team
+  Builder. Deliberately a dark, semi-transparent panel regardless of
+  light/dark site theme (like a native OS tooltip) rather than themed off
+  --surface — a translucent panel needs a background dark enough that text
+  stays readable no matter what's showing through behind it, and picking
+  one fixed look sidesteps that instead of chasing contrast in both themes.
+  The left accent bar (and the "Type · Category" line) picks up the same
+  --type-* variable as the move field's own border, so the tooltip's color
+  always agrees with the field it's describing. Item tooltips get no type
+  accent — items don't have one.
+*/
+.field-tooltip {
+  position: fixed;
+  z-index: 500;
+  max-width: 280px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 4px solid rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 21, 0.92);
+  color: #F4FAF8;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.field-tooltip-name {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.field-tooltip-type {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #C9D6D1;
+}
+
+.field-tooltip-stats {
+  margin-bottom: 6px;
+  color: #C9D6D1;
+}
+
+.field-tooltip-desc {
+  margin: 0;
+}
+
+.field-tooltip.type-tooltip-normal   { border-left-color: var(--type-normal); }
+.field-tooltip.type-tooltip-normal   .field-tooltip-type { color: var(--type-normal); }
+.field-tooltip.type-tooltip-fire     { border-left-color: var(--type-fire); }
+.field-tooltip.type-tooltip-fire     .field-tooltip-type { color: var(--type-fire); }
+.field-tooltip.type-tooltip-water    { border-left-color: var(--type-water); }
+.field-tooltip.type-tooltip-water    .field-tooltip-type { color: var(--type-water); }
+.field-tooltip.type-tooltip-electric { border-left-color: var(--type-electric); }
+.field-tooltip.type-tooltip-electric .field-tooltip-type { color: var(--type-electric); }
+.field-tooltip.type-tooltip-grass    { border-left-color: var(--type-grass); }
+.field-tooltip.type-tooltip-grass    .field-tooltip-type { color: var(--type-grass); }
+.field-tooltip.type-tooltip-ice      { border-left-color: var(--type-ice); }
+.field-tooltip.type-tooltip-ice      .field-tooltip-type { color: var(--type-ice); }
+.field-tooltip.type-tooltip-fighting { border-left-color: var(--type-fighting); }
+.field-tooltip.type-tooltip-fighting .field-tooltip-type { color: var(--type-fighting); }
+.field-tooltip.type-tooltip-poison   { border-left-color: var(--type-poison); }
+.field-tooltip.type-tooltip-poison   .field-tooltip-type { color: var(--type-poison); }
+.field-tooltip.type-tooltip-ground   { border-left-color: var(--type-ground); }
+.field-tooltip.type-tooltip-ground   .field-tooltip-type { color: var(--type-ground); }
+.field-tooltip.type-tooltip-flying   { border-left-color: var(--type-flying); }
+.field-tooltip.type-tooltip-flying   .field-tooltip-type { color: var(--type-flying); }
+.field-tooltip.type-tooltip-psychic  { border-left-color: var(--type-psychic); }
+.field-tooltip.type-tooltip-psychic  .field-tooltip-type { color: var(--type-psychic); }
+.field-tooltip.type-tooltip-bug      { border-left-color: var(--type-bug); }
+.field-tooltip.type-tooltip-bug      .field-tooltip-type { color: var(--type-bug); }
+.field-tooltip.type-tooltip-rock     { border-left-color: var(--type-rock); }
+.field-tooltip.type-tooltip-rock     .field-tooltip-type { color: var(--type-rock); }
+.field-tooltip.type-tooltip-ghost    { border-left-color: var(--type-ghost); }
+.field-tooltip.type-tooltip-ghost    .field-tooltip-type { color: var(--type-ghost); }
+.field-tooltip.type-tooltip-dragon   { border-left-color: var(--type-dragon); }
+.field-tooltip.type-tooltip-dragon   .field-tooltip-type { color: var(--type-dragon); }
+.field-tooltip.type-tooltip-dark     { border-left-color: var(--type-dark); }
+.field-tooltip.type-tooltip-dark     .field-tooltip-type { color: var(--type-dark); }
+.field-tooltip.type-tooltip-steel    { border-left-color: var(--type-steel); }
+.field-tooltip.type-tooltip-steel    .field-tooltip-type { color: var(--type-steel); }
+.field-tooltip.type-tooltip-fairy    { border-left-color: var(--type-fairy); }
+.field-tooltip.type-tooltip-fairy    .field-tooltip-type { color: var(--type-fairy); }
+.field-tooltip.type-tooltip-stellar  { border-left-color: var(--type-stellar); }
+.field-tooltip.type-tooltip-stellar  .field-tooltip-type { color: var(--type-stellar); }
+
+/* ---------------------------------------------------------------------- */
+/* Milestone 12: move field dropdown — full learnable list on click,      */
+/* type/category/power shown per row                                     */
+/* ---------------------------------------------------------------------- */
+/*
+  Unlike .field-tooltip above (informational only, pointer-events: none),
+  this one is a real interactive panel — themed with the site's own
+  --surface/--border tokens rather than the tooltip's fixed dark glass,
+  so it reads as part of the page's own UI, not a hover hint.
+*/
+.move-dropdown {
+  position: fixed;
+  z-index: 520;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  padding: 4px;
+}
+
+.move-dropdown-empty {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.move-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.move-option:hover,
+.move-option:focus-visible {
+  background: var(--surface-muted);
+}
+
+.move-option-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.move-option-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+}
+
+.move-option-meta .type-tag {
+  font-size: 0.62rem;
+  padding: 1px 6px;
+}
+
+.move-option-cat,
+.move-option-pow {
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Milestone 11: two strategy options, team notes, Mega item-trigger,     */
+/* win/loss tracker                                                      */
+/* ---------------------------------------------------------------------- */
+
+.field textarea {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+  min-height: 44px;
+}
+
+.strategy-alternative {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.strategy-alt-intro { margin-top: 0; }
+
+.mega-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--accent);
+  color: var(--accent-ink);
+  vertical-align: middle;
+}
+
+/*
+  Milestone 13: the "Ability: X" badge on each build slot card (see
+  renderSlot in builder.js). Styled as its own pill (not the
+  .mega-badge look, which is reserved for the "Mega Evolved" status tag)
+  with a dotted underline as a lightweight hover-affordance hint, since
+  its only interaction is the hover tooltip (see showAbilityFieldTooltip)
+  — no click behavior, unlike the Item/Move fields it borrows the tooltip
+  system from.
+*/
+.ability-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  text-decoration: underline dotted;
+  text-decoration-color: var(--ink-muted);
+  text-underline-offset: 3px;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.ability-badge.is-low-confidence {
+  border-style: dashed;
+}
+
+.field-tooltip-lowconf {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-style: italic;
+  color: #C9D6D1;
+}
+
+/*
+  Milestone 14: Open Team Sheet mode's Expected/Tech tag on a filled move
+  field (see refreshMoveMeta in builder.js) — only ever shown under Open
+  Sheet, since a tech move only matters once an opponent can actually see
+  it coming. Small pill, same shape language as .ability-badge, colored to
+  read at a glance: green-leaning "Expected" (nothing new for a scouted
+  opponent to play around), amber/red-leaning "Tech" (the actual surprise
+  this team is relying on, which Open Sheet play can no longer count on).
+*/
+.move-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  width: fit-content;
+}
+
+.move-tag[hidden] { display: none; }
+
+.move-tag-expected {
+  background: rgba(30, 156, 134, 0.15);
+  color: var(--accent);
+}
+
+.move-tag-tech {
+  background: rgba(192, 70, 59, 0.12);
+  color: #C0463B;
+}
+
+/*
+  Milestone 14: "Your Rival" roster cards reuse .slots/.slot-card wholesale
+  (same grid, same padding/border) so they read as clearly related to your
+  own build cards above — .rival-card only adds a distinguishing accent so
+  the two roster sections are never confused mid-scroll, and
+  .rival-card-detail is a compact one-line item+moves summary rather than
+  the full interactive field set a build slot has (a rival's set is
+  narrative/read-only, not something you edit).
+*/
+.rival-card {
+  border-left: 3px solid #C0463B;
+}
+
+.rival-roster { margin-top: 12px; }
+
+.rival-card-detail {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.slot-mega-hint { margin: 4px 0 0; }
+
+.card-mega-note {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+/* Track your results (Matchup Score) */
+
+.tracker-log-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.tracker-log-form input[type="text"] {
+  flex: 1 1 240px;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.tracker-win-btn:hover:not(:disabled) { border-color: var(--positive); color: var(--positive); }
+.tracker-loss-btn:hover:not(:disabled) { border-color: #C0463B; color: #C0463B; }
+
+.tracker-summary {
+  font-weight: 600;
+  margin: 6px 0 10px;
+}
+
+.tracker-log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tracker-log-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--surface-muted);
+  font-size: 0.85rem;
+}
+
+.tracker-log-result {
+  font-weight: 700;
+  min-width: 38px;
+}
+
+.tracker-log-win .tracker-log-result { color: var(--positive); }
+.tracker-log-loss .tracker-log-result { color: #C0463B; }
+
+.tracker-log-note {
+  flex: 1;
+  color: var(--ink-muted);
+}
+
+.tracker-log-date {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.tracker-log-delete {
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.tracker-log-delete:hover { color: #C0463B; }
+
+/* ---------------------------------------------------------------------- */
+/* Site background: fan-favorite Mega Pokémon, true colors                */
+/* ---------------------------------------------------------------------- */
+/*
+  Decorative only (aria-hidden, pointer-events: none) — fixed to the
+  viewport so it reads as a wallpaper behind the page rather than
+  something that scrolls past. Every card/section that holds real content
+  still has its own opaque background (--surface), so none of this ever
+  sits behind text; it only shows through the open margin/gutter space
+  around them.
+
+  A fixed, curated set of 8 — Mega Charizard X & Y, Mega Raichu X & Y,
+  Mega Greninja, Mega Gengar, Mega Steelix, Mega Tyranitar — the same 8 on
+  every page, by request, instead of the earlier rotating "Champions-only"
+  set. No hue-shifting filter: these run at true color, so each one's
+  actual palette shows through rather than being pulled toward the site's
+  teal.
+
+  FOLLOW-UP FIX: every position used to sit partly outside the viewport
+  (e.g. `top: -34px; left: -34px`) so `.site-bg`'s own `overflow: hidden`
+  sliced a chunk off each sprite at the screen edge. Every position below
+  now keeps the full sprite on-screen with a comfortable inset instead —
+  centered inward, not cropped — and opacity/contrast are pushed up
+  (still per light/dark theme below) so they read clearly as artwork
+  rather than fading into a barely-visible smudge.
+*/
+
+.site-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Being first in the HTML isn't enough on its own — a `position: fixed`
+     box paints AFTER ordinary static content per CSS's stacking rules
+     regardless of DOM order, which put these creatures on top of the
+     (opaque) header instead of behind it. A negative z-index moves it
+     back to where it visually belongs: behind every static-positioned
+     section on the page. */
+  z-index: -1;
+}
+
+.bg-mega {
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  object-fit: contain;
+  opacity: 0.34;
+  filter: contrast(1.08) brightness(0.94);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-mega {
+    opacity: 0.26;
+    filter: contrast(1.05) brightness(1.25);
+  }
+}
+
+.bg-mega-tl { top: 20px; left: 20px; transform: rotate(-8deg); }
+.bg-mega-tr { top: 20px; right: 20px; width: 200px; height: 200px; transform: rotate(10deg); }
+.bg-mega-bl { bottom: 20px; left: 40px; width: 190px; height: 190px; transform: rotate(6deg) scaleX(-1); }
+.bg-mega-br { bottom: 20px; right: 20px; transform: rotate(-6deg); }
+.bg-mega-tc { top: 240px; left: 38%; width: 150px; height: 150px; opacity: 0.28; }
+.bg-mega-bc { bottom: 140px; left: 62%; width: 150px; height: 150px; opacity: 0.28; }
+.bg-mega-ml { top: 46%; left: 20px; width: 160px; height: 160px; opacity: 0.28; transform: rotate(4deg); }
+.bg-mega-mr { top: 40%; right: 20px; width: 170px; height: 170px; opacity: 0.28; transform: rotate(-5deg) scaleX(-1); }
+
+@media (prefers-color-scheme: dark) {
+  .bg-mega-tc, .bg-mega-bc, .bg-mega-ml, .bg-mega-mr { opacity: 0.2; }
+}
+
+@media (max-width: 900px) {
+  .bg-mega-tc, .bg-mega-bc, .bg-mega-ml, .bg-mega-mr { display: none; }
+  .bg-mega { width: 130px !important; height: 130px !important; }
+}
+
+/* Optional opponent's-team add-on for the win/loss tracker */
+
+.tracker-opponent-details {
+  margin: 4px 0 12px;
+}
+
+.tracker-opponent-details summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 2px 0;
+}
+
+.tracker-opponent-details[open] summary { margin-bottom: 8px; }
+
+.tracker-opponent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tracker-opponent-input {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.tracker-log-opponent {
+  flex: 1 1 100%;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
