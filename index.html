@@ -189,5 +189,13 @@
   <script src="type-utils.js"></script>
   <script src="strategy.js"></script>
   <script src="home.js"></script>
+  <!-- Milestone 23: Vercel Web Analytics (page views/visitors) -- only
+       does anything once "Web Analytics" is switched on for this project
+       in the Vercel dashboard (Project -> Analytics -> Enable). Vercel
+       serves this file itself on any project it hosts, so no separate
+       package or API key is needed for a plain HTML site like this one;
+       it 404s harmlessly (no page errors) anywhere else, e.g. running
+       locally or the GitHub Pages/preview-only copy. -->
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
