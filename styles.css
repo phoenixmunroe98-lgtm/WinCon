@@ -35,11 +35,21 @@
      true yellow (not amber/orange) so it reads as clearly distinct from
      both --positive and --negative at a glance. --negative reuses the
      same red already used for .btn-danger/.verdict-unfavorable elsewhere
-     in this file, so "bad" reads the same everywhere. */
+     in this file, so "bad" reads the same everywhere.
+     --stat-positive is this same idea applied to the gradient's "good"
+     end: it starts out equal to --positive's own default green, but
+     unlike --positive (which every [data-color-theme] below legitimately
+     re-picks as that theme's brand color -- e.g. Charizard's dark mode
+     makes --positive blue), --stat-positive is never touched by a theme
+     block, so wcStatGradientVars()'s red->yellow->green pills stay
+     genuinely green/yellow/red under every theme instead of picking up
+     the active theme's accent color. */
   --mediocre: #A88500;
   --mediocre-soft: #FFF3C4;
   --negative: #C0463B;
   --negative-soft: #FBE4E1;
+  --stat-positive: #1E8F73;
+  --stat-positive-soft: #DEF3EC;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -59,6 +69,8 @@
     --mediocre-soft: #3D3419;
     --negative: #E27469;
     --negative-soft: #3A1815;
+    --stat-positive: #3FBB9D;
+    --stat-positive-soft: #1B332C;
   }
 }
 
@@ -1357,11 +1369,14 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 }
 
 /* Matchup Score's ring/heading and Your Rival's intro/button sit side by
-   side here — just these two compact "headers", not the heavier content
-   under each (the tough-matchups list and full matrix stay in
-   #score-section below; Your Rival's roster/reasoning stay in
-   #rival-section, further down the page, exactly where they always
-   rendered — only the button that fills them in moved up here). */
+   side here — just these two compact "headers". Milestone 18 moved the
+   heavier content that used to trail far below both of them right up
+   underneath this row instead: #rival-section (Your Rival's own
+   generated team + its own win/loss numbers) comes first, then
+   #score-winloss-section (Matchup Score's own Projected Win/Loss Ratio +
+   Toughest matchups), with the full per-threat matrix
+   (#score-matrix-section) and team type coverage (#coverage-section)
+   pushed further down the page. */
 .score-rival-header-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

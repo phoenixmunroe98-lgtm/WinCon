@@ -136,7 +136,14 @@ const modalBody = document.getElementById("changes-modal-body");
 const modalActions = document.getElementById("changes-modal-actions");
 
 const scoreRivalHeaderRowEl = document.getElementById("score-rival-header-row");
-const scoreSectionEl = document.getElementById("score-section");
+// Milestone 18: the old single #score-section (Projected Win/Loss Ratio +
+// Toughest matchups + the full per-threat matrix, all together) was split
+// into #score-winloss-section and #score-matrix-section so the win/loss
+// summary could move up next to Your Rival's own result, while the heavier
+// full matrix stays further down the page -- see singles-builder.html's
+// comment above #rival-section for the full layout rationale.
+const scoreWinlossSectionEl = document.getElementById("score-winloss-section");
+const scoreMatrixSectionEl = document.getElementById("score-matrix-section");
 const coverageSectionEl = document.getElementById("coverage-section");
 const trackerSectionEl = document.getElementById("tracker-section");
 const noTeamEl = document.getElementById("no-team");
@@ -294,9 +301,14 @@ function renderTeamNotes() {
  * 80% and staying green from there up to 100% -- same anchor points as
  * the site's original green/yellow/red rule, just continuous now. Built
  * with CSS color-mix() so it automatically follows each color's own
- * light/dark value (see --positive/--mediocre/--negative above) without
- * any separate dark-mode math needed here, and kept as one tunable spot,
- * applied identically everywhere a win/loss/ratio pill shows up.
+ * light/dark value (see --stat-positive/--mediocre/--negative in
+ * styles.css :root) without any separate dark-mode math needed here, and
+ * kept as one tunable spot, applied identically everywhere a win/loss/
+ * ratio pill shows up. Uses --stat-positive rather than --positive on
+ * purpose -- --positive is re-picked as each color theme's own brand
+ * color (e.g. blue under Charizard's dark mode), while --stat-positive
+ * is never touched by a theme block, so these pills stay a genuine
+ * green regardless of the active theme.
  */
 function wcStatGradientVars(goodnessPercent) {
   const pct = Math.max(0, Math.min(100, goodnessPercent));
@@ -309,15 +321,15 @@ function wcStatGradientVars(goodnessPercent) {
     mix = (pct / 35) * 100;
   } else if (pct <= 80) {
     fromColor = "var(--mediocre)";
-    toColor = "var(--positive)";
+    toColor = "var(--stat-positive)";
     fromSoft = "var(--mediocre-soft)";
-    toSoft = "var(--positive-soft)";
+    toSoft = "var(--stat-positive-soft)";
     mix = ((pct - 35) / 45) * 100;
   } else {
-    fromColor = "var(--positive)";
-    toColor = "var(--positive)";
-    fromSoft = "var(--positive-soft)";
-    toSoft = "var(--positive-soft)";
+    fromColor = "var(--stat-positive)";
+    toColor = "var(--stat-positive)";
+    fromSoft = "var(--stat-positive-soft)";
+    toSoft = "var(--stat-positive-soft)";
     mix = 0;
   }
   return {
@@ -1640,7 +1652,8 @@ function refreshDerivedSections() {
   const hasTeam = chosen.length > 0;
   noTeamEl.hidden = hasTeam;
   scoreRivalHeaderRowEl.hidden = !hasTeam;
-  scoreSectionEl.hidden = !hasTeam;
+  scoreWinlossSectionEl.hidden = !hasTeam;
+  scoreMatrixSectionEl.hidden = !hasTeam;
   coverageSectionEl.hidden = !hasTeam;
   trackerSectionEl.hidden = !hasTeam;
   rivalSectionEl.hidden = !hasTeam;

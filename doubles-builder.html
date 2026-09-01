@@ -244,13 +244,27 @@
       </div>
     </section>
 
-    <section id="score-section" hidden>
+    <!-- Your Rival's own result (generated team + its own Projected Win/Loss
+         Ratio against you) renders directly under the header row above --
+         right below the "Find Your Rival" button that fills it in -- with
+         Matchup Score's own win/loss block right underneath that (see
+         #score-winloss-section below), and the heavier per-threat detail
+         (the full matrix, methodology note, and type coverage) pushed
+         further down the page. -->
+    <section id="rival-section" hidden>
+      <div id="rival-note" class="callout-box" hidden></div>
+      <div id="rival-result" hidden></div>
+    </section>
+
+    <section id="score-winloss-section" hidden>
       <div id="score-winloss-mount"></div>
 
       <h3 class="section-title">Toughest matchups</h3>
       <p class="hint">Threats where none of your six currently has a clearly favorable answer.</p>
       <div id="tough-list" class="tough-list"></div>
+    </section>
 
+    <section id="score-matrix-section" hidden>
       <h3 class="section-title">Every threat, member by member</h3>
       <div class="table-scroll">
         <table id="matrix" class="matrix"></table>
@@ -289,11 +303,6 @@
           <table id="coverage-table" class="matrix"></table>
         </div>
       </details>
-    </section>
-
-    <section id="rival-section" hidden>
-      <div id="rival-note" class="callout-box" hidden></div>
-      <div id="rival-result" hidden></div>
     </section>
   </main>
 
