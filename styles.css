@@ -141,6 +141,67 @@ body {
 .page-nav a:hover { background: var(--surface-muted); }
 .page-nav a.current { color: var(--accent-ink); background: var(--accent); }
 
+/* ---------- Account widget + sign-in / age-gate modals (Milestone 16) ---------- */
+
+.account-widget { display: flex; align-items: center; }
+
+.account-pill-wrap { position: relative; }
+
+.account-pill { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.account-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  min-width: 200px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-dropdown[hidden] { display: none; }
+
+.account-dropdown-email {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  word-break: break-all;
+}
+
+.field input[type="email"] {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.wc-auth-status {
+  font-size: 0.86rem;
+  margin: -6px 0 14px;
+  line-height: 1.4;
+}
+
+.wc-auth-status.is-error { color: #C0463B; }
+.wc-auth-status.is-success { color: var(--positive); }
+
+.wc-agegate-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
 .brand {
   display: flex;
   align-items: center;
