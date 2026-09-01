@@ -1,40 +1,59 @@
-// WinCon — Milestone 16: accounts (email + password), and the 16+ age gate.
+// WinCon — Milestone 16: accounts (email + password), profile details, and
+// the 16+ age gate.
 //
 // This file is the ONLY place that talks to Supabase Auth. It runs on
-// every page (loaded right after supabase-config.js) and does five jobs:
+// every page (loaded right after supabase-config.js) and does six jobs:
 //   1. Draws the account widget in the top-right of the header — a
-//      "Sign in" button when signed out, or your name + a Sign out menu
-//      when signed in.
-//   2. Runs sign-up (email + password + a required 16+ checkbox) and
-//      log-in (email + password) as two tabs of one modal.
-//   3. Runs "forgot password": email in, Supabase sends a reset link,
+//      "Sign in" button when signed out, or your avatar + name + a Sign
+//      out menu when signed in.
+//   2. Runs sign-up — email, password, first/last name, age, and a
+//      username you either type or auto-generate ({Adjective}
+//      {Pokémon} — e.g. "Radiant Charizard") — and log-in, as two tabs
+//      of one modal.
+//   3. Assigns a starting avatar the moment an account is created: if the
+//      chosen username has a Pokémon's name hiding in it, that Pokémon
+//      becomes the avatar; otherwise a random one from the roster does.
+//      (Milestone 18 later swaps this for "your most-used Pokémon" once
+//      favourite teams exist — this is just an honest starting point.)
+//   4. Runs "forgot password": email in, Supabase sends a reset link,
 //      clicking it brings you back here to set a new password.
-//   4. Enforces the 16+ age check: the moment a session exists and this
-//      account hasn't confirmed its age yet, a modal blocks everything
-//      else on the page (except signing back out) until it's confirmed.
-//      This is the real, database-enforced gate — the checkbox at sign-up
-//      is a courtesy, this modal is what actually sets
-//      `profiles.age_confirmed`, so it also catches an account created
-//      before this existed, or a sign-up that never got a session (e.g.
-//      email confirmation was required) until they actually log in.
-//   5. Exposes `window.wcAuth` with a couple of small helpers
+//   5. Enforces the 16+ age check: the age typed at sign-up already
+//      decides `profiles.age_confirmed` server-side (see
+//      supabase/migrations/0002_profile_details.sql), but the mandatory
+//      modal here is the real backstop — it blocks every signed-in
+//      feature for any account where that ever ends up false (an
+//      incomplete sign-up, or one from before this existed).
+//   6. Exposes `window.wcAuth` with a couple of small helpers
 //      (`getSession()`, `getUserId()`) that later milestones (cloud team
 //      storage, friends, favourite team) will build on.
 //
-// Supabase's own Auth handles passwords entirely — they're hashed and
-// stored on Supabase's servers, never touched by any code in this file
-// beyond the one moment of typing them into the sign-up/log-in form and
-// handing them straight to `supabase.auth.signUp` / `signInWithPassword`.
-//
-// None of this is required to use WinCon. If `window.wcSupabase` never
-// got created (offline, or the Supabase CDN script is blocked), every
-// function below quietly does nothing and the rest of the site works
-// exactly as it always has, entirely from localStorage.
+// Real name, age, and password never leave this file except in the one
+// call each is handed to (`supabase.auth.signUp`) — Supabase stores and
+// hashes the password; `first_name`/`last_name`/`age` land only in the
+// private `profiles` table, never in the friend-visible `profile_public`
+// table (see the migration's comments). None of this is required to use
+// WinCon: if `window.wcSupabase` never got created (offline, or the
+// Supabase CDN script is blocked), every function below quietly does
+// nothing and the rest of the site works exactly as it always has,
+// entirely from localStorage.
 
 (function () {
   let wcCurrentSession = null;
   let wcCurrentProfile = null;
   let wcRecoveryMode = false; // true while handling a "reset your password" link
+  let wcPokemonPool = [];     // non-Mega species names, for avatars + username generation
+  let wcSpriteManifest = {};  // species name -> "sprites/xyz.png"
+
+  const WC_DESCRIPTIVE_WORDS = [
+    "Radiant", "Sleepy", "Blazing", "Shiny", "Feral", "Mighty", "Swift", "Gentle",
+    "Fierce", "Plucky", "Sneaky", "Bold", "Calm", "Wild", "Lucky", "Brave",
+    "Clever", "Speedy", "Cheerful", "Grumpy", "Sturdy", "Nimble", "Quiet", "Vivid",
+    "Frosty", "Sunny", "Stormy", "Mystic", "Golden", "Silver", "Crimson", "Azure",
+    "Emerald", "Cosmic", "Ancient", "Noble", "Loyal", "Curious", "Daring", "Jolly",
+    "Zesty", "Spirited", "Rowdy", "Serene", "Rugged", "Dashing", "Witty", "Charming",
+    "Restless", "Dazzling", "Humble", "Scrappy", "Vigilant", "Cunning", "Tranquil",
+    "Reckless", "Steadfast", "Chipper", "Moody", "Valiant",
+  ];
 
   function wcHasSupabase() {
     return typeof window.wcSupabase !== "undefined" && window.wcSupabase;
@@ -72,6 +91,62 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
+  function wcRandomChoice(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // ---------------------------------------------------------------------
+  // Pokémon roster (for avatars + username generation) — a small, purely
+  // cosmetic fetch of the same static files the rest of the site already
+  // ships, nothing to do with Supabase reachability at all.
+  // ---------------------------------------------------------------------
+
+  async function wcLoadPokemonRoster() {
+    try {
+      const [pokemonRes, spritesRes] = await Promise.all([fetch("data/pokemon.json"), fetch("data/sprites.json")]);
+      const pokemon = await pokemonRes.json();
+      wcSpriteManifest = await spritesRes.json();
+      wcPokemonPool = pokemon.filter((p) => !String(p.form || "").startsWith("Mega")).map((p) => p.name);
+    } catch (e) {
+      console.warn("WinCon: couldn't load the Pokémon roster for avatars/usernames", e);
+      wcPokemonPool = [];
+      wcSpriteManifest = {};
+    }
+  }
+
+  /** The first roster name (longest first, so "Alolan Ninetales" wins over any shorter overlap) that appears anywhere in `text`, or null. */
+  function wcFindPokemonInText(text) {
+    if (!text || wcPokemonPool.length === 0) return null;
+    const lower = text.toLowerCase();
+    const byLengthDesc = [...wcPokemonPool].sort((a, b) => b.length - a.length);
+    for (const name of byLengthDesc) {
+      if (lower.includes(name.toLowerCase())) return name;
+    }
+    return null;
+  }
+
+  function wcGenerateUsername() {
+    if (wcPokemonPool.length === 0) return "";
+    const word = wcRandomChoice(WC_DESCRIPTIVE_WORDS);
+    const mon = wcRandomChoice(wcPokemonPool);
+    return `${word} ${mon}`;
+  }
+
+  /** A Pokémon named inside `username` becomes the avatar; otherwise a random roster pick does. Never null as long as the roster loaded. */
+  function wcResolveAvatarSpecies(username) {
+    return wcFindPokemonInText(username) || (wcPokemonPool.length ? wcRandomChoice(wcPokemonPool) : null);
+  }
+
+  function wcSpritePathFor(species) {
+    return species && wcSpriteManifest[species] ? wcSpriteManifest[species] : null;
+  }
+
+  function wcAvatarImgHTML(species, sizeClass) {
+    const path = wcSpritePathFor(species);
+    if (!path) return `<span class="wc-avatar-fallback ${sizeClass}" aria-hidden="true">WC</span>`;
+    return `<img src="${wcEscape(path)}" alt="" class="wc-avatar-img ${sizeClass}" />`;
+  }
+
   // ---------------------------------------------------------------------
   // Account widget (top-right of every page's header)
   // ---------------------------------------------------------------------
@@ -84,7 +159,7 @@
   }
 
   function wcDisplayNameFor(session, profile) {
-    if (profile && profile.display_name && profile.display_name !== "New Trainer") return profile.display_name;
+    if (profile && profile.username) return profile.username;
     if (session && session.user && session.user.email) return session.user.email.split("@")[0];
     return "Trainer";
   }
@@ -102,12 +177,22 @@
 
     const name = wcDisplayNameFor(wcCurrentSession, wcCurrentProfile);
     const email = wcCurrentSession.user.email || "";
+    const avatarSpecies = wcCurrentProfile && wcCurrentProfile.avatar_species;
     widget.innerHTML = "";
     const wrap = wcEl(`
       <div class="account-pill-wrap">
-        <button type="button" class="btn-secondary account-pill" id="wc-account-pill">${wcEscape(name)}</button>
+        <button type="button" class="btn-secondary account-pill" id="wc-account-pill">
+          ${wcAvatarImgHTML(avatarSpecies, "wc-avatar-pill")}
+          <span class="account-pill-name">${wcEscape(name)}</span>
+        </button>
         <div class="account-dropdown" id="wc-account-dropdown" hidden>
-          <p class="account-dropdown-email">${wcEscape(email)}</p>
+          <div class="account-dropdown-header">
+            ${wcAvatarImgHTML(avatarSpecies, "wc-avatar-dropdown")}
+            <div>
+              <p class="account-dropdown-name">${wcEscape(name)}</p>
+              <p class="account-dropdown-email">${wcEscape(email)}</p>
+            </div>
+          </div>
           <button type="button" class="btn-secondary btn-danger" id="wc-signout-btn">Sign out</button>
         </div>
       </div>
@@ -163,6 +248,32 @@
               <label class="field-label" for="wc-signup-email">Email address</label>
               <input type="email" id="wc-signup-email" autocomplete="email" />
             </div>
+            <div class="wc-field-row">
+              <div class="field">
+                <label class="field-label" for="wc-signup-first-name">First name</label>
+                <input type="text" id="wc-signup-first-name" autocomplete="given-name" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="wc-signup-last-name">Last name</label>
+                <input type="text" id="wc-signup-last-name" autocomplete="family-name" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="wc-signup-age">Age</label>
+              <input type="number" id="wc-signup-age" min="1" max="120" inputmode="numeric" style="max-width: 100px;" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="wc-signup-username">Username</label>
+              <div class="wc-username-row">
+                <input type="text" id="wc-signup-username" autocomplete="off" maxlength="40" />
+                <button type="button" class="btn-secondary" id="wc-signup-generate-username">Generate</button>
+              </div>
+              <p class="wc-username-status" id="wc-username-status" hidden></p>
+            </div>
+            <div class="wc-avatar-preview" id="wc-avatar-preview" hidden>
+              <span id="wc-avatar-preview-img"></span>
+              <span class="wc-avatar-preview-label">Your starting avatar: <strong id="wc-avatar-preview-name"></strong></span>
+            </div>
             <div class="field">
               <label class="field-label" for="wc-signup-password">Password</label>
               <input type="password" id="wc-signup-password" autocomplete="new-password" />
@@ -171,13 +282,9 @@
               <label class="field-label" for="wc-signup-password-confirm">Confirm password</label>
               <input type="password" id="wc-signup-password-confirm" autocomplete="new-password" />
             </div>
-            <label class="wc-agegate-check">
-              <input type="checkbox" id="wc-signup-age-checkbox" />
-              I confirm that I am 16 years of age or older.
-            </label>
             <p class="wc-auth-status" id="wc-signup-status" hidden></p>
             <div class="modal-actions">
-              <button type="button" class="btn-primary" id="wc-signup-submit" disabled>Create account</button>
+              <button type="button" class="btn-primary" id="wc-signup-submit">Create account</button>
               <button type="button" class="btn-secondary" id="wc-signup-cancel">Cancel</button>
             </div>
           </div>
@@ -231,35 +338,107 @@
     loginSubmit.addEventListener("click", submitLogin);
     loginPassword.addEventListener("keydown", (e) => { if (e.key === "Enter") submitLogin(); });
 
-    // --- Sign up ---
+    // --- Sign up: username field + live avatar preview + Generate button ---
+    const signupUsername = document.getElementById("wc-signup-username");
+    const usernameStatus = document.getElementById("wc-username-status");
+    const avatarPreview = document.getElementById("wc-avatar-preview");
+    const avatarPreviewImg = document.getElementById("wc-avatar-preview-img");
+    const avatarPreviewName = document.getElementById("wc-avatar-preview-name");
+
+    function refreshAvatarPreview() {
+      const username = signupUsername.value.trim();
+      if (!username || wcPokemonPool.length === 0) { avatarPreview.hidden = true; return; }
+      const species = wcResolveAvatarSpecies(username);
+      if (!species) { avatarPreview.hidden = true; return; }
+      avatarPreview.hidden = false;
+      avatarPreviewImg.innerHTML = wcAvatarImgHTML(species, "wc-avatar-preview-sprite");
+      avatarPreviewName.textContent = species;
+    }
+
+    let usernameCheckToken = 0;
+    async function checkUsernameAvailability() {
+      const username = signupUsername.value.trim();
+      if (!username) { wcSetStatus(usernameStatus, null); return; }
+      const myToken = ++usernameCheckToken;
+      const { data, error } = await window.wcSupabase.rpc("is_username_available", { candidate: username });
+      if (myToken !== usernameCheckToken) return; // a newer check superseded this one
+      if (error) { wcSetStatus(usernameStatus, null); return; }
+      if (data === false) {
+        wcSetStatus(usernameStatus, "That username's taken — try another or Generate one.", "error");
+      } else {
+        wcSetStatus(usernameStatus, "Available!", "success");
+      }
+    }
+
+    signupUsername.addEventListener("input", () => {
+      refreshAvatarPreview();
+      checkUsernameAvailability();
+    });
+
+    document.getElementById("wc-signup-generate-username").addEventListener("click", () => {
+      const generated = wcGenerateUsername();
+      if (!generated) return;
+      signupUsername.value = generated;
+      refreshAvatarPreview();
+      checkUsernameAvailability();
+    });
+
+    // --- Sign up: submit ---
     const signupEmail = document.getElementById("wc-signup-email");
+    const signupFirstName = document.getElementById("wc-signup-first-name");
+    const signupLastName = document.getElementById("wc-signup-last-name");
+    const signupAge = document.getElementById("wc-signup-age");
     const signupPassword = document.getElementById("wc-signup-password");
     const signupPasswordConfirm = document.getElementById("wc-signup-password-confirm");
-    const signupAgeCheckbox = document.getElementById("wc-signup-age-checkbox");
     const signupStatus = document.getElementById("wc-signup-status");
     const signupSubmit = document.getElementById("wc-signup-submit");
 
-    signupAgeCheckbox.addEventListener("change", () => { signupSubmit.disabled = !signupAgeCheckbox.checked; });
-
     signupSubmit.addEventListener("click", async () => {
       const email = (signupEmail.value || "").trim();
+      const firstName = (signupFirstName.value || "").trim();
+      const lastName = (signupLastName.value || "").trim();
+      const ageRaw = (signupAge.value || "").trim();
+      const age = ageRaw === "" ? NaN : Number(ageRaw);
+      const username = (signupUsername.value || "").trim();
       const password = signupPassword.value || "";
       const confirm = signupPasswordConfirm.value || "";
+
       if (!wcValidEmail(email)) { wcSetStatus(signupStatus, "That doesn't look like a valid email address.", "error"); return; }
+      if (!firstName) { wcSetStatus(signupStatus, "Enter your first name.", "error"); return; }
+      if (!lastName) { wcSetStatus(signupStatus, "Enter your last name.", "error"); return; }
+      if (!Number.isInteger(age) || age < 1 || age > 120) { wcSetStatus(signupStatus, "Enter a valid age.", "error"); return; }
+      if (age < 16) { wcSetStatus(signupStatus, "You must be 16 or older to create a WinCon account.", "error"); return; }
+      if (username.length < 3) { wcSetStatus(signupStatus, "Username needs to be at least 3 characters — or click Generate.", "error"); return; }
       if (password.length < 6) { wcSetStatus(signupStatus, "Password must be at least 6 characters.", "error"); return; }
       if (password !== confirm) { wcSetStatus(signupStatus, "Those passwords don't match.", "error"); return; }
-      if (!signupAgeCheckbox.checked) { wcSetStatus(signupStatus, "You need to confirm you're 16 or older to create an account.", "error"); return; }
 
       signupSubmit.disabled = true;
+      wcSetStatus(signupStatus, "Checking that username…", null);
+      const { data: available, error: rpcError } = await window.wcSupabase.rpc("is_username_available", { candidate: username });
+      if (!rpcError && available === false) {
+        signupSubmit.disabled = false;
+        wcSetStatus(signupStatus, "That username's taken — try another or Generate one.", "error");
+        return;
+      }
+
+      const avatarSpecies = wcResolveAvatarSpecies(username);
       wcSetStatus(signupStatus, "Creating your account…", null);
       const { data, error } = await window.wcSupabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin + window.location.pathname },
+        options: {
+          emailRedirectTo: window.location.origin + window.location.pathname,
+          data: {
+            username,
+            first_name: firstName,
+            last_name: lastName,
+            age,
+            avatar_species: avatarSpecies,
+          },
+        },
       });
       signupSubmit.disabled = false;
       if (error) {
-        signupSubmit.disabled = !signupAgeCheckbox.checked;
         wcSetStatus(signupStatus, `Couldn't create that account: ${error.message}`, "error");
         return;
       }
@@ -321,10 +500,14 @@
     document.getElementById("wc-login-email").value = "";
     document.getElementById("wc-login-password").value = "";
     document.getElementById("wc-signup-email").value = "";
+    document.getElementById("wc-signup-first-name").value = "";
+    document.getElementById("wc-signup-last-name").value = "";
+    document.getElementById("wc-signup-age").value = "";
+    document.getElementById("wc-signup-username").value = "";
     document.getElementById("wc-signup-password").value = "";
     document.getElementById("wc-signup-password-confirm").value = "";
-    document.getElementById("wc-signup-age-checkbox").checked = false;
-    document.getElementById("wc-signup-submit").disabled = true;
+    document.getElementById("wc-avatar-preview").hidden = true;
+    wcSetStatus(document.getElementById("wc-username-status"), null);
     document.getElementById("wc-forgot-email").value = "";
     modal.hidden = false;
     wcSetAuthMode(mode || "login");
@@ -404,7 +587,11 @@
 
   // ---------------------------------------------------------------------
   // Mandatory age-gate modal — shown whenever a session exists but
-  // profiles.age_confirmed is still false for that account.
+  // profiles.age_confirmed is still false for that account. A normal
+  // sign-up already sets this from the age they typed (see the SQL
+  // migration), so in practice this only fires for an edge case: a
+  // pre-Milestone-16 account, or one whose sign-up metadata never made it
+  // through.
   // ---------------------------------------------------------------------
 
   function wcMountAgeGateModal() {
@@ -476,7 +663,7 @@
   async function wcLoadProfile(userId) {
     const { data, error } = await window.wcSupabase
       .from("profiles")
-      .select("display_name, age_confirmed")
+      .select("username, age_confirmed, avatar_species")
       .eq("id", userId)
       .maybeSingle();
     if (error) {
@@ -500,6 +687,7 @@
     wcMountAuthModal();
     wcMountNewPasswordModal();
     wcMountAgeGateModal();
+    wcLoadPokemonRoster(); // fire and forget — sign-up just degrades gracefully until it resolves
 
     const { data: { session } } = await window.wcSupabase.auth.getSession();
     await wcHandleSessionChange(session);

@@ -147,7 +147,14 @@ body {
 
 .account-pill-wrap { position: relative; }
 
-.account-pill { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-pill { max-width: 170px; }
+
+.account-pill-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .account-dropdown {
   position: absolute;
@@ -242,6 +249,87 @@ body {
   font-size: 0.88rem;
   margin-bottom: 16px;
   cursor: pointer;
+}
+
+.wc-field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.wc-field-row .field { flex: 1 1 0; }
+
+.wc-username-row {
+  display: flex;
+  gap: 8px;
+}
+
+.wc-username-row input { flex: 1 1 auto; }
+.wc-username-row .btn-secondary { flex-shrink: 0; }
+
+.wc-username-status {
+  font-size: 0.8rem;
+  margin: 4px 0 0;
+}
+
+.wc-username-status.is-error { color: #C0463B; }
+.wc-username-status.is-success { color: var(--positive); }
+
+.wc-avatar-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-muted);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 0 14px;
+}
+
+.wc-avatar-preview-label { font-size: 0.84rem; color: var(--ink-muted); }
+
+.wc-avatar-img {
+  border-radius: 50%;
+  background: var(--surface-muted);
+  object-fit: contain;
+}
+
+.wc-avatar-pill { width: 22px; height: 22px; }
+.wc-avatar-dropdown { width: 40px; height: 40px; }
+.wc-avatar-preview-sprite { width: 36px; height: 36px; }
+
+.wc-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.wc-avatar-fallback.wc-avatar-pill { width: 22px; height: 22px; }
+.wc-avatar-fallback.wc-avatar-dropdown { width: 40px; height: 40px; font-size: 0.75rem; }
+.wc-avatar-fallback.wc-avatar-preview-sprite { width: 36px; height: 36px; }
+
+.account-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.account-dropdown-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .brand {
