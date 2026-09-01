@@ -273,11 +273,43 @@ function renderTeamNotes() {
 // treatment instead of quietly drifting apart.
 // ---------------------------------------------------------------------------
 
-/** Buckets a 0-100 "goodness" percentage into the three-tier color scale. Kept as one tunable spot, applied identically everywhere a win/loss/ratio pill shows up: over 80% is green, 35-80% is yellow, under 35% is red. */
-function wcStatTier(goodnessPercent) {
-  if (goodnessPercent > 80) return "good";
-  if (goodnessPercent >= 35) return "mediocre";
-  return "bad";
+/**
+ * Turns a 0-100 "goodness" percentage into a smooth red -> yellow -> green
+ * gradient, instead of three flat buckets with a hard snap between them:
+ * pure red at 0%, pure yellow at 35%, gradually shifting to pure green by
+ * 80% and staying green from there up to 100% -- same anchor points as
+ * the site's original green/yellow/red rule, just continuous now. Built
+ * with CSS color-mix() so it automatically follows each color's own
+ * light/dark value (see --positive/--mediocre/--negative above) without
+ * any separate dark-mode math needed here, and kept as one tunable spot,
+ * applied identically everywhere a win/loss/ratio pill shows up.
+ */
+function wcStatGradientVars(goodnessPercent) {
+  const pct = Math.max(0, Math.min(100, goodnessPercent));
+  let fromColor, toColor, fromSoft, toSoft, mix;
+  if (pct <= 35) {
+    fromColor = "var(--negative)";
+    toColor = "var(--mediocre)";
+    fromSoft = "var(--negative-soft)";
+    toSoft = "var(--mediocre-soft)";
+    mix = (pct / 35) * 100;
+  } else if (pct <= 80) {
+    fromColor = "var(--mediocre)";
+    toColor = "var(--positive)";
+    fromSoft = "var(--mediocre-soft)";
+    toSoft = "var(--positive-soft)";
+    mix = ((pct - 35) / 45) * 100;
+  } else {
+    fromColor = "var(--positive)";
+    toColor = "var(--positive)";
+    fromSoft = "var(--positive-soft)";
+    toSoft = "var(--positive-soft)";
+    mix = 0;
+  }
+  return {
+    color: `color-mix(in srgb, ${fromColor}, ${toColor} ${mix}%)`,
+    soft: `color-mix(in srgb, ${fromSoft}, ${toSoft} ${mix}%)`,
+  };
 }
 
 /** Win:loss expressed as a "wins per loss" ratio from two percentages that don't need to sum to 100 (the Projected block's win% and loss% are each their own independent estimate). Rounds to one decimal under 10:1, whole numbers above that so it doesn't get noisy. */
@@ -299,10 +331,13 @@ function wcFormatRatioFromCounts(wins, losses) {
   return `${wins / g} : ${losses / g}`;
 }
 
-/** One labeled, color-coded stat box (a percentage or a ratio) for a winloss-row. */
-function wcBuildWinLossStat(label, valueText, tier, extraClass) {
+/** One labeled, gradient-colored stat box (a percentage or a ratio) for a winloss-row. goodnessPercent (0-100) drives where on the red->yellow->green gradient this box's color/background lands -- see wcStatGradientVars(). */
+function wcBuildWinLossStat(label, valueText, goodnessPercent, extraClass) {
   const box = document.createElement("div");
-  box.className = `winloss-stat is-${tier}${extraClass ? ` ${extraClass}` : ""}`;
+  box.className = `winloss-stat${extraClass ? ` ${extraClass}` : ""}`;
+  const gradient = wcStatGradientVars(goodnessPercent);
+  box.style.setProperty("--stat-color", gradient.color);
+  box.style.setProperty("--stat-soft", gradient.soft);
   const lab = document.createElement("p");
   lab.className = "winloss-stat-label";
   lab.textContent = label;
@@ -1569,9 +1604,6 @@ function renderScoreWinLoss(score, toughCount, total) {
 
   const winPct = score;
   const lossPct = Math.round((toughCount / total) * 100);
-  const winTier = wcStatTier(winPct);
-  const lossTier = wcStatTier(100 - lossPct);
-  const ratioTier = winTier;
 
   const block = document.createElement("div");
   block.className = "winloss-block";
@@ -1585,9 +1617,9 @@ function renderScoreWinLoss(score, toughCount, total) {
   const row = document.createElement("div");
   row.className = "winloss-row";
   row.append(
-    wcBuildWinLossStat("Your win rate", `${winPct}%`, winTier),
-    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, lossTier),
-    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), ratioTier)
+    wcBuildWinLossStat("Your win rate", `${winPct}%`, winPct),
+    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, 100 - lossPct),
+    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), winPct)
   );
   block.append(heading, hint, row);
   mount.appendChild(block);
@@ -1849,9 +1881,6 @@ function renderMatchTracker() {
     // sum to exactly 100 — a normal, minor artifact of rounding two
     // integers separately, not a bug.
     const lossRate = Math.round((summary.losses / summary.total) * 100);
-    const winTier = wcStatTier(summary.winRate);
-    const lossTier = wcStatTier(100 - lossRate);
-    const ratioTier = winTier;
 
     const caption = document.createElement("p");
     caption.className = "hint";
@@ -1861,9 +1890,9 @@ function renderMatchTracker() {
     const row = document.createElement("div");
     row.className = "winloss-row";
     row.append(
-      wcBuildWinLossStat("Win rate", `${summary.winRate}%`, winTier),
-      wcBuildWinLossStat("Loss rate", `${lossRate}%`, lossTier),
-      wcBuildWinLossStat("Win ratio", wcFormatRatioFromCounts(summary.wins, summary.losses), ratioTier)
+      wcBuildWinLossStat("Win rate", `${summary.winRate}%`, summary.winRate),
+      wcBuildWinLossStat("Loss rate", `${lossRate}%`, 100 - lossRate),
+      wcBuildWinLossStat("Win ratio", wcFormatRatioFromCounts(summary.wins, summary.losses), summary.winRate)
     );
 
     trackerSummaryEl.append(caption, row);
@@ -2009,9 +2038,6 @@ function renderRival(rival) {
   // loss rate against this specific rival" without any extra scoring work.
   const winPct = rival.myResult.score;
   const lossPct = rival.rivalSuccessRate;
-  const winTier = wcStatTier(winPct);
-  const lossTier = wcStatTier(100 - lossPct);
-  const ratioTier = winTier;
 
   const winlossBlock = document.createElement("div");
   winlossBlock.className = "winloss-block";
@@ -2025,9 +2051,9 @@ function renderRival(rival) {
   const winlossRow = document.createElement("div");
   winlossRow.className = "winloss-row";
   winlossRow.append(
-    wcBuildWinLossStat("Your win rate", `${winPct}%`, winTier),
-    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, lossTier),
-    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), ratioTier)
+    wcBuildWinLossStat("Your win rate", `${winPct}%`, winPct),
+    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, 100 - lossPct),
+    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), winPct)
   );
   winlossBlock.append(winlossHeading, winlossHint, winlossRow);
   rivalResultEl.appendChild(winlossBlock);

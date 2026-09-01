@@ -1835,10 +1835,16 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   margin-top: 10px;
 }
 
+/* --stat-color/--stat-soft are set inline per box by wcBuildWinLossStat()
+   in builder.js -- each box computes its own point on a continuous red ->
+   yellow -> green gradient (via CSS color-mix()) rather than snapping
+   between a handful of fixed classes, so color shifts smoothly as the
+   underlying percentage moves. The var() fallbacks here only cover a
+   stray .winloss-stat rendered without JS setting those properties. */
 .winloss-stat {
   flex: 1 1 140px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--stat-soft, var(--surface));
+  border: 1px solid var(--stat-color, var(--border));
   border-radius: 10px;
   padding: 12px 16px;
   text-align: center;
@@ -1857,14 +1863,8 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 1.5rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--stat-color, var(--ink));
 }
-
-.winloss-stat.is-good { border-color: var(--positive); background: var(--positive-soft); }
-.winloss-stat.is-good .winloss-stat-value { color: var(--positive); }
-.winloss-stat.is-mediocre { border-color: var(--mediocre); background: var(--mediocre-soft); }
-.winloss-stat.is-mediocre .winloss-stat-value { color: var(--mediocre); }
-.winloss-stat.is-bad { border-color: var(--negative); background: var(--negative-soft); }
-.winloss-stat.is-bad .winloss-stat-value { color: var(--negative); }
 
 .tracker-log-list {
   list-style: none;
