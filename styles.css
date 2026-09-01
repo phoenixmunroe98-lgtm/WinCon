@@ -174,7 +174,8 @@ body {
   word-break: break-all;
 }
 
-.field input[type="email"] {
+.field input[type="email"],
+.field input[type="password"] {
   font: inherit;
   font-size: 0.9rem;
   padding: 8px 10px;
@@ -183,6 +184,47 @@ body {
   background: var(--surface);
   color: var(--ink);
 }
+
+.wc-auth-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wc-auth-tabs[hidden] { display: none; }
+
+.wc-auth-tab {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.wc-auth-tab:hover:not(.is-active) { color: var(--ink); }
+.wc-auth-tab.is-active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.wc-link-btn {
+  display: block;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--link);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: -4px 0 14px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.wc-link-btn:hover { opacity: 0.8; }
 
 .wc-auth-status {
   font-size: 0.86rem;
