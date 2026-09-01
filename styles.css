@@ -46,6 +46,80 @@
 }
 
 /*
+  Two extra color themes (independent of light/dark, which stays fully
+  automatic) -- picked from the small toggle in the header. Every color
+  in this file already reads one of the custom properties above, so a
+  theme is nothing more than redefining them under a
+  [data-color-theme="..."] attribute on <html>; no component-level CSS
+  anywhere else needs to know these exist. See theme.js.
+*/
+
+/* Charizard theme: red and yellow in light mode, black and blue in dark. */
+[data-color-theme="charizard"] {
+  --bg: #FFF6E0;
+  --surface: #FFFFFF;
+  --surface-muted: #FFE9B8;
+  --border: #FFD27A;
+  --ink: #3A1400;
+  --ink-muted: #8A5A22;
+  --accent: #E8412C;
+  --accent-ink: #FFFFFF;
+  --positive: #C98A00;
+  --positive-soft: #FFF1C2;
+  --link: #C22A1B;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color-theme="charizard"] {
+    --bg: #05070F;
+    --surface: #0B1020;
+    --surface-muted: #10182E;
+    --border: #1C2A4A;
+    --ink: #E7EEFF;
+    --ink-muted: #8FA3D6;
+    --accent: #2255FF;
+    --accent-ink: #FFFFFF;
+    --positive: #3E6BFF;
+    --positive-soft: #142146;
+    --link: #6E93FF;
+  }
+}
+
+/* Fairy theme: pink and white. (Given a deeper rose/plum dark variant
+   here too, rather than leaving dark-mode visitors with an unthemed
+   fallback -- the brief specified the light look; this dark pairing is
+   our own extrapolation of it, easy to adjust if it's not to taste.) */
+[data-color-theme="fairy"] {
+  --bg: #FFF3F8;
+  --surface: #FFFFFF;
+  --surface-muted: #FFE3EF;
+  --border: #FFC2DD;
+  --ink: #4A1030;
+  --ink-muted: #9C5878;
+  --accent: #F45BA0;
+  --accent-ink: #FFFFFF;
+  --positive: #D6428A;
+  --positive-soft: #FFE3EF;
+  --link: #C13B79;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color-theme="fairy"] {
+    --bg: #200414;
+    --surface: #2E0A1E;
+    --surface-muted: #3B1028;
+    --border: #5C1D3E;
+    --ink: #FFE3F0;
+    --ink-muted: #E296BE;
+    --accent: #FF7AB8;
+    --accent-ink: #2E0A1E;
+    --positive: #FFA6D2;
+    --positive-soft: #3B1028;
+    --link: #FF9CCB;
+  }
+}
+
+/*
   Pokémon type colors, once each, as variables — used as small identifying
   tag backgrounds (.type-normal etc. below) AND, since Milestone 7, as the
   move-field border color in the Team Builder (input.move-input.type-normal
@@ -116,12 +190,50 @@ body {
   padding: 20px 20px 16px;
 }
 
-.topbar-row {
+.topbar-brand-row {
   display: flex;
+  justify-content: center;
+}
+
+.topbar-tagline-row {
+  display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.theme-toggle-select {
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.topbar-banner-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.account-widget-slot { justify-self: start; }
+.topbar-banner-row .page-nav { justify-self: center; }
+
+@media (max-width: 900px) {
+  .topbar-banner-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 10px;
+  }
+  .account-widget-slot { justify-self: center; }
 }
 
 .page-nav {
@@ -147,13 +259,15 @@ body {
 
 .account-pill-wrap { position: relative; }
 
-.account-pill { max-width: 170px; }
+.account-pill { max-width: 240px; padding: 8px 16px 8px 10px; }
 
 .account-pill-name {
-  max-width: 120px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .account-dropdown {
@@ -292,8 +406,8 @@ body {
   object-fit: contain;
 }
 
-.wc-avatar-pill { width: 22px; height: 22px; }
-.wc-avatar-dropdown { width: 40px; height: 40px; }
+.wc-avatar-pill { width: 36px; height: 36px; }
+.wc-avatar-dropdown { width: 48px; height: 48px; }
 .wc-avatar-preview-sprite { width: 36px; height: 36px; }
 
 .wc-avatar-fallback {
@@ -307,8 +421,8 @@ body {
   font-weight: 700;
 }
 
-.wc-avatar-fallback.wc-avatar-pill { width: 22px; height: 22px; }
-.wc-avatar-fallback.wc-avatar-dropdown { width: 40px; height: 40px; font-size: 0.75rem; }
+.wc-avatar-fallback.wc-avatar-pill { width: 36px; height: 36px; font-size: 0.7rem; }
+.wc-avatar-fallback.wc-avatar-dropdown { width: 48px; height: 48px; font-size: 0.85rem; }
 .wc-avatar-fallback.wc-avatar-preview-sprite { width: 36px; height: 36px; }
 
 .account-pill {
@@ -332,6 +446,37 @@ body {
   font-weight: 600;
 }
 
+.wc-account-info-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wc-account-info-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  margin: 0 0 18px;
+}
+
+.wc-account-info-list dt {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wc-account-info-list dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.wc-account-info-empty { color: var(--ink-muted); }
+
 .brand {
   display: flex;
   align-items: center;
@@ -342,23 +487,23 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   letter-spacing: 0.02em;
 }
 
 .brand-name {
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   font-weight: 700;
 }
 
 .tagline {
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--ink-muted);
   font-size: 0.92rem;
 }

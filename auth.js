@@ -156,10 +156,10 @@
   // ---------------------------------------------------------------------
 
   function wcMountAccountWidget() {
-    const nav = document.querySelector(".topbar-row");
-    if (!nav || document.getElementById("wc-account-widget")) return;
+    const slot = document.getElementById("wc-account-widget-slot");
+    if (!slot || document.getElementById("wc-account-widget")) return;
     const widget = wcEl(`<div class="account-widget" id="wc-account-widget"></div>`);
-    nav.appendChild(widget);
+    slot.appendChild(widget);
   }
 
   function wcDisplayNameFor(session, profile) {
@@ -197,6 +197,7 @@
               <p class="account-dropdown-email">${wcEscape(email)}</p>
             </div>
           </div>
+          <button type="button" class="btn-secondary" id="wc-account-info-btn">Account information</button>
           <button type="button" class="btn-secondary btn-danger" id="wc-signout-btn">Sign out</button>
         </div>
       </div>
@@ -208,6 +209,10 @@
     pill.addEventListener("click", () => { dropdown.hidden = !dropdown.hidden; });
     document.addEventListener("click", (e) => {
       if (!wrap.contains(e.target)) dropdown.hidden = true;
+    });
+    document.getElementById("wc-account-info-btn").addEventListener("click", () => {
+      dropdown.hidden = true;
+      wcOpenAccountInfoModal();
     });
     document.getElementById("wc-signout-btn").addEventListener("click", async () => {
       dropdown.hidden = true;
@@ -661,13 +666,71 @@
   }
 
   // ---------------------------------------------------------------------
+  // "Account information" modal -- read-only, opened from the account
+  // dropdown. Shows the things this account has on file: avatar,
+  // username, real name, age, and email. First/last name and age never
+  // leave this file for anywhere but this display and the one signUp
+  // call that first collected them -- see supabase/migrations/
+  // 0002_profile_details.sql's comments on why those stay private.
+  // ---------------------------------------------------------------------
+
+  function wcMountAccountInfoModal() {
+    if (document.getElementById("wc-account-info-modal")) return;
+    const modal = wcEl(`
+      <div class="modal-overlay" id="wc-account-info-modal" hidden>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="wc-account-info-title">
+          <h3 id="wc-account-info-title">Account information</h3>
+          <div class="wc-account-info-avatar-row" id="wc-account-info-avatar-row"></div>
+          <dl class="wc-account-info-list" id="wc-account-info-list"></dl>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="wc-account-info-close">Close</button>
+          </div>
+        </div>
+      </div>
+    `);
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) wcCloseAccountInfoModal(); });
+    document.getElementById("wc-account-info-close").addEventListener("click", wcCloseAccountInfoModal);
+  }
+
+  function wcAccountInfoRow(label, value) {
+    return `<dt>${wcEscape(label)}</dt><dd>${value ? wcEscape(value) : '<span class="wc-account-info-empty">—</span>'}</dd>`;
+  }
+
+  function wcOpenAccountInfoModal() {
+    const modal = document.getElementById("wc-account-info-modal");
+    if (!modal || !wcCurrentSession) return;
+    const p = wcCurrentProfile || {};
+    const avatarRow = document.getElementById("wc-account-info-avatar-row");
+    avatarRow.innerHTML = `
+      ${wcAvatarImgHTML(p.avatar_species, "wc-avatar-dropdown")}
+      <div>
+        <p class="account-dropdown-name">${wcEscape(p.username || "")}</p>
+        <p class="account-dropdown-email">${wcEscape(wcCurrentSession.user.email || "")}</p>
+      </div>
+    `;
+    const list = document.getElementById("wc-account-info-list");
+    list.innerHTML =
+      wcAccountInfoRow("First name", p.first_name) +
+      wcAccountInfoRow("Last name", p.last_name) +
+      wcAccountInfoRow("Age", p.age != null ? String(p.age) : null) +
+      wcAccountInfoRow("Starting avatar", p.avatar_species);
+    modal.hidden = false;
+  }
+
+  function wcCloseAccountInfoModal() {
+    const modal = document.getElementById("wc-account-info-modal");
+    if (modal) modal.hidden = true;
+  }
+
+  // ---------------------------------------------------------------------
   // Session lifecycle
   // ---------------------------------------------------------------------
 
   async function wcLoadProfile(userId) {
     const { data, error } = await window.wcSupabase
       .from("profiles")
-      .select("username, age_confirmed, avatar_species")
+      .select("username, age_confirmed, avatar_species, first_name, last_name, age")
       .eq("id", userId)
       .maybeSingle();
     if (error) {
@@ -691,7 +754,18 @@
     wcMountAuthModal();
     wcMountNewPasswordModal();
     wcMountAgeGateModal();
-    wcLoadPokemonRoster(); // fire and forget — sign-up just degrades gracefully until it resolves
+    wcMountAccountInfoModal();
+    // Fire and forget for the sign-up form (it just degrades gracefully
+    // until this resolves) -- but if we're ALREADY signed in when this
+    // finishes (the common case: this fetch races the session/profile
+    // lookup below on every normal page load), the account widget was
+    // just drawn with an empty sprite manifest and is stuck showing the
+    // fallback "WC" circle instead of the real avatar. Redraw it once
+    // the roster's in, so a slow network delays the real avatar rather
+    // than losing it for the rest of the page's life.
+    wcLoadPokemonRoster().then(() => {
+      if (wcCurrentSession) wcRenderAccountWidget();
+    });
 
     const { data: { session } } = await window.wcSupabase.auth.getSession();
     await wcHandleSessionChange(session);

@@ -6,20 +6,23 @@
   <title>WinCon — Singles Builder</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231E9C86%22/><text x=%2216%22 y=%2222%22 font-size=%2214%22 font-family=%22sans-serif%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>WC</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Anti-flash: apply a saved color theme before first paint, so there's
+    // no flicker from default colors to a chosen one. theme.js (loaded
+    // with the other scripts) does the full setup -- mounting the toggle
+    // control and swapping the background sprites -- once the DOM exists.
+    (function () {
+      try {
+        var t = localStorage.getItem("wincon.colorTheme");
+        if (t === "charizard" || t === "fairy") document.documentElement.setAttribute("data-color-theme", t);
+      } catch (e) {}
+    })();
+  </script>
   <script>window.WINCON_BUILDER_FORMAT = "singles";</script>
 </head>
 <body>
 
-  <div class="site-bg" aria-hidden="true">
-    <img src="data/sprites/mega-charizard-x.png" class="bg-mega bg-mega-tl" alt="" />
-    <img src="data/sprites/mega-charizard-y.png" class="bg-mega bg-mega-tr" alt="" />
-    <img src="data/sprites/mega-tyranitar.png" class="bg-mega bg-mega-bl" alt="" />
-    <img src="data/sprites/mega-gengar.png" class="bg-mega bg-mega-br" alt="" />
-    <img src="data/sprites/mega-greninja.png" class="bg-mega bg-mega-tc" alt="" />
-    <img src="data/sprites/mega-steelix.png" class="bg-mega bg-mega-bc" alt="" />
-    <img src="data/sprites/mega-raichu-x.png" class="bg-mega bg-mega-ml" alt="" />
-    <img src="data/sprites/mega-raichu-y.png" class="bg-mega bg-mega-mr" alt="" />
-  </div>
+  <div class="site-bg" aria-hidden="true"></div>
 
   <!--
     MILESTONE 14: Singles Builder. This page and doubles-builder.html
@@ -57,18 +60,24 @@
 
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="topbar-row">
+      <div class="topbar-brand-row">
         <div class="brand">
           <span class="brand-mark">WC</span>
           <span class="brand-name">WinCon</span>
         </div>
+      </div>
+      <div class="topbar-tagline-row">
+        <p class="tagline">Pokémon Champions</p>
+        <div class="theme-toggle-mount" id="wc-theme-toggle-mount"></div>
+      </div>
+      <div class="topbar-banner-row">
+        <div class="account-widget-slot" id="wc-account-widget-slot"></div>
         <nav class="page-nav">
           <a href="index.html">Pokédex</a>
           <a href="singles-builder.html" class="current">Singles Builder</a>
           <a href="doubles-builder.html">Doubles Builder</a>
         </nav>
       </div>
-      <p class="tagline">Build, score, and scout for — Singles: pick 6, build, check your Matchup Score, meet Your Rival</p>
     </div>
   </header>
 
@@ -276,6 +285,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="supabase-config.js"></script>
   <script src="auth.js"></script>
+  <script src="theme.js"></script>
   <script src="teams.js"></script>
   <script src="megas.js"></script>
   <script src="stats.js"></script>
