@@ -119,6 +119,101 @@
   }
 }
 
+/* Water theme: blue, background art is the roster's strongest Water-types. */
+[data-color-theme="water"] {
+  --bg: #EAF3FF;
+  --surface: #FFFFFF;
+  --surface-muted: #D9E9FF;
+  --border: #B7D4FF;
+  --ink: #0B2447;
+  --ink-muted: #4E6D96;
+  --accent: #1D63E0;
+  --accent-ink: #FFFFFF;
+  --positive: #1789A8;
+  --positive-soft: #DCF2F7;
+  --link: #1653BD;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color-theme="water"] {
+    --bg: #051224;
+    --surface: #0A1B33;
+    --surface-muted: #0F2544;
+    --border: #1B3A66;
+    --ink: #E4EEFF;
+    --ink-muted: #90AEDD;
+    --accent: #5B9EFF;
+    --accent-ink: #051224;
+    --positive: #4FD3EE;
+    --positive-soft: #0F2544;
+    --link: #8FB8FF;
+  }
+}
+
+/* Grass theme: green, background art is the roster's strongest Grass-types. */
+[data-color-theme="grass"] {
+  --bg: #EFFAF0;
+  --surface: #FFFFFF;
+  --surface-muted: #DEF3E0;
+  --border: #B9E3BD;
+  --ink: #123317;
+  --ink-muted: #4C7452;
+  --accent: #2F9E44;
+  --accent-ink: #FFFFFF;
+  --positive: #16833B;
+  --positive-soft: #DCF3E1;
+  --link: #26824A;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color-theme="grass"] {
+    --bg: #071A0A;
+    --surface: #0D2712;
+    --surface-muted: #12341A;
+    --border: #1F4E29;
+    --ink: #E2F5E4;
+    --ink-muted: #92C09B;
+    --accent: #5FD97A;
+    --accent-ink: #071A0A;
+    --positive: #7BE894;
+    --positive-soft: #12341A;
+    --link: #8FE3A4;
+  }
+}
+
+/* Electric theme: yellow, background art is the Pikachu family specifically
+   (not the wider Electric type) — accent-ink switches to a dark ink here
+   since white text on a bright yellow button reads poorly either mode. */
+[data-color-theme="electric"] {
+  --bg: #FFFBE6;
+  --surface: #FFFFFF;
+  --surface-muted: #FFF3B0;
+  --border: #FFE066;
+  --ink: #3A2E00;
+  --ink-muted: #8A7526;
+  --accent: #F2B705;
+  --accent-ink: #2B2100;
+  --positive: #B8860B;
+  --positive-soft: #FFF3B0;
+  --link: #A66B00;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color-theme="electric"] {
+    --bg: #1A1500;
+    --surface: #241D00;
+    --surface-muted: #332900;
+    --border: #4D3E00;
+    --ink: #FFF6D6;
+    --ink-muted: #D8C46E;
+    --accent: #FFD43B;
+    --accent-ink: #241D00;
+    --positive: #FFE066;
+    --positive-soft: #332900;
+    --link: #FFDD70;
+  }
+}
+
 /*
   Pokémon type colors, once each, as variables — used as small identifying
   tag backgrounds (.type-normal etc. below) AND, since Milestone 7, as the
@@ -1764,8 +1859,18 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 .bg-mega-br { bottom: 20px; right: 20px; transform: rotate(-6deg); }
 .bg-mega-tc { top: 240px; left: 38%; width: 150px; height: 150px; opacity: 0.28; }
 .bg-mega-bc { bottom: 140px; left: 62%; width: 150px; height: 150px; opacity: 0.28; }
-.bg-mega-ml { top: 46%; left: 20px; width: 160px; height: 160px; opacity: 0.28; transform: rotate(4deg); }
-.bg-mega-mr { top: 40%; right: 20px; width: 170px; height: 170px; opacity: 0.28; transform: rotate(-5deg) scaleX(-1); }
+/*
+  ml/mr used to be pinned by a percentage of viewport HEIGHT (top: 46%/40%),
+  which drifts closer to the top/bottom corners as the window gets shorter
+  and could overlap tl/bl (or tr/br) on a shorter laptop browser window —
+  worse now that a theme's 8 slots can repeat the same handful of source
+  images, so an overlap reads as one picture duplicated on top of itself.
+  Centering with top: 50% + translateY(-50%) keeps them fixed at the
+  vertical middle regardless of window height, which keeps them clear of
+  the corner slots down to much shorter windows than before.
+*/
+.bg-mega-ml { top: 50%; left: 20px; width: 160px; height: 160px; opacity: 0.28; transform: translateY(-50%) rotate(4deg); }
+.bg-mega-mr { top: 50%; right: 20px; width: 170px; height: 170px; opacity: 0.28; transform: translateY(-50%) rotate(-5deg) scaleX(-1); }
 
 @media (prefers-color-scheme: dark) {
   .bg-mega-tc, .bg-mega-bc, .bg-mega-ml, .bg-mega-mr { opacity: 0.2; }
@@ -1774,6 +1879,14 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 @media (max-width: 900px) {
   .bg-mega-tc, .bg-mega-bc, .bg-mega-ml, .bg-mega-mr { display: none; }
   .bg-mega { width: 130px !important; height: 130px !important; }
+}
+
+/* Belt-and-suspenders for the same overlap risk: on a very short window
+   (devtools docked at the bottom, a small laptop browser, etc.) drop the
+   corner-adjacent mid-slots entirely rather than let any two sprites'
+   boxes touch. */
+@media (max-height: 620px) {
+  .bg-mega-tc, .bg-mega-bc, .bg-mega-ml, .bg-mega-mr { display: none; }
 }
 
 /* Optional opponent's-team add-on for the win/loss tracker */

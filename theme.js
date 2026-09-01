@@ -1,4 +1,5 @@
-// WinCon — color themes: Default, Charizard, and Fairy.
+// WinCon — color themes: Default, Charizard, Fairy, Water, Grass, and
+// Pikachu (Electric).
 //
 // This is separate from light/dark mode, which stays exactly as it was
 // (automatic, driven by the OS/browser's prefers-color-scheme, no manual
@@ -18,12 +19,20 @@
 
 (function () {
   const WC_THEME_KEY = "wincon.colorTheme";
-  const WC_VALID_THEMES = ["default", "charizard", "fairy"];
+  const WC_VALID_THEMES = ["default", "charizard", "fairy", "water", "grass", "electric"];
 
   // Each theme's background art, spread across the same 8 position slots
   // `.bg-mega-*` already styles in styles.css. "default" is the original
-  // 8 fan-favorite Megas; the other two are driven entirely by this list
-  // now (the HTML's own `.site-bg` div is left empty on purpose).
+  // 8 fan-favorite Megas; the rest are driven entirely by this list now
+  // (the HTML's own `.site-bg` div is left empty on purpose).
+  //
+  // A theme with fewer than 8 distinct source images (Charizard: 3 forms,
+  // Electric: 5 Pikachu-family forms) repeats them to fill all 8 slots —
+  // deliberately arranged below so the SAME image never lands in two
+  // slots that sit near each other (same left/right/center column, or
+  // same top/bottom row). Two spatially-close slots showing the exact
+  // same sprite is what read as "overlapping images" in practice, even
+  // when the boxes themselves weren't actually touching.
   const WC_THEME_BACKGROUNDS = {
     default: [
       ["mega-charizard-x", "bg-mega-tl"],
@@ -38,12 +47,12 @@
     charizard: [
       ["charizard", "bg-mega-tl"],
       ["mega-charizard-x", "bg-mega-tr"],
-      ["mega-charizard-y", "bg-mega-bl"],
-      ["charizard", "bg-mega-br"],
-      ["mega-charizard-x", "bg-mega-tc"],
-      ["mega-charizard-y", "bg-mega-bc"],
-      ["charizard", "bg-mega-ml"],
-      ["mega-charizard-x", "bg-mega-mr"],
+      ["mega-charizard-y", "bg-mega-tc"],
+      ["mega-charizard-x", "bg-mega-bl"],
+      ["mega-charizard-y", "bg-mega-br"],
+      ["charizard", "bg-mega-bc"],
+      ["mega-charizard-y", "bg-mega-ml"],
+      ["charizard", "bg-mega-mr"],
     ],
     fairy: [
       ["sylveon", "bg-mega-tl"],
@@ -55,12 +64,49 @@
       ["klefki", "bg-mega-ml"],
       ["alolan-ninetales", "bg-mega-mr"],
     ],
+    // The 8 highest base-stat Water-types on the roster (data/base-stats.json).
+    water: [
+      ["mega-gyarados", "bg-mega-tl"],
+      ["mega-swampert", "bg-mega-tr"],
+      ["mega-greninja", "bg-mega-bl"],
+      ["mega-feraligatr", "bg-mega-br"],
+      ["mega-blastoise", "bg-mega-tc"],
+      ["mega-starmie", "bg-mega-bc"],
+      ["mega-slowbro", "bg-mega-ml"],
+      ["mega-sharpedo", "bg-mega-mr"],
+    ],
+    // The 8 highest base-stat Grass-types on the roster.
+    grass: [
+      ["mega-sceptile", "bg-mega-tl"],
+      ["mega-chesnaught", "bg-mega-tr"],
+      ["mega-venusaur", "bg-mega-bl"],
+      ["mega-meganium", "bg-mega-br"],
+      ["mega-abomasnow", "bg-mega-tc"],
+      ["mega-victreebel", "bg-mega-bc"],
+      ["mega-scovillain", "bg-mega-ml"],
+      ["hydrapple", "bg-mega-mr"],
+    ],
+    // Pikachu family only (not the wider Electric type): Pikachu, Raichu,
+    // Alolan Raichu, and both Mega Raichu forms, cycled across all 8 slots.
+    electric: [
+      ["pikachu", "bg-mega-tl"],
+      ["raichu", "bg-mega-tr"],
+      ["mega-raichu-y", "bg-mega-tc"],
+      ["alolan-raichu", "bg-mega-bl"],
+      ["mega-raichu-x", "bg-mega-br"],
+      ["pikachu", "bg-mega-bc"],
+      ["raichu", "bg-mega-ml"],
+      ["alolan-raichu", "bg-mega-mr"],
+    ],
   };
 
   const WC_THEME_LABELS = {
     default: "Default",
     charizard: "🔥 Charizard",
     fairy: "✨ Fairy",
+    water: "💧 Water",
+    grass: "🌿 Grass",
+    electric: "⚡ Pikachu",
   };
 
   function wcGetStoredTheme() {
