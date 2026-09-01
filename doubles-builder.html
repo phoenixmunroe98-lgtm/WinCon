@@ -143,7 +143,7 @@
           id="team-notes-input"
           rows="2"
           maxlength="300"
-          placeholder="What do you want out of this team? e.g. &quot;no trick room&quot; or &quot;no Gholdengo&quot; — Auto-build strategy and Generate Dream Team both read this."
+          placeholder="What do you want out of this team? e.g. &quot;no trick room&quot;, &quot;no Gholdengo&quot;, or &quot;built around Greninja and Feraligatr&quot; — Auto-build strategy and Generate Dream Team both read this."
         ></textarea>
       </label>
       <p id="match-record-note" class="hint"></p>
@@ -155,7 +155,9 @@
           <h2 class="section-title">Or, let WinCon build the whole team</h2>
           <p class="hint">
             Picks the best 6 from your obtained Pokémon, builds all 6, and analyzes a shared strategy — one click,
-            start to finish. Overwrites whatever's currently picked/built on this team.
+            start to finish. Keeps anything you've already picked below and builds the rest around it, honors any
+            Pokémon your team notes ask to include or leave out (e.g. "built around Greninja and Feraligatr" or
+            "no Tinkaton"), and re-picks/rebuilds everything else.
           </p>
         </div>
         <button id="dream-team-btn" class="btn-primary">Generate Dream Team</button>

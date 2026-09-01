@@ -1362,9 +1362,16 @@ function wcDreamTeamCandidateScore(candidate, teamTypesList, threats, typeChart,
  * notes text (e.g. "no Gholdengo", "don't want Absol") -- checked only
  * against Pokemon actually in the eligible pool, and only ever an exact
  * name match against something the player typed. This never guesses at
- * a Pokemon the player didn't name.
+ * a Pokemon the player didn't name. The "don't/not/never include"/"remove"/
+ * "keep out" phrasings exist specifically so a negated WINCON_INCLUDE_TRIGGERS
+ * phrase (e.g. "don't include Tinkaton") reads as an exclusion rather than
+ * an inclusion -- see wcNotesMentionedSpecies below, whose result always
+ * gets filtered against this list so exclusion wins on a conflict.
  */
-const WINCON_EXCLUDE_TRIGGERS = ["no ", "not ", "don't want ", "dont want ", "exclude ", "without ", "skip ", "leave out ", "hate ", "avoid "];
+const WINCON_EXCLUDE_TRIGGERS = [
+  "no ", "not ", "don't want ", "dont want ", "exclude ", "without ", "skip ", "leave out ", "hate ", "avoid ",
+  "don't include ", "dont include ", "not include ", "never include ", "remove ", "keep out ",
+];
 
 function wcNotesExcludedSpecies(notes, pool) {
   const text = (notes || "").toLowerCase();
@@ -1379,13 +1386,110 @@ function wcNotesExcludedSpecies(notes, pool) {
   return excluded;
 }
 
-function wcPickDreamTeam(pool, threats, typeChart, size, notes) {
+/**
+ * Milestone 19: the flip side of exclusion -- phrases that mean "this
+ * Pokemon MUST be on the team", parsed the same pragmatic, exact-name-only
+ * way as WINCON_EXCLUDE_TRIGGERS above. Unlike exclusion (checked as
+ * trigger-immediately-followed-by-name), inclusion is checked against a
+ * whole "clause" -- everything from right after the trigger phrase up to
+ * the next sentence-ending punctuation -- so a single phrase like "built
+ * around Greninja and Feraligatr" pulls in every name mentioned in that
+ * clause, not just whichever one happens to sit directly next to the
+ * trigger word.
+ */
+const WINCON_INCLUDE_TRIGGERS = [
+  "built around ", "build around ", "based around ", "centered around ", "centred around ", "centered on ", "centred on ",
+  "must include ", "must have ", "always include ", "include ", "including ", "featuring ",
+];
+
+/**
+ * Names (from `namesList`) mentioned inside an inclusion clause of
+ * free-text `notes` -- see WINCON_INCLUDE_TRIGGERS above. Longer names are
+ * matched first and their matched span blanked out before shorter names
+ * are checked, so a single mention of a two-word regional/form name (e.g.
+ * "Alolan Ninetales") can't also spuriously match the shorter base name
+ * ("Ninetales") sitting inside it. Exact substring match only, same
+ * "never guesses at a Pokemon the player didn't name" contract as
+ * wcNotesExcludedSpecies -- callers that care about exclusion beating
+ * inclusion on a conflict (wcPickDreamTeam does) are responsible for
+ * filtering the result against wcNotesExcludedSpecies themselves.
+ */
+function wcNotesMentionedSpecies(notes, namesList) {
+  const text = (notes || "").toLowerCase();
+  const mentioned = [];
+  if (!text.trim()) return mentioned;
+  const sortedNames = [...namesList].sort((a, b) => b.length - a.length);
+  WINCON_INCLUDE_TRIGGERS.forEach((trigger) => {
+    let searchFrom = 0;
+    let idx;
+    while ((idx = text.indexOf(trigger, searchFrom)) !== -1) {
+      const clauseStart = idx + trigger.length;
+      const rest = text.slice(clauseStart);
+      const stop = rest.search(/[.!?\n]/);
+      let clause = stop === -1 ? rest : rest.slice(0, stop);
+      sortedNames.forEach((name) => {
+        const lowerName = name.toLowerCase();
+        const pos = clause.indexOf(lowerName);
+        if (pos !== -1 && !mentioned.includes(name)) {
+          mentioned.push(name);
+          clause = clause.slice(0, pos) + " ".repeat(lowerName.length) + clause.slice(pos + lowerName.length);
+        }
+      });
+      searchFrom = idx + trigger.length;
+    }
+  });
+  return mentioned;
+}
+
+function wcNotesIncludedSpecies(notes, pool) {
+  return wcNotesMentionedSpecies(notes, pool.map((c) => c.name));
+}
+
+/**
+ * `alreadySelectedNames` (Milestone 19): whatever's already picked in the
+ * builder's own slots when Generate Dream Team is clicked, kept on the
+ * team instead of the whole team being replaced -- the rest is still
+ * picked/built fresh around it. Combined with notesIncludedNames (species
+ * named in the team notes, e.g. "built around Greninja and Feraligatr")
+ * into one forced list, already-selected first, both subject to
+ * excludedNames winning on a conflict and both capped to `size` (anything
+ * past that comes back as droppedForcedNames so the caller can explain
+ * why it didn't all fit).
+ */
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
+
+  const notesIncludedNames = wcNotesIncludedSpecies(notes, usablePool);
+  const keepSelectedNames = (alreadySelectedNames || []).filter(
+    (name) => usablePool.some((c) => c.name === name) && !notesIncludedNames.includes(name)
+  );
+  const forcedOrder = [...keepSelectedNames, ...notesIncludedNames];
+  const forcedNames = forcedOrder.slice(0, size);
+  const droppedForcedNames = forcedOrder.slice(size);
+  const forcedSource = new Map();
+  keepSelectedNames.forEach((name) => forcedSource.set(name, "selected"));
+  notesIncludedNames.forEach((name) => {
+    if (!forcedSource.has(name)) forcedSource.set(name, "notes");
+  });
+
   const remaining = [...usablePool];
   const team = [];
   const reasoning = [];
+
+  forcedNames.forEach((name) => {
+    const idx = remaining.findIndex((c) => c.name === name);
+    if (idx === -1) return;
+    const member = remaining[idx];
+    team.push(member);
+    remaining.splice(idx, 1);
+    reasoning.push(
+      forcedSource.get(name) === "selected"
+        ? `${name} — already picked on this team, so Dream Team kept it and built the rest around it.`
+        : `${name} — included because you named it in your team notes.`
+    );
+  });
 
   const bestFromRemaining = () => {
     const teamTypesList = team.map((m) => m.types);
@@ -1425,15 +1529,20 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes) {
   // their own stone — so two Mega-capable teammates means a genuine
   // matchup-by-matchup choice of which one to bring out as this game's
   // Mega, not just a single fixed answer every game.
-  const eligibleInPool = usablePool.filter(wcHasKnownMegaOption);
-  const guaranteedMegaCount = Math.min(2, eligibleInPool.length, size);
+  // Milestone 19: a forced pick (already-selected or notes-included) can
+  // itself be Mega-capable, so this now counts those in already, both to
+  // avoid guaranteeing MORE than two total and to never try to guarantee
+  // past however many slots the forced picks left open.
+  const megaAlreadyOnTeam = team.filter(wcHasKnownMegaOption).length;
+  const eligibleInPool = remaining.filter(wcHasKnownMegaOption);
+  const guaranteedMegaCount = Math.max(0, Math.min(2 - megaAlreadyOnTeam, eligibleInPool.length, size - team.length));
   for (let g = 0; g < guaranteedMegaCount; g++) {
     const best = bestMegaEligibleFromRemaining();
     if (!best) break;
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(
-      `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${guaranteedMegaCount === 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.`
+      `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.`
     );
   }
 
@@ -1450,12 +1559,21 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes) {
     );
   }
 
+  const finalMegaCount = team.filter(wcHasKnownMegaOption).length;
   const megaNote =
-    guaranteedMegaCount === 2
+    finalMegaCount >= 2
       ? `This team includes two Mega-capable picks — you can choose which one to actually Mega Evolve depending on the matchup, rather than being locked into one every game.`
-      : guaranteedMegaCount === 1
+      : finalMegaCount === 1
         ? `This team includes one Mega-capable pick — the only currently-obtained option with a real, tournament-informed Mega build (the others don't have confirmed data yet — see README.md).`
         : `None of your currently obtained, eligible Pokémon have a real, tournament-informed Mega build yet (only Mega Charizard Y, Mega Floette, and Mega Staraptor do right now), so this team has no guaranteed Mega option this time.`;
 
-  return { chosen: team.map((m) => m.name), reasoning, megaNote, excludedNames };
+  return {
+    chosen: team.map((m) => m.name),
+    reasoning,
+    megaNote,
+    excludedNames,
+    notesIncludedNames,
+    keepSelectedNames,
+    droppedForcedNames,
+  };
 }

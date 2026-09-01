@@ -1216,7 +1216,28 @@ function generateDreamTeam() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const { chosen: picked, reasoning, megaNote, excludedNames } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes);
+  // Milestone 19: keep whatever's already picked in the builder's own
+  // slots (that's still eligible) so Dream Team builds the rest around it
+  // instead of replacing the whole team outright.
+  const keepFromCurrentPick = chosen.filter((name) => eligible.some((m) => m.name === name));
+
+  const {
+    chosen: picked,
+    reasoning,
+    megaNote,
+    excludedNames,
+    notesIncludedNames,
+    droppedForcedNames,
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick);
+
+  // The team notes can name a real Pokémon that just isn't obtained/
+  // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
+  // against the eligible pool, so check the full roster too, purely to
+  // explain the gap in the note below rather than silently ignoring it.
+  const mentionedAnywhere = wcNotesMentionedSpecies(notes, data.pokemon.map((p) => p.name));
+  const mentionedButNotEligible = mentionedAnywhere.filter(
+    (name) => !notesIncludedNames.includes(name) && !excludedNames.includes(name)
+  );
 
   if (picked.length < 6) {
     dreamTeamNoteEl.hidden = false;
@@ -1240,13 +1261,13 @@ function generateDreamTeam() {
 
   renderPicker();
   renderSlots();
-  renderDreamTeamNote(reasoning, megaNote, excludedNames);
+  renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible);
 
   autogenHint.textContent = "";
   saveStatus.textContent = "Dream Team picked and built — click Auto-build strategy below when you're ready to see a recommended team strategy, then Save team when you're happy with it.";
 }
 
-function renderDreamTeamNote(reasoning, megaNote, excludedNames) {
+function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
 
@@ -1255,6 +1276,22 @@ function renderDreamTeamNote(reasoning, megaNote, excludedNames) {
     excludedP.className = "hint dream-team-excluded-note";
     excludedP.textContent = `Left out per your team notes: ${excludedNames.join(", ")}.`;
     dreamTeamNoteEl.appendChild(excludedP);
+  }
+
+  if (mentionedButNotEligible && mentionedButNotEligible.length) {
+    const isOne = mentionedButNotEligible.length === 1;
+    const mentionedP = document.createElement("p");
+    mentionedP.className = "hint dream-team-excluded-note";
+    mentionedP.textContent =
+      `Your notes ask for ${mentionedButNotEligible.join(", ")}, but ${isOne ? "it isn't" : "they aren't"} marked obtained yet (or ${isOne ? "doesn't" : "don't"} have confirmed base-stat/learnset data) -- mark ${isOne ? "it" : "them"} obtained on the Pokédex tracker to have Dream Team actually include ${isOne ? "it" : "them"}.`;
+    dreamTeamNoteEl.appendChild(mentionedP);
+  }
+
+  if (droppedForcedNames && droppedForcedNames.length) {
+    const droppedP = document.createElement("p");
+    droppedP.className = "hint dream-team-excluded-note";
+    droppedP.textContent = `Couldn't fit everyone you already had picked/asked for into a 6-Pokémon team -- left out ${droppedForcedNames.join(", ")} for space.`;
+    dreamTeamNoteEl.appendChild(droppedP);
   }
 
   const heading = document.createElement("p");
