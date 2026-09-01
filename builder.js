@@ -226,12 +226,17 @@ function getObtainedNames() {
   }
 }
 
-/** The reference threat list with each entry's real types attached — used by Matchup Score, Generate Dream Team, Auto-build team, and Auto-build strategy alike, so they never quietly disagree about what a threat's types are. */
+/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. Milestone 20: the Matchup Score section's own default win/loss display no longer uses this list (see getFullRosterThreatsWithTypes() below) — it was found to be heavily skewed toward Mega forms (13 of its 16 entries), so it stayed too narrow a picture of "your win rate." This list is kept for the other three features above, which are about picking/building a team's shape (archetype, coverage) rather than displaying a win-rate figure, and changing what they score against would silently change already-explained behavior nobody asked to change. */
 function getThreatsWithTypes() {
   return data.threats.map((t) => {
     const p = data.pokemon.find((x) => x.name === t.name);
     return { ...t, types: p ? p.types : [] };
   });
+}
+
+/** Milestone 20: literally every Pokémon in the roster (all base forms and Mega forms alike, data/pokemon.json) as a threats list — what Matchup Score's own default "Projected Win/Loss Ratio", score ring, Toughest matchups, and full matrix now compare your team against, replacing the old 16-entry curated list (still used elsewhere -- see getThreatsWithTypes() above). Every entry here has confirmed base stats (data/base-stats.json covers the full roster), so nothing in this list hits the matrix's "no base-stat data yet" fallback. */
+function getFullRosterThreatsWithTypes() {
+  return data.pokemon.map((p) => ({ name: p.name, types: p.types, role: "" }));
 }
 
 // ---------------------------------------------------------------------------
@@ -1696,7 +1701,7 @@ function refreshDerivedSections() {
   rivalSectionEl.hidden = !hasTeam;
   if (!hasTeam) return;
 
-  const result = scoreAgainstThreats(getThreatsWithTypes());
+  const result = scoreAgainstThreats(getFullRosterThreatsWithTypes());
   renderScoreHero(result.score, result.favorableCount, result.toughCount, result.perThreat.length);
   renderToughList(document.getElementById("tough-list"), result.perThreat.filter((t) => t.best.result.verdict === "unfavorable"));
   renderMatrix(result.roster, result.perThreat);
@@ -1709,8 +1714,8 @@ function renderScoreHero(score, favorableCount, toughCount, total) {
   const ring = document.getElementById("score-ring");
   ring.style.setProperty("--score", score);
   document.getElementById("score-summary").textContent =
-    `Favorable answers to ${favorableCount} of ${total} reference threats, ` +
-    `no clear answer to ${toughCount} of them. This is a matchup score against a placeholder list — not a win rate.` +
+    `Favorable answers to ${favorableCount} of ${total} Pokémon in the full data set, ` +
+    `no clear answer to ${toughCount} of them. This is a matchup score across the whole roster — not a measured win rate.` +
     (sheetMode === "open" ? " Scored under your Open Team Sheet — move-dependent edges are already discounted." : "");
 
   renderScoreWinLoss(score, toughCount, total);
@@ -1718,12 +1723,12 @@ function renderScoreHero(score, favorableCount, toughCount, total) {
 
 /**
  * The same "Projected Win/Loss Ratio" pill treatment as Your Rival's block
- * (see renderRival()), but against the generic 16-Pokémon reference list
- * instead of one synthesized rival: win rate = the score itself (the
- * favorable share), loss rate = that same list's unfavorable share. The
- * two don't have to sum to 100 -- an "even" verdict is neither favorable
- * nor unfavorable -- so this reuses the percent-based ratio formatter,
- * same as Your Rival.
+ * (see renderRival()), but against every Pokémon in the full roster
+ * (Milestone 20 — see getFullRosterThreatsWithTypes()) instead of one
+ * synthesized rival: win rate = the score itself (the favorable share),
+ * loss rate = that same list's unfavorable share. The two don't have to
+ * sum to 100 -- an "even" verdict is neither favorable nor unfavorable --
+ * so this reuses the percent-based ratio formatter, same as Your Rival.
  */
 function renderScoreWinLoss(score, toughCount, total) {
   const mount = document.getElementById("score-winloss-mount");
@@ -1742,7 +1747,7 @@ function renderScoreWinLoss(score, toughCount, total) {
   const hint = document.createElement("p");
   hint.className = "hint";
   hint.textContent =
-    "From your Matchup Score against the 16-Pokémon reference list — a heuristic estimate, not a simulated battle or a measured win rate.";
+    `From your Matchup Score against all ${total} Pokémon in the data set — a heuristic estimate, not a simulated battle or a measured win rate.`;
   const row = document.createElement("div");
   row.className = "winloss-row";
   row.append(
@@ -1789,6 +1794,9 @@ function verdictSymbol(verdict) {
 function renderMatrix(roster, perThreat) {
   const table = document.getElementById("matrix");
   table.innerHTML = "";
+
+  const summaryEl = document.getElementById("score-matrix-summary");
+  if (summaryEl) summaryEl.textContent = `Show the full matchup matrix (${perThreat.length} Pokémon)`;
 
   const headRow = document.createElement("tr");
   headRow.appendChild(document.createElement("th"));
@@ -2142,17 +2150,66 @@ function findYourRival() {
   // answers your typing/stats well instead of a generic reference list.
   const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6);
   const rivalMembers = rivalNames.map((name) => pool.find((m) => m.name === name));
-  // The rival's own moveset is generated for narrative/display only — it
-  // never feeds the numeric score below (wcScoreMatchup only reads the
-  // opposing side's types + base Speed, never its moves), so it's always
-  // synthesized as a normal Closed-Sheet build regardless of YOUR sheetMode.
-  const { builds: rivalBuilds } = wcGenerateTeamBuilds(rivalMembers, data.moves, myThreats, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, "closed");
 
-  const rivalAsThreats = rivalMembers.map((m) => ({ name: m.name, types: m.types, role: "Your Rival" }));
+  pendingRival = { rivalMembers, rivalBuilds: {}, reasoning, rivalSuccessRate: 0, myResult: null, customized: false };
+  recomputeRivalScoring();
+  renderRival(pendingRival);
+}
+
+/**
+ * Milestone 20: (re)builds pendingRival.rivalBuilds/myResult/rivalSuccessRate
+ * from pendingRival.rivalMembers as they currently stand — shared by
+ * findYourRival()'s first synthesis and swapRivalMember()'s live recompute
+ * after the player edits a slot, so both paths score exactly the same way.
+ * The rival's own moveset is generated for narrative/display only — it
+ * never feeds the numeric score (wcScoreMatchup only reads the opposing
+ * side's types + base Speed, never its moves), so it's always synthesized
+ * as a normal Closed-Sheet build regardless of YOUR sheetMode.
+ */
+function recomputeRivalScoring() {
+  const myThreats = myTeamAsThreats();
+  const { builds: rivalBuilds } = wcGenerateTeamBuilds(pendingRival.rivalMembers, data.moves, myThreats, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, "closed");
+  const rivalAsThreats = pendingRival.rivalMembers.map((m) => ({ name: m.name, types: m.types, role: "Your Rival" }));
   const myResult = scoreAgainstThreats(rivalAsThreats);
-  const rivalSuccessRate = 100 - myResult.score;
+  pendingRival.rivalBuilds = rivalBuilds;
+  pendingRival.myResult = myResult;
+  pendingRival.rivalSuccessRate = 100 - myResult.score;
+}
 
-  pendingRival = { rivalMembers, rivalBuilds, reasoning, rivalSuccessRate, myResult };
+/**
+ * Species selectable for one Your Rival slot's dropdown — the same
+ * eligible pool as the original synthesis (buildRivalPool(): confirmed
+ * data, never your own team, no Mega forms since those are never
+ * independently picked), minus whichever species are on the rival's
+ * OTHER five slots right now (so the roster can't end up with a
+ * duplicate) — but never excluding this slot's OWN current pick, so it
+ * always stays selectable in its own dropdown. Sorted alphabetically
+ * since this is a plain browse-and-pick list, not a scored/ranked one.
+ */
+function buildRivalSpeciesOptions(rival, excludeIndex) {
+  const usedByOtherSlots = new Set(rival.rivalMembers.filter((_, i) => i !== excludeIndex).map((m) => m.name));
+  return buildRivalPool()
+    .filter((m) => !usedByOtherSlots.has(m.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Milestone 20: swaps one slot of Your Rival's synthesized roster for a
+ * different species the player picks from that slot's dropdown, then
+ * rescores live — lets the player ask "what if the rival ran X instead"
+ * without regenerating the whole rival from scratch. Marks the roster
+ * customized so renderRival() stops presenting the original greedy-pick
+ * reasoning as if it still fully describes what's on the team.
+ */
+function swapRivalMember(index, newName) {
+  if (!pendingRival || !pendingRival.rivalMembers[index]) return;
+  if (pendingRival.rivalMembers[index].name === newName) return;
+  const pool = buildRivalPool();
+  const newMember = pool.find((m) => m.name === newName);
+  if (!newMember) return;
+  pendingRival.rivalMembers[index] = newMember;
+  pendingRival.customized = true;
+  recomputeRivalScoring();
   renderRival(pendingRival);
 }
 
@@ -2185,6 +2242,13 @@ function renderRival(rival) {
     wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), winPct)
   );
   winlossBlock.append(winlossHeading, winlossHint, winlossRow);
+  if (rival.customized) {
+    const customNote = document.createElement("p");
+    customNote.className = "hint rival-customized-note";
+    customNote.textContent =
+      "You've changed who's on this rival's roster below — the numbers above already reflect your edits, but \"Why this rival beats you\" still explains the original synthesized picks, not your changes.";
+    winlossBlock.appendChild(customNote);
+  }
   rivalResultEl.appendChild(winlossBlock);
 
   const hero = document.createElement("div");
@@ -2236,9 +2300,10 @@ function renderRival(rival) {
 
   const rosterGrid = document.createElement("div");
   rosterGrid.className = "slots rival-roster";
-  rival.rivalMembers.forEach((member) => {
+  rival.rivalMembers.forEach((member, index) => {
     const build = rival.rivalBuilds[member.name] || emptyBuild();
     const effective = wcEffectivePokemon(data.pokemon, member.name, build.item) || member;
+    const isMega = effective.name !== member.name;
     const card = document.createElement("article");
     card.className = "slot-card rival-card";
 
@@ -2246,9 +2311,38 @@ function renderRival(rival) {
     header.className = "slot-header";
     const sprite = spriteImg(effective.name, "slot-sprite");
     if (sprite) header.appendChild(sprite);
-    const title = document.createElement("div");
-    title.className = "card-name";
-    title.textContent = effective.name;
+
+    // Milestone 20: this used to be a plain name — now a real <select> so
+    // the player can swap this slot for a different species and see how
+    // their team's win/loss numbers change against the edited rival (see
+    // swapRivalMember()). The dropdown's own value always tracks the BASE
+    // species picked for this slot (member.name), same as buildRivalPool()
+    // -- Mega forms are never independently selected here either, same
+    // rule as the player's own picker -- so when this slot's generated
+    // build happens to Mega Evolve it (effective.name !== member.name),
+    // that's shown with the same "Mega Evolved" badge/tooltip treatment
+    // as the player's own slot cards use, right next to the dropdown.
+    const select = document.createElement("select");
+    select.className = "rival-species-select";
+    select.setAttribute("aria-label", `Change this rival slot's Pokémon — currently ${member.name}`);
+    buildRivalSpeciesOptions(rival, index).forEach((option) => {
+      const opt = document.createElement("option");
+      opt.value = option.name;
+      opt.textContent = option.name;
+      if (option.name === member.name) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener("change", () => swapRivalMember(index, select.value));
+    header.appendChild(select);
+
+    if (isMega) {
+      const megaTag = document.createElement("span");
+      megaTag.className = "mega-badge";
+      megaTag.textContent = "Mega Evolved";
+      megaTag.title = `${member.name} holding ${build.item} — this slot is ${effective.name}.`;
+      header.appendChild(megaTag);
+    }
+
     const types = document.createElement("div");
     types.className = "card-types";
     (effective.types || member.types).forEach((type) => {
@@ -2257,7 +2351,7 @@ function renderRival(rival) {
       tag.textContent = type;
       types.appendChild(tag);
     });
-    header.append(title, types);
+    header.appendChild(types);
 
     const abilityInfo = data.abilities && data.abilities[effective.name];
     if (abilityInfo) {

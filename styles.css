@@ -1288,11 +1288,13 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 0.82rem;
 }
 
-#coverage-details {
+#coverage-details,
+#score-matrix-details {
   margin-bottom: 24px;
 }
 
-#coverage-details summary {
+#coverage-details summary,
+#score-matrix-details summary {
   cursor: pointer;
   font-weight: 600;
   font-size: 0.9rem;
@@ -1806,8 +1808,12 @@ select.ability-badge:focus-visible {
   own build cards above — .rival-card only adds a distinguishing accent so
   the two roster sections are never confused mid-scroll, and
   .rival-card-detail is a compact one-line item+moves summary rather than
-  the full interactive field set a build slot has (a rival's set is
-  narrative/read-only, not something you edit).
+  the full interactive field set a build slot has (a rival's generated
+  moveset stays narrative/read-only). Milestone 20: which SPECIES occupies
+  each slot became editable (see .rival-species-select below and
+  swapRivalMember() in builder.js) — "what if the rival ran X instead" —
+  while the moveset itself is still always auto-generated for that pick,
+  never hand-edited.
 */
 .rival-card {
   border-left: 3px solid #C0463B;
@@ -1818,6 +1824,30 @@ select.ability-badge:focus-visible {
 .rival-card-detail {
   margin: 0;
   line-height: 1.4;
+}
+
+/* Milestone 20: same idea as select.ability-badge above — a real <select>
+   styled to read like the plain name it replaces (.card-name), with
+   native select chrome left alone so it stays legible across every color
+   theme without a hand-picked arrow color per theme. */
+.rival-species-select {
+  display: block;
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.rival-species-select:hover,
+.rival-species-select:focus-visible {
+  border-color: var(--ink-muted);
+  outline: none;
 }
 
 .slot-mega-hint { margin: 4px 0 0; }

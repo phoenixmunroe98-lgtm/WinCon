@@ -250,19 +250,27 @@
 
     <section id="score-matrix-section" hidden>
       <h3 class="section-title">Every threat, member by member</h3>
-      <div class="table-scroll">
-        <table id="matrix" class="matrix"></table>
-      </div>
+      <p class="hint">Every Pokémon in the full data set, one row each — collapsed by default since it's a long list.</p>
+      <!-- Milestone 20: this table now has a row for every Pokémon in the
+           data set (up from a fixed 16), so it's collapsed behind a
+           details/summary block by default -- same pattern as "Show full
+           18-type breakdown" in Team type coverage below. -->
+      <details id="score-matrix-details">
+        <summary id="score-matrix-summary">Show the full matchup matrix</summary>
+        <div class="table-scroll">
+          <table id="matrix" class="matrix"></table>
+        </div>
 
-      <p class="hint methodology">
-        <strong>How this is scored:</strong> for each reference Pokémon, every member of your team is checked both
-        ways — how hard the threat's likely STAB hits them (type effectiveness), how hard their own moves (or, if a
-        slot's moves aren't filled in yet, their own types) hit back, and a rough Speed comparison using their
-        Stat Points and Nature. Your team's answer to a threat is whichever of your six comes out best. This is
-        not a simulated battle and not a measured win rate — the 16 reference Pokémon are a hand-picked list, not
-        live usage data, and the Stat Point → stat-value math is the standard formula with SP treated as roughly
-        EV/8, which the community dataset itself flags as still unverified.
-      </p>
+        <p class="hint methodology">
+          <strong>How this is scored:</strong> for each Pokémon in the data set, every member of your team is
+          checked both ways — how hard the threat's likely STAB hits them (type effectiveness), how hard their own
+          moves (or, if a slot's moves aren't filled in yet, their own types) hit back, and a rough Speed comparison
+          using their Stat Points and Nature. Your team's answer to a threat is whichever of your six comes out
+          best. This is not a simulated battle and not a measured win rate — it's compared against every Pokémon in
+          the data set, not a hand-picked subset, and the Stat Point → stat-value math is the standard formula with
+          SP treated as roughly EV/8, which the community dataset itself flags as still unverified.
+        </p>
+      </details>
     </section>
 
     <section id="coverage-section" hidden>
