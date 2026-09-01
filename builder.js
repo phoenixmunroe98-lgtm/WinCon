@@ -60,7 +60,19 @@ const STATS = [
 /** Locked per-page — set by an inline <script> in singles-builder.html / doubles-builder.html BEFORE this file loads. Never changes at runtime; a team's own tagged format is what changes instead (see moveActiveTeamToOtherFormat). */
 const WINCON_BUILDER_FORMAT = window.WINCON_BUILDER_FORMAT === "singles" ? "singles" : "doubles";
 
-/** @type {{pokemon: any[], moves: any[], items: any[], natures: any[], learnsets: Record<string,string[]>, baseStats: any[], threats: any[], typeChart: any, abilities: Record<string,{ability: string, description: string, confidence?: string}>}} */
+/**
+ * @type {{pokemon: any[], moves: any[], items: any[], natures: any[], learnsets: Record<string,string[]>, baseStats: any[], threats: any[], typeChart: any,
+ *   abilities: Record<string,{ability: string, description: string, confidence?: string}>,
+ *   abilityOptions: Record<string,{name: string, isHidden: boolean}[]>,
+ *   abilityDex: Record<string,string>}}
+ *
+ * abilities is the site's single "best/most-common" pick per species (Milestone 13) --
+ * still what auto-build/auto-strategy/Matchup Score assume. abilityOptions (Milestone 17)
+ * is the real, full Ability 1/Ability 2/Hidden Ability list per species -- present only
+ * for the 221 non-Mega roster entries, since a Mega Evolution's ability is fixed with no
+ * alternates to pick from. abilityDex is the shared name -> description pool every ability
+ * name (in either abilities or abilityOptions) resolves against, same pattern as moves.json.
+ */
 let data = {};
 
 /** Full multi-team state: { teams: [...], activeId }. Shared across BOTH builder pages (and the Pokédex tracker's obtained-list, separately) via teams.js — up to 5 teams total, filtered per page by format below. */
@@ -137,7 +149,7 @@ const rivalResultEl = document.getElementById("rival-result");
 init();
 
 async function init() {
-  const [pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities] = await Promise.all([
+  const [pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex] = await Promise.all([
     fetchJSON("data/pokemon.json"),
     fetchJSON("data/moves.json"),
     fetchJSON("data/items.json"),
@@ -148,8 +160,10 @@ async function init() {
     fetchJSON("data/type-chart.json"),
     fetchJSON("data/sprites.json"),
     fetchJSON("data/abilities.json"),
+    fetchJSON("data/ability-options.json"),
+    fetchJSON("data/ability-dex.json"),
   ]);
-  data = { pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities };
+  data = { pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex };
 
   teamState = wcLoadTeamState();
   activeId = teamState.activeId;
@@ -499,7 +513,7 @@ function saveDraft() {
 function emptyBuild() {
   const sp = {};
   STATS.forEach((s) => (sp[s.key] = 0));
-  return { nature: "", item: "", moves: ["", "", "", ""], sp };
+  return { nature: "", item: "", moves: ["", "", "", ""], sp, ability: "" };
 }
 
 // ---------------------------------------------------------------------------
@@ -646,14 +660,8 @@ function renderSlot(baseName, build) {
   header.append(title, types);
 
   const abilityInfo = data.abilities && data.abilities[effective.name];
-  if (abilityInfo) {
-    const abilityBadge = document.createElement("span");
-    abilityBadge.className = "ability-badge";
-    if (abilityInfo.confidence === "low") abilityBadge.classList.add("is-low-confidence");
-    abilityBadge.textContent = `Ability: ${abilityInfo.ability}`;
-    attachFieldHoverTooltip(abilityBadge, (el) => showAbilityFieldTooltip(el, abilityInfo));
-    header.appendChild(abilityBadge);
-  }
+  const abilityControl = buildAbilityControl(build, effective, abilityInfo);
+  if (abilityControl) header.appendChild(abilityControl.el);
 
   const megaForms = wcMegaFormsOf(data.pokemon, baseName);
   if (megaForms.length > 0) {
@@ -684,7 +692,7 @@ function renderSlot(baseName, build) {
     moveGrid.appendChild(note);
   }
   const moveOptions = learnset || data.moves.map((m) => m.name);
-  const abilityName = abilityInfo && abilityInfo.ability;
+  const abilityName = abilityControl ? abilityControl.name : abilityInfo && abilityInfo.ability;
   for (let i = 0; i < 4; i++) {
     moveGrid.appendChild(buildMoveField(build, i, moveOptions, effective, abilityName));
   }
@@ -815,6 +823,77 @@ function ensureItemDatalist() {
     datalist.appendChild(opt);
   });
   document.body.appendChild(datalist);
+}
+
+/**
+ * The "Ability: X" badge on each build slot card (Milestone 13), now
+ * editable in place (Milestone 17) for any species with more than one real
+ * ability to choose from -- Ability 1/Ability 2/Hidden Ability, sourced
+ * from data/ability-options.json (see the data JSDoc near the top of this
+ * file). A Mega form has no entry there at all -- Mega Evolution locks to
+ * one fixed ability with no alternates in-game -- and 19 base-form species
+ * only ever had one real option to begin with, so both fall back to the
+ * original plain, hover-only badge with nothing to pick from.
+ *
+ * Returns { el, name } -- the DOM node to place in the header, and the
+ * effective ability name in play for this slot right now (the player's own
+ * pick if they've made one, else the site's own best-available default) --
+ * or null if this species has no ability data sourced at all.
+ *
+ * This only feeds the badge/tooltip and each move field's Expected/Tech
+ * tag (see wcMoveIsExpected in strategy.js). Auto-build, Auto-strategy,
+ * and Matchup Score still score every Pokémon against the site's single
+ * recommended ability (data.abilities) regardless of what's picked here,
+ * same as before Milestone 17 -- changing a hand-built slot's ability here
+ * is a reference/planning tool for that one slot, not a retroactive
+ * rescore of generated content.
+ */
+function buildAbilityControl(build, effective, abilityInfo) {
+  if (!abilityInfo) return null;
+  const options = data.abilityOptions && data.abilityOptions[effective.name];
+  const defaultName = abilityInfo.ability;
+  const hasValidOverride = Boolean(build.ability) && options && options.some((o) => o.name === build.ability);
+  const currentName = hasValidOverride ? build.ability : defaultName;
+  const currentDescription = (data.abilityDex && data.abilityDex[currentName]) || abilityInfo.description || "";
+  const showConfidence = currentName === defaultName && abilityInfo.confidence === "low";
+
+  if (!options || options.length < 2) {
+    const badge = document.createElement("span");
+    badge.className = "ability-badge";
+    if (showConfidence) badge.classList.add("is-low-confidence");
+    badge.textContent = `Ability: ${currentName}`;
+    attachFieldHoverTooltip(badge, (el) =>
+      showAbilityFieldTooltip(el, { ability: currentName, description: currentDescription, confidence: showConfidence ? "low" : undefined })
+    );
+    return { el: badge, name: currentName };
+  }
+
+  const select = document.createElement("select");
+  select.className = "ability-badge";
+  if (showConfidence) select.classList.add("is-low-confidence");
+  options.forEach((opt) => {
+    const optionEl = document.createElement("option");
+    optionEl.value = opt.name;
+    optionEl.textContent = opt.isHidden ? `${opt.name} (Hidden Ability)` : opt.name;
+    if (opt.name === currentName) optionEl.selected = true;
+    select.appendChild(optionEl);
+  });
+
+  attachFieldHoverTooltip(select, (el) =>
+    showAbilityFieldTooltip(el, { ability: currentName, description: currentDescription, confidence: showConfidence ? "low" : undefined })
+  );
+
+  select.addEventListener("change", () => {
+    build.ability = select.value;
+    invalidateComputedNotes();
+    // The chosen ability feeds each move field's Expected/Tech tag (see
+    // wcMoveIsExpected in strategy.js) and the tooltip's own text, both
+    // rendered inside this same card -- a full re-render is the simplest
+    // way to keep everything in sync, same as buildItemField's onChange.
+    renderSlots();
+  });
+
+  return { el: select, name: currentName };
 }
 
 /**

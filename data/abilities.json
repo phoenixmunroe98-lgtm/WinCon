@@ -252,8 +252,9 @@
     "description": "Doubles its Speed while a sandstorm is active."
   },
   "Falinks": {
-    "ability": "No Guard",
-    "description": "Makes every move used by or against it hit without fail, ignoring accuracy and evasion."
+    "ability": "Defiant",
+    "description": "Sharply raises its Attack by two stages whenever an opponent's move or ability lowers one of its stats.",
+    "confidence": "low"
   },
   "Farigiraf": {
     "ability": "Armor Tail",

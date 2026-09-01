@@ -1,0 +1,2600 @@
+{
+  "Abomasnow": [
+    {
+      "isHidden": false,
+      "name": "Snow Warning"
+    },
+    {
+      "isHidden": true,
+      "name": "Soundproof"
+    }
+  ],
+  "Absol": [
+    {
+      "isHidden": false,
+      "name": "Pressure"
+    },
+    {
+      "isHidden": false,
+      "name": "Super Luck"
+    },
+    {
+      "isHidden": true,
+      "name": "Justified"
+    }
+  ],
+  "Aegislash": [
+    {
+      "isHidden": false,
+      "name": "Stance Change"
+    }
+  ],
+  "Aerodactyl": [
+    {
+      "isHidden": false,
+      "name": "Rock Head"
+    },
+    {
+      "isHidden": false,
+      "name": "Pressure"
+    },
+    {
+      "isHidden": true,
+      "name": "Unnerve"
+    }
+  ],
+  "Aggron": [
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": false,
+      "name": "Rock Head"
+    },
+    {
+      "isHidden": true,
+      "name": "Heavy Metal"
+    }
+  ],
+  "Alakazam": [
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": true,
+      "name": "Magic Guard"
+    }
+  ],
+  "Alcremie": [
+    {
+      "isHidden": false,
+      "name": "Sweet Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Aroma Veil"
+    }
+  ],
+  "Alolan Ninetales": [
+    {
+      "isHidden": false,
+      "name": "Snow Cloak"
+    },
+    {
+      "isHidden": true,
+      "name": "Snow Warning"
+    }
+  ],
+  "Alolan Raichu": [
+    {
+      "isHidden": false,
+      "name": "Surge Surfer"
+    }
+  ],
+  "Altaria": [
+    {
+      "isHidden": false,
+      "name": "Natural Cure"
+    },
+    {
+      "isHidden": true,
+      "name": "Cloud Nine"
+    }
+  ],
+  "Ampharos": [
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": true,
+      "name": "Plus"
+    }
+  ],
+  "Annihilape": [
+    {
+      "isHidden": false,
+      "name": "Vital Spirit"
+    },
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": true,
+      "name": "Defiant"
+    }
+  ],
+  "Appletun": [
+    {
+      "isHidden": false,
+      "name": "Ripen"
+    },
+    {
+      "isHidden": false,
+      "name": "Gluttony"
+    },
+    {
+      "isHidden": true,
+      "name": "Thick Fat"
+    }
+  ],
+  "Araquanid": [
+    {
+      "isHidden": false,
+      "name": "Water Bubble"
+    },
+    {
+      "isHidden": true,
+      "name": "Water Absorb"
+    }
+  ],
+  "Arbok": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Shed Skin"
+    },
+    {
+      "isHidden": true,
+      "name": "Unnerve"
+    }
+  ],
+  "Arcanine": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Justified"
+    }
+  ],
+  "Archaludon": [
+    {
+      "isHidden": false,
+      "name": "Stamina"
+    },
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": true,
+      "name": "Stalwart"
+    }
+  ],
+  "Ariados": [
+    {
+      "isHidden": false,
+      "name": "Swarm"
+    },
+    {
+      "isHidden": false,
+      "name": "Insomnia"
+    },
+    {
+      "isHidden": true,
+      "name": "Sniper"
+    }
+  ],
+  "Armarouge": [
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Weak Armor"
+    }
+  ],
+  "Aromatisse": [
+    {
+      "isHidden": false,
+      "name": "Healer"
+    },
+    {
+      "isHidden": true,
+      "name": "Aroma Veil"
+    }
+  ],
+  "Audino": [
+    {
+      "isHidden": false,
+      "name": "Healer"
+    },
+    {
+      "isHidden": false,
+      "name": "Regenerator"
+    },
+    {
+      "isHidden": true,
+      "name": "Klutz"
+    }
+  ],
+  "Aurorus": [
+    {
+      "isHidden": false,
+      "name": "Refrigerate"
+    },
+    {
+      "isHidden": true,
+      "name": "Snow Warning"
+    }
+  ],
+  "Avalugg": [
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": false,
+      "name": "Ice Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Sturdy"
+    }
+  ],
+  "Azumarill": [
+    {
+      "isHidden": false,
+      "name": "Thick Fat"
+    },
+    {
+      "isHidden": false,
+      "name": "Huge Power"
+    },
+    {
+      "isHidden": true,
+      "name": "Sap Sipper"
+    }
+  ],
+  "Banette": [
+    {
+      "isHidden": false,
+      "name": "Insomnia"
+    },
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": true,
+      "name": "Cursed Body"
+    }
+  ],
+  "Barbaracle": [
+    {
+      "isHidden": false,
+      "name": "Tough Claws"
+    },
+    {
+      "isHidden": false,
+      "name": "Sniper"
+    },
+    {
+      "isHidden": true,
+      "name": "Pickpocket"
+    }
+  ],
+  "Basculegion": [
+    {
+      "isHidden": false,
+      "name": "Swift Swim"
+    },
+    {
+      "isHidden": false,
+      "name": "Adaptability"
+    },
+    {
+      "isHidden": true,
+      "name": "Mold Breaker"
+    }
+  ],
+  "Bastiodon": [
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": true,
+      "name": "Soundproof"
+    }
+  ],
+  "Beartic": [
+    {
+      "isHidden": false,
+      "name": "Snow Cloak"
+    },
+    {
+      "isHidden": false,
+      "name": "Slush Rush"
+    },
+    {
+      "isHidden": true,
+      "name": "Swift Swim"
+    }
+  ],
+  "Beedrill": [
+    {
+      "isHidden": false,
+      "name": "Swarm"
+    },
+    {
+      "isHidden": true,
+      "name": "Sniper"
+    }
+  ],
+  "Bellibolt": [
+    {
+      "isHidden": false,
+      "name": "Electromorphosis"
+    },
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": true,
+      "name": "Damp"
+    }
+  ],
+  "Blastoise": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Rain Dish"
+    }
+  ],
+  "Blaziken": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Speed Boost"
+    }
+  ],
+  "Camerupt": [
+    {
+      "isHidden": false,
+      "name": "Magma Armor"
+    },
+    {
+      "isHidden": false,
+      "name": "Solid Rock"
+    },
+    {
+      "isHidden": true,
+      "name": "Anger Point"
+    }
+  ],
+  "Castform": [
+    {
+      "isHidden": false,
+      "name": "Forecast"
+    }
+  ],
+  "Ceruledge": [
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Weak Armor"
+    }
+  ],
+  "Chandelure": [
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": false,
+      "name": "Flame Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Infiltrator"
+    }
+  ],
+  "Charizard": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Solar Power"
+    }
+  ],
+  "Chesnaught": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Bulletproof"
+    }
+  ],
+  "Chimecho": [
+    {
+      "isHidden": false,
+      "name": "Levitate"
+    }
+  ],
+  "Clawitzer": [
+    {
+      "isHidden": false,
+      "name": "Mega Launcher"
+    }
+  ],
+  "Clefable": [
+    {
+      "isHidden": false,
+      "name": "Cute Charm"
+    },
+    {
+      "isHidden": false,
+      "name": "Magic Guard"
+    },
+    {
+      "isHidden": true,
+      "name": "Unaware"
+    }
+  ],
+  "Cofagrigus": [
+    {
+      "isHidden": false,
+      "name": "Mummy"
+    }
+  ],
+  "Conkeldurr": [
+    {
+      "isHidden": false,
+      "name": "Guts"
+    },
+    {
+      "isHidden": false,
+      "name": "Sheer Force"
+    },
+    {
+      "isHidden": true,
+      "name": "Iron Fist"
+    }
+  ],
+  "Corviknight": [
+    {
+      "isHidden": false,
+      "name": "Pressure"
+    },
+    {
+      "isHidden": false,
+      "name": "Unnerve"
+    },
+    {
+      "isHidden": true,
+      "name": "Mirror Armor"
+    }
+  ],
+  "Crabominable": [
+    {
+      "isHidden": false,
+      "name": "Hyper Cutter"
+    },
+    {
+      "isHidden": false,
+      "name": "Iron Fist"
+    },
+    {
+      "isHidden": true,
+      "name": "Anger Point"
+    }
+  ],
+  "Decidueye": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Long Reach"
+    }
+  ],
+  "Dedenne": [
+    {
+      "isHidden": false,
+      "name": "Cheek Pouch"
+    },
+    {
+      "isHidden": false,
+      "name": "Pickup"
+    },
+    {
+      "isHidden": true,
+      "name": "Plus"
+    }
+  ],
+  "Delphox": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Magician"
+    }
+  ],
+  "Diggersby": [
+    {
+      "isHidden": false,
+      "name": "Pickup"
+    },
+    {
+      "isHidden": false,
+      "name": "Cheek Pouch"
+    },
+    {
+      "isHidden": true,
+      "name": "Huge Power"
+    }
+  ],
+  "Ditto": [
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": true,
+      "name": "Imposter"
+    }
+  ],
+  "Dragalge": [
+    {
+      "isHidden": false,
+      "name": "Poison Point"
+    },
+    {
+      "isHidden": false,
+      "name": "Poison Touch"
+    },
+    {
+      "isHidden": true,
+      "name": "Adaptability"
+    }
+  ],
+  "Dragapult": [
+    {
+      "isHidden": false,
+      "name": "Clear Body"
+    },
+    {
+      "isHidden": false,
+      "name": "Infiltrator"
+    },
+    {
+      "isHidden": true,
+      "name": "Cursed Body"
+    }
+  ],
+  "Dragonite": [
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": true,
+      "name": "Multiscale"
+    }
+  ],
+  "Drampa": [
+    {
+      "isHidden": false,
+      "name": "Berserk"
+    },
+    {
+      "isHidden": false,
+      "name": "Sap Sipper"
+    },
+    {
+      "isHidden": true,
+      "name": "Cloud Nine"
+    }
+  ],
+  "Eelektross": [
+    {
+      "isHidden": false,
+      "name": "Levitate"
+    }
+  ],
+  "Emboar": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Reckless"
+    }
+  ],
+  "Emolga": [
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": true,
+      "name": "Motor Drive"
+    }
+  ],
+  "Empoleon": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Competitive"
+    }
+  ],
+  "Espathra": [
+    {
+      "isHidden": false,
+      "name": "Opportunist"
+    },
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": true,
+      "name": "Speed Boost"
+    }
+  ],
+  "Espeon": [
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": true,
+      "name": "Magic Bounce"
+    }
+  ],
+  "Excadrill": [
+    {
+      "isHidden": false,
+      "name": "Sand Rush"
+    },
+    {
+      "isHidden": false,
+      "name": "Sand Force"
+    },
+    {
+      "isHidden": true,
+      "name": "Mold Breaker"
+    }
+  ],
+  "Falinks": [
+    {
+      "isHidden": false,
+      "name": "Battle Armor"
+    },
+    {
+      "isHidden": true,
+      "name": "Defiant"
+    }
+  ],
+  "Farigiraf": [
+    {
+      "isHidden": false,
+      "name": "Cud Chew"
+    },
+    {
+      "isHidden": false,
+      "name": "Armor Tail"
+    },
+    {
+      "isHidden": true,
+      "name": "Sap Sipper"
+    }
+  ],
+  "Feraligatr": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Flapple": [
+    {
+      "isHidden": false,
+      "name": "Ripen"
+    },
+    {
+      "isHidden": false,
+      "name": "Gluttony"
+    },
+    {
+      "isHidden": true,
+      "name": "Hustle"
+    }
+  ],
+  "Flareon": [
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Guts"
+    }
+  ],
+  "Floette": [
+    {
+      "isHidden": false,
+      "name": "Flower Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Symbiosis"
+    }
+  ],
+  "Florges": [
+    {
+      "isHidden": false,
+      "name": "Flower Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Symbiosis"
+    }
+  ],
+  "Forretress": [
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": true,
+      "name": "Overcoat"
+    }
+  ],
+  "Froslass": [
+    {
+      "isHidden": false,
+      "name": "Snow Cloak"
+    },
+    {
+      "isHidden": true,
+      "name": "Cursed Body"
+    }
+  ],
+  "Furfrou": [
+    {
+      "isHidden": false,
+      "name": "Fur Coat"
+    }
+  ],
+  "Galarian Slowbro": [
+    {
+      "isHidden": false,
+      "name": "Quick Draw"
+    },
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": true,
+      "name": "Regenerator"
+    }
+  ],
+  "Galarian Slowking": [
+    {
+      "isHidden": false,
+      "name": "Curious Medicine"
+    },
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": true,
+      "name": "Regenerator"
+    }
+  ],
+  "Galarian Stunfisk": [
+    {
+      "isHidden": false,
+      "name": "Mimicry"
+    }
+  ],
+  "Gallade": [
+    {
+      "isHidden": false,
+      "name": "Steadfast"
+    },
+    {
+      "isHidden": false,
+      "name": "Sharpness"
+    },
+    {
+      "isHidden": true,
+      "name": "Justified"
+    }
+  ],
+  "Garbodor": [
+    {
+      "isHidden": false,
+      "name": "Stench"
+    },
+    {
+      "isHidden": false,
+      "name": "Weak Armor"
+    },
+    {
+      "isHidden": true,
+      "name": "Aftermath"
+    }
+  ],
+  "Garchomp": [
+    {
+      "isHidden": false,
+      "name": "Sand Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Rough Skin"
+    }
+  ],
+  "Gardevoir": [
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": false,
+      "name": "Trace"
+    },
+    {
+      "isHidden": true,
+      "name": "Telepathy"
+    }
+  ],
+  "Garganacl": [
+    {
+      "isHidden": false,
+      "name": "Purifying Salt"
+    },
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": true,
+      "name": "Clear Body"
+    }
+  ],
+  "Gengar": [
+    {
+      "isHidden": false,
+      "name": "Cursed Body"
+    }
+  ],
+  "Gholdengo": [
+    {
+      "isHidden": false,
+      "name": "Good as Gold"
+    }
+  ],
+  "Glaceon": [
+    {
+      "isHidden": false,
+      "name": "Snow Cloak"
+    },
+    {
+      "isHidden": true,
+      "name": "Ice Body"
+    }
+  ],
+  "Glalie": [
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": false,
+      "name": "Ice Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Moody"
+    }
+  ],
+  "Glimmora": [
+    {
+      "isHidden": false,
+      "name": "Toxic Debris"
+    },
+    {
+      "isHidden": true,
+      "name": "Corrosion"
+    }
+  ],
+  "Gliscor": [
+    {
+      "isHidden": false,
+      "name": "Hyper Cutter"
+    },
+    {
+      "isHidden": false,
+      "name": "Sand Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Poison Heal"
+    }
+  ],
+  "Golurk": [
+    {
+      "isHidden": false,
+      "name": "Iron Fist"
+    },
+    {
+      "isHidden": false,
+      "name": "Klutz"
+    },
+    {
+      "isHidden": true,
+      "name": "No Guard"
+    }
+  ],
+  "Goodra": [
+    {
+      "isHidden": false,
+      "name": "Sap Sipper"
+    },
+    {
+      "isHidden": false,
+      "name": "Hydration"
+    },
+    {
+      "isHidden": true,
+      "name": "Gooey"
+    }
+  ],
+  "Gourgeist": [
+    {
+      "isHidden": false,
+      "name": "Pickup"
+    },
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": true,
+      "name": "Insomnia"
+    }
+  ],
+  "Greninja": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Protean"
+    }
+  ],
+  "Grimmsnarl": [
+    {
+      "isHidden": false,
+      "name": "Prankster"
+    },
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": true,
+      "name": "Pickpocket"
+    }
+  ],
+  "Gyarados": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": true,
+      "name": "Moxie"
+    }
+  ],
+  "Hatterene": [
+    {
+      "isHidden": false,
+      "name": "Healer"
+    },
+    {
+      "isHidden": false,
+      "name": "Anticipation"
+    },
+    {
+      "isHidden": true,
+      "name": "Magic Bounce"
+    }
+  ],
+  "Hawlucha": [
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": false,
+      "name": "Unburden"
+    },
+    {
+      "isHidden": true,
+      "name": "Mold Breaker"
+    }
+  ],
+  "Heliolisk": [
+    {
+      "isHidden": false,
+      "name": "Dry Skin"
+    },
+    {
+      "isHidden": false,
+      "name": "Sand Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Solar Power"
+    }
+  ],
+  "Heracross": [
+    {
+      "isHidden": false,
+      "name": "Swarm"
+    },
+    {
+      "isHidden": false,
+      "name": "Guts"
+    },
+    {
+      "isHidden": true,
+      "name": "Moxie"
+    }
+  ],
+  "Hippowdon": [
+    {
+      "isHidden": false,
+      "name": "Sand Stream"
+    },
+    {
+      "isHidden": true,
+      "name": "Sand Force"
+    }
+  ],
+  "Hisuian Arcanine": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Rock Head"
+    }
+  ],
+  "Hisuian Avalugg": [
+    {
+      "isHidden": false,
+      "name": "Strong Jaw"
+    },
+    {
+      "isHidden": false,
+      "name": "Ice Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Sturdy"
+    }
+  ],
+  "Hisuian Decidueye": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Scrappy"
+    }
+  ],
+  "Hisuian Goodra": [
+    {
+      "isHidden": false,
+      "name": "Sap Sipper"
+    },
+    {
+      "isHidden": false,
+      "name": "Shell Armor"
+    },
+    {
+      "isHidden": true,
+      "name": "Gooey"
+    }
+  ],
+  "Hisuian Samurott": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Sharpness"
+    }
+  ],
+  "Hisuian Typhlosion": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Frisk"
+    }
+  ],
+  "Hisuian Zoroark": [
+    {
+      "isHidden": false,
+      "name": "Illusion"
+    }
+  ],
+  "Houndoom": [
+    {
+      "isHidden": false,
+      "name": "Early Bird"
+    },
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Unnerve"
+    }
+  ],
+  "Houndstone": [
+    {
+      "isHidden": false,
+      "name": "Sand Rush"
+    },
+    {
+      "isHidden": true,
+      "name": "Fluffy"
+    }
+  ],
+  "Hydrapple": [
+    {
+      "isHidden": false,
+      "name": "Supersweet Syrup"
+    },
+    {
+      "isHidden": false,
+      "name": "Regenerator"
+    },
+    {
+      "isHidden": true,
+      "name": "Sticky Hold"
+    }
+  ],
+  "Hydreigon": [
+    {
+      "isHidden": false,
+      "name": "Levitate"
+    }
+  ],
+  "Incineroar": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Intimidate"
+    }
+  ],
+  "Infernape": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Iron Fist"
+    }
+  ],
+  "Jolteon": [
+    {
+      "isHidden": false,
+      "name": "Volt Absorb"
+    },
+    {
+      "isHidden": true,
+      "name": "Quick Feet"
+    }
+  ],
+  "Kangaskhan": [
+    {
+      "isHidden": false,
+      "name": "Early Bird"
+    },
+    {
+      "isHidden": false,
+      "name": "Scrappy"
+    },
+    {
+      "isHidden": true,
+      "name": "Inner Focus"
+    }
+  ],
+  "Kingambit": [
+    {
+      "isHidden": false,
+      "name": "Defiant"
+    },
+    {
+      "isHidden": false,
+      "name": "Supreme Overlord"
+    },
+    {
+      "isHidden": true,
+      "name": "Pressure"
+    }
+  ],
+  "Kleavor": [
+    {
+      "isHidden": false,
+      "name": "Swarm"
+    },
+    {
+      "isHidden": false,
+      "name": "Sheer Force"
+    },
+    {
+      "isHidden": true,
+      "name": "Sharpness"
+    }
+  ],
+  "Klefki": [
+    {
+      "isHidden": false,
+      "name": "Prankster"
+    },
+    {
+      "isHidden": true,
+      "name": "Magician"
+    }
+  ],
+  "Kommo-o": [
+    {
+      "isHidden": false,
+      "name": "Bulletproof"
+    },
+    {
+      "isHidden": false,
+      "name": "Soundproof"
+    },
+    {
+      "isHidden": true,
+      "name": "Overcoat"
+    }
+  ],
+  "Krookodile": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Moxie"
+    },
+    {
+      "isHidden": true,
+      "name": "Anger Point"
+    }
+  ],
+  "Leafeon": [
+    {
+      "isHidden": false,
+      "name": "Leaf Guard"
+    },
+    {
+      "isHidden": true,
+      "name": "Chlorophyll"
+    }
+  ],
+  "Liepard": [
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": false,
+      "name": "Unburden"
+    },
+    {
+      "isHidden": true,
+      "name": "Prankster"
+    }
+  ],
+  "Lopunny": [
+    {
+      "isHidden": false,
+      "name": "Cute Charm"
+    },
+    {
+      "isHidden": false,
+      "name": "Klutz"
+    },
+    {
+      "isHidden": true,
+      "name": "Limber"
+    }
+  ],
+  "Lucario": [
+    {
+      "isHidden": false,
+      "name": "Steadfast"
+    },
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": true,
+      "name": "Justified"
+    }
+  ],
+  "Luxray": [
+    {
+      "isHidden": false,
+      "name": "Rivalry"
+    },
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": true,
+      "name": "Guts"
+    }
+  ],
+  "Lycanroc": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Sand Rush"
+    },
+    {
+      "isHidden": true,
+      "name": "Steadfast"
+    }
+  ],
+  "Machamp": [
+    {
+      "isHidden": false,
+      "name": "Guts"
+    },
+    {
+      "isHidden": false,
+      "name": "No Guard"
+    },
+    {
+      "isHidden": true,
+      "name": "Steadfast"
+    }
+  ],
+  "Malamar": [
+    {
+      "isHidden": false,
+      "name": "Contrary"
+    },
+    {
+      "isHidden": false,
+      "name": "Suction Cups"
+    },
+    {
+      "isHidden": true,
+      "name": "Infiltrator"
+    }
+  ],
+  "Mamoswine": [
+    {
+      "isHidden": false,
+      "name": "Oblivious"
+    },
+    {
+      "isHidden": false,
+      "name": "Snow Cloak"
+    },
+    {
+      "isHidden": true,
+      "name": "Thick Fat"
+    }
+  ],
+  "Manectric": [
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": false,
+      "name": "Lightning Rod"
+    },
+    {
+      "isHidden": true,
+      "name": "Minus"
+    }
+  ],
+  "Maushold": [
+    {
+      "isHidden": false,
+      "name": "Friend Guard"
+    },
+    {
+      "isHidden": false,
+      "name": "Cheek Pouch"
+    },
+    {
+      "isHidden": true,
+      "name": "Technician"
+    }
+  ],
+  "Mawile": [
+    {
+      "isHidden": false,
+      "name": "Hyper Cutter"
+    },
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Medicham": [
+    {
+      "isHidden": false,
+      "name": "Pure Power"
+    },
+    {
+      "isHidden": true,
+      "name": "Telepathy"
+    }
+  ],
+  "Meganium": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Leaf Guard"
+    }
+  ],
+  "Meowscarada": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Protean"
+    }
+  ],
+  "Meowstic": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Infiltrator"
+    },
+    {
+      "isHidden": true,
+      "name": "Prankster"
+    }
+  ],
+  "Metagross": [
+    {
+      "isHidden": false,
+      "name": "Clear Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Light Metal"
+    }
+  ],
+  "Milotic": [
+    {
+      "isHidden": false,
+      "name": "Marvel Scale"
+    },
+    {
+      "isHidden": false,
+      "name": "Competitive"
+    },
+    {
+      "isHidden": true,
+      "name": "Cute Charm"
+    }
+  ],
+  "Mimikyu": [
+    {
+      "isHidden": false,
+      "name": "Disguise"
+    }
+  ],
+  "Morpeko": [
+    {
+      "isHidden": false,
+      "name": "Hunger Switch"
+    }
+  ],
+  "Mr. Rime": [
+    {
+      "isHidden": false,
+      "name": "Tangled Feet"
+    },
+    {
+      "isHidden": false,
+      "name": "Screen Cleaner"
+    },
+    {
+      "isHidden": true,
+      "name": "Ice Body"
+    }
+  ],
+  "Mudsdale": [
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": false,
+      "name": "Stamina"
+    },
+    {
+      "isHidden": true,
+      "name": "Inner Focus"
+    }
+  ],
+  "Musharna": [
+    {
+      "isHidden": false,
+      "name": "Forewarn"
+    },
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": true,
+      "name": "Telepathy"
+    }
+  ],
+  "Ninetales": [
+    {
+      "isHidden": false,
+      "name": "Flash Fire"
+    },
+    {
+      "isHidden": true,
+      "name": "Drought"
+    }
+  ],
+  "Noivern": [
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": false,
+      "name": "Infiltrator"
+    },
+    {
+      "isHidden": true,
+      "name": "Telepathy"
+    }
+  ],
+  "Oranguru": [
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": false,
+      "name": "Telepathy"
+    },
+    {
+      "isHidden": true,
+      "name": "Symbiosis"
+    }
+  ],
+  "Orthworm": [
+    {
+      "isHidden": false,
+      "name": "Earth Eater"
+    },
+    {
+      "isHidden": true,
+      "name": "Sand Veil"
+    }
+  ],
+  "Overqwil": [
+    {
+      "isHidden": false,
+      "name": "Poison Point"
+    },
+    {
+      "isHidden": false,
+      "name": "Swift Swim"
+    },
+    {
+      "isHidden": true,
+      "name": "Intimidate"
+    }
+  ],
+  "Palafin": [
+    {
+      "isHidden": false,
+      "name": "Zero to Hero"
+    }
+  ],
+  "Paldean Tauros": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Anger Point"
+    },
+    {
+      "isHidden": true,
+      "name": "Cud Chew"
+    }
+  ],
+  "Pangoro": [
+    {
+      "isHidden": false,
+      "name": "Iron Fist"
+    },
+    {
+      "isHidden": false,
+      "name": "Mold Breaker"
+    },
+    {
+      "isHidden": true,
+      "name": "Scrappy"
+    }
+  ],
+  "Passimian": [
+    {
+      "isHidden": false,
+      "name": "Receiver"
+    },
+    {
+      "isHidden": true,
+      "name": "Defiant"
+    }
+  ],
+  "Pelipper": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Drizzle"
+    },
+    {
+      "isHidden": true,
+      "name": "Rain Dish"
+    }
+  ],
+  "Pidgeot": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Tangled Feet"
+    },
+    {
+      "isHidden": true,
+      "name": "Big Pecks"
+    }
+  ],
+  "Pikachu": [
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": true,
+      "name": "Lightning Rod"
+    }
+  ],
+  "Pinsir": [
+    {
+      "isHidden": false,
+      "name": "Hyper Cutter"
+    },
+    {
+      "isHidden": false,
+      "name": "Mold Breaker"
+    },
+    {
+      "isHidden": true,
+      "name": "Moxie"
+    }
+  ],
+  "Politoed": [
+    {
+      "isHidden": false,
+      "name": "Water Absorb"
+    },
+    {
+      "isHidden": false,
+      "name": "Damp"
+    },
+    {
+      "isHidden": true,
+      "name": "Drizzle"
+    }
+  ],
+  "Polteageist": [
+    {
+      "isHidden": false,
+      "name": "Weak Armor"
+    },
+    {
+      "isHidden": true,
+      "name": "Cursed Body"
+    }
+  ],
+  "Primarina": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Liquid Voice"
+    }
+  ],
+  "Pyroar": [
+    {
+      "isHidden": false,
+      "name": "Rivalry"
+    },
+    {
+      "isHidden": false,
+      "name": "Unnerve"
+    },
+    {
+      "isHidden": true,
+      "name": "Moxie"
+    }
+  ],
+  "Quaquaval": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Moxie"
+    }
+  ],
+  "Qwilfish": [
+    {
+      "isHidden": false,
+      "name": "Poison Point"
+    },
+    {
+      "isHidden": false,
+      "name": "Swift Swim"
+    },
+    {
+      "isHidden": true,
+      "name": "Intimidate"
+    }
+  ],
+  "Raichu": [
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": true,
+      "name": "Lightning Rod"
+    }
+  ],
+  "Rampardos": [
+    {
+      "isHidden": false,
+      "name": "Mold Breaker"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Reuniclus": [
+    {
+      "isHidden": false,
+      "name": "Overcoat"
+    },
+    {
+      "isHidden": false,
+      "name": "Magic Guard"
+    },
+    {
+      "isHidden": true,
+      "name": "Regenerator"
+    }
+  ],
+  "Rhyperior": [
+    {
+      "isHidden": false,
+      "name": "Lightning Rod"
+    },
+    {
+      "isHidden": false,
+      "name": "Solid Rock"
+    },
+    {
+      "isHidden": true,
+      "name": "Reckless"
+    }
+  ],
+  "Roserade": [
+    {
+      "isHidden": false,
+      "name": "Natural Cure"
+    },
+    {
+      "isHidden": false,
+      "name": "Poison Point"
+    },
+    {
+      "isHidden": true,
+      "name": "Technician"
+    }
+  ],
+  "Rotom": [
+    {
+      "isHidden": false,
+      "name": "Levitate"
+    }
+  ],
+  "Runerigus": [
+    {
+      "isHidden": false,
+      "name": "Wandering Spirit"
+    }
+  ],
+  "Sableye": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Stall"
+    },
+    {
+      "isHidden": true,
+      "name": "Prankster"
+    }
+  ],
+  "Salazzle": [
+    {
+      "isHidden": false,
+      "name": "Corrosion"
+    },
+    {
+      "isHidden": true,
+      "name": "Oblivious"
+    }
+  ],
+  "Samurott": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Shell Armor"
+    }
+  ],
+  "Sandaconda": [
+    {
+      "isHidden": false,
+      "name": "Sand Spit"
+    },
+    {
+      "isHidden": false,
+      "name": "Shed Skin"
+    },
+    {
+      "isHidden": true,
+      "name": "Sand Veil"
+    }
+  ],
+  "Sceptile": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Unburden"
+    }
+  ],
+  "Scizor": [
+    {
+      "isHidden": false,
+      "name": "Swarm"
+    },
+    {
+      "isHidden": false,
+      "name": "Technician"
+    },
+    {
+      "isHidden": true,
+      "name": "Light Metal"
+    }
+  ],
+  "Scolipede": [
+    {
+      "isHidden": false,
+      "name": "Poison Point"
+    },
+    {
+      "isHidden": false,
+      "name": "Swarm"
+    },
+    {
+      "isHidden": true,
+      "name": "Speed Boost"
+    }
+  ],
+  "Scovillain": [
+    {
+      "isHidden": false,
+      "name": "Chlorophyll"
+    },
+    {
+      "isHidden": false,
+      "name": "Insomnia"
+    },
+    {
+      "isHidden": true,
+      "name": "Moody"
+    }
+  ],
+  "Scrafty": [
+    {
+      "isHidden": false,
+      "name": "Shed Skin"
+    },
+    {
+      "isHidden": false,
+      "name": "Moxie"
+    },
+    {
+      "isHidden": true,
+      "name": "Intimidate"
+    }
+  ],
+  "Serperior": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Contrary"
+    }
+  ],
+  "Sharpedo": [
+    {
+      "isHidden": false,
+      "name": "Rough Skin"
+    },
+    {
+      "isHidden": true,
+      "name": "Speed Boost"
+    }
+  ],
+  "Simipour": [
+    {
+      "isHidden": false,
+      "name": "Gluttony"
+    },
+    {
+      "isHidden": true,
+      "name": "Torrent"
+    }
+  ],
+  "Simisage": [
+    {
+      "isHidden": false,
+      "name": "Gluttony"
+    },
+    {
+      "isHidden": true,
+      "name": "Overgrow"
+    }
+  ],
+  "Simisear": [
+    {
+      "isHidden": false,
+      "name": "Gluttony"
+    },
+    {
+      "isHidden": true,
+      "name": "Blaze"
+    }
+  ],
+  "Sinistcha": [
+    {
+      "isHidden": false,
+      "name": "Hospitality"
+    },
+    {
+      "isHidden": true,
+      "name": "Heatproof"
+    }
+  ],
+  "Skarmory": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": true,
+      "name": "Weak Armor"
+    }
+  ],
+  "Skeledirge": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Unaware"
+    }
+  ],
+  "Slowbro": [
+    {
+      "isHidden": false,
+      "name": "Oblivious"
+    },
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": true,
+      "name": "Regenerator"
+    }
+  ],
+  "Slowking": [
+    {
+      "isHidden": false,
+      "name": "Oblivious"
+    },
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": true,
+      "name": "Regenerator"
+    }
+  ],
+  "Slurpuff": [
+    {
+      "isHidden": false,
+      "name": "Sweet Veil"
+    },
+    {
+      "isHidden": true,
+      "name": "Unburden"
+    }
+  ],
+  "Sneasler": [
+    {
+      "isHidden": false,
+      "name": "Pressure"
+    },
+    {
+      "isHidden": false,
+      "name": "Unburden"
+    },
+    {
+      "isHidden": true,
+      "name": "Poison Touch"
+    }
+  ],
+  "Snorlax": [
+    {
+      "isHidden": false,
+      "name": "Immunity"
+    },
+    {
+      "isHidden": false,
+      "name": "Thick Fat"
+    },
+    {
+      "isHidden": true,
+      "name": "Gluttony"
+    }
+  ],
+  "Spiritomb": [
+    {
+      "isHidden": false,
+      "name": "Pressure"
+    },
+    {
+      "isHidden": true,
+      "name": "Infiltrator"
+    }
+  ],
+  "Staraptor": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": true,
+      "name": "Reckless"
+    }
+  ],
+  "Starmie": [
+    {
+      "isHidden": false,
+      "name": "Illuminate"
+    },
+    {
+      "isHidden": false,
+      "name": "Natural Cure"
+    },
+    {
+      "isHidden": true,
+      "name": "Analytic"
+    }
+  ],
+  "Steelix": [
+    {
+      "isHidden": false,
+      "name": "Rock Head"
+    },
+    {
+      "isHidden": false,
+      "name": "Sturdy"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Stunfisk": [
+    {
+      "isHidden": false,
+      "name": "Static"
+    },
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": true,
+      "name": "Sand Veil"
+    }
+  ],
+  "Swampert": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Damp"
+    }
+  ],
+  "Sylveon": [
+    {
+      "isHidden": false,
+      "name": "Cute Charm"
+    },
+    {
+      "isHidden": true,
+      "name": "Pixilate"
+    }
+  ],
+  "Talonflame": [
+    {
+      "isHidden": false,
+      "name": "Flame Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Gale Wings"
+    }
+  ],
+  "Tauros": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Anger Point"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Tinkaton": [
+    {
+      "isHidden": false,
+      "name": "Mold Breaker"
+    },
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": true,
+      "name": "Pickpocket"
+    }
+  ],
+  "Torkoal": [
+    {
+      "isHidden": false,
+      "name": "White Smoke"
+    },
+    {
+      "isHidden": false,
+      "name": "Drought"
+    },
+    {
+      "isHidden": true,
+      "name": "Shell Armor"
+    }
+  ],
+  "Torterra": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Shell Armor"
+    }
+  ],
+  "Toucannon": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Skill Link"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Toxapex": [
+    {
+      "isHidden": false,
+      "name": "Merciless"
+    },
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": true,
+      "name": "Regenerator"
+    }
+  ],
+  "Toxicroak": [
+    {
+      "isHidden": false,
+      "name": "Anticipation"
+    },
+    {
+      "isHidden": false,
+      "name": "Dry Skin"
+    },
+    {
+      "isHidden": true,
+      "name": "Poison Touch"
+    }
+  ],
+  "Trevenant": [
+    {
+      "isHidden": false,
+      "name": "Natural Cure"
+    },
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": true,
+      "name": "Harvest"
+    }
+  ],
+  "Tsareena": [
+    {
+      "isHidden": false,
+      "name": "Leaf Guard"
+    },
+    {
+      "isHidden": false,
+      "name": "Queenly Majesty"
+    },
+    {
+      "isHidden": true,
+      "name": "Sweet Veil"
+    }
+  ],
+  "Typhlosion": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Flash Fire"
+    }
+  ],
+  "Tyranitar": [
+    {
+      "isHidden": false,
+      "name": "Sand Stream"
+    },
+    {
+      "isHidden": true,
+      "name": "Unnerve"
+    }
+  ],
+  "Tyrantrum": [
+    {
+      "isHidden": false,
+      "name": "Strong Jaw"
+    },
+    {
+      "isHidden": true,
+      "name": "Rock Head"
+    }
+  ],
+  "Umbreon": [
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": true,
+      "name": "Inner Focus"
+    }
+  ],
+  "Vanilluxe": [
+    {
+      "isHidden": false,
+      "name": "Ice Body"
+    },
+    {
+      "isHidden": false,
+      "name": "Snow Warning"
+    },
+    {
+      "isHidden": true,
+      "name": "Weak Armor"
+    }
+  ],
+  "Vaporeon": [
+    {
+      "isHidden": false,
+      "name": "Water Absorb"
+    },
+    {
+      "isHidden": true,
+      "name": "Hydration"
+    }
+  ],
+  "Venusaur": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Chlorophyll"
+    }
+  ],
+  "Victreebel": [
+    {
+      "isHidden": false,
+      "name": "Chlorophyll"
+    },
+    {
+      "isHidden": true,
+      "name": "Gluttony"
+    }
+  ],
+  "Vileplume": [
+    {
+      "isHidden": false,
+      "name": "Chlorophyll"
+    },
+    {
+      "isHidden": true,
+      "name": "Effect Spore"
+    }
+  ],
+  "Vivillon": [
+    {
+      "isHidden": false,
+      "name": "Shield Dust"
+    },
+    {
+      "isHidden": false,
+      "name": "Compound Eyes"
+    },
+    {
+      "isHidden": true,
+      "name": "Friend Guard"
+    }
+  ],
+  "Volcarona": [
+    {
+      "isHidden": false,
+      "name": "Flame Body"
+    },
+    {
+      "isHidden": true,
+      "name": "Swarm"
+    }
+  ],
+  "Watchog": [
+    {
+      "isHidden": false,
+      "name": "Illuminate"
+    },
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": true,
+      "name": "Analytic"
+    }
+  ],
+  "Weavile": [
+    {
+      "isHidden": false,
+      "name": "Pressure"
+    },
+    {
+      "isHidden": true,
+      "name": "Pickpocket"
+    }
+  ],
+  "Whimsicott": [
+    {
+      "isHidden": false,
+      "name": "Prankster"
+    },
+    {
+      "isHidden": false,
+      "name": "Infiltrator"
+    },
+    {
+      "isHidden": true,
+      "name": "Chlorophyll"
+    }
+  ],
+  "Wyrdeer": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Frisk"
+    },
+    {
+      "isHidden": true,
+      "name": "Sap Sipper"
+    }
+  ],
+  "Zoroark": [
+    {
+      "isHidden": false,
+      "name": "Illusion"
+    }
+  ]
+}

@@ -1722,6 +1722,28 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   border-style: dashed;
 }
 
+/*
+  Milestone 17: for any species with more than one real ability to choose
+  from, the badge above is a real <select> instead of a plain <span> --
+  same pill shape/colors (inherited from .ability-badge itself) so it
+  reads as the same badge either way, but drops the dotted-underline/
+  hover-cursor affordance above since a native dropdown already signals
+  "click me" on its own, and native select chrome is left alone (no
+  appearance:none/custom arrow) so it stays legible across every color
+  theme this site supports without hand-picking an arrow color per theme.
+*/
+select.ability-badge {
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+select.ability-badge:hover,
+select.ability-badge:focus-visible {
+  border-color: var(--ink-muted);
+  outline: none;
+}
+
 .field-tooltip-lowconf {
   margin-top: 6px;
   padding-top: 6px;
