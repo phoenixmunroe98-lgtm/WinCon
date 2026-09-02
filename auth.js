@@ -813,6 +813,12 @@
     isSignedIn: () => !!wcCurrentSession,
     getProfile: () => wcCurrentProfile,
     setColorTheme: wcSetColorTheme,
+    // Milestone 24: lets other files (builder.js's sign-up gate on Save/
+    // Dream Team/Auto-build team/Auto-build strategy) open this same
+    // modal rather than building a second one. A no-op if the modal was
+    // never mounted (wcHasSupabase() was false at page load -- see
+    // wcInit -- so there's no account system to sign up for right now).
+    openModal: (mode) => wcOpenAuthModal(mode),
   };
 
   if (document.readyState === "loading") {

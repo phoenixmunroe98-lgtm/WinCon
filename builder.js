@@ -524,7 +524,36 @@ function moveActiveTeamToOtherFormat() {
   saveStatus.textContent = `Moved "${teamName}" to the ${otherLabel} builder — find it there now.`;
 }
 
+/**
+ * Milestone 24: Save team, Generate Dream Team, Auto-build team, and
+ * Auto-build strategy all require a signed-in account -- with no account,
+ * there's nowhere for a "saved" team to persist beyond this one browser
+ * tab anyway (see teams.js's cloud sync), and gating the three heavier
+ * auto-generation features the same way keeps the rule simple and
+ * explainable rather than picking and choosing. Find Your Rival and the
+ * Matchup Score/type-coverage displays stay open to everyone -- those are
+ * read-only exploration of a team already on screen, not something that
+ * needs to be saved or attributed to an account.
+ *
+ * Returns true (and does nothing) if already signed in. Otherwise shows
+ * `message` via the caller's own `showMessage` callback -- reusing
+ * whatever feedback element that action already has (saveStatus,
+ * autogenHint, the Dream Team note) rather than adding a new one -- opens
+ * the sign-up modal, and returns false so the caller bails out before
+ * doing any real work. `window.wcAuth.openModal` is a no-op if the
+ * account system itself never loaded (Supabase CDN blocked/offline); in
+ * that rare case the message still shows, there's just nothing to click
+ * open yet.
+ */
+function wcRequireAccount(showMessage, actionLabel) {
+  if (window.wcAuth && window.wcAuth.isSignedIn()) return true;
+  showMessage(`Sign up free to ${actionLabel} — it only takes a minute, and your teams follow you to any device once you're signed in.`);
+  if (window.wcAuth && window.wcAuth.openModal) window.wcAuth.openModal("signup");
+  return false;
+}
+
 function saveDraft() {
+  if (!wcRequireAccount((msg) => { saveStatus.textContent = msg; }, "save a team")) return;
   if (refreshItemValidation()) {
     saveStatus.textContent =
       "Can't save — two or more Pokémon on this team hold the same item. Fix the items highlighted in red first.";
@@ -1216,6 +1245,15 @@ function eligibleObtainedMembers() {
 }
 
 function generateDreamTeam() {
+  const signedIn = wcRequireAccount((msg) => {
+    dreamTeamNoteEl.hidden = false;
+    dreamTeamNoteEl.innerHTML = "";
+    const p = document.createElement("p");
+    p.textContent = msg;
+    dreamTeamNoteEl.appendChild(p);
+  }, "generate a Dream Team");
+  if (!signedIn) return;
+
   const eligible = eligibleObtainedMembers();
 
   if (eligible.length < 6) {
@@ -1336,6 +1374,7 @@ function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNa
 // ---------------------------------------------------------------------------
 
 function autoBuildTeam() {
+  if (!wcRequireAccount((msg) => { autogenHint.textContent = msg; }, "auto-build a moveset")) return;
   if (chosen.length < 6) {
     autogenHint.textContent = `Pick all 6 Pokémon first — you have ${chosen.length} so far.`;
     invalidateComputedNotes();
@@ -1434,6 +1473,7 @@ function invalidateComputedNotes() {
 }
 
 function autoBuildStrategy() {
+  if (!wcRequireAccount((msg) => { autogenHint.textContent = msg; }, "auto-build a strategy")) return;
   if (!isTeamComplete()) {
     refreshStrategyAvailability();
     return;
