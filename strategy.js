@@ -1547,6 +1547,27 @@ function wcMetaUsageCandidateBonus(name, metaUsage) {
 }
 
 /**
+ * A short trailing clause naming the real, cross-user logged win rate
+ * behind a pick, whenever it cleared the same sample-size bar
+ * wcMetaUsageCandidateBonus uses and actually says something worth
+ * surfacing (a real win rate at least 5 points off an even 50%) -- added
+ * so a pick backed by real logged games reads that way in "Why these
+ * six"/"Why this rival beats you," the same "explainable, not a black
+ * box" standard every other scoring signal here (coverage wins, the
+ * weather archetype, the Mega guarantee) already gets in that same
+ * reasoning list. Returns "" when there's nothing worth saying yet -- no
+ * data, too few games, or a real win rate too close to even to call out.
+ */
+function wcMetaUsageReasoningNote(name, metaUsage) {
+  const stat = metaUsage && metaUsage[name];
+  if (!stat || !(stat.timesUsed >= WC_META_USAGE_MIN_SAMPLE) || stat.winRateUsed == null) return "";
+  if (Math.abs(stat.winRateUsed - 50) < 5) return "";
+  return stat.winRateUsed >= 50
+    ? ` It's also backed by a real edge in actual logged games: ${stat.winRateUsed}% wins across ${stat.timesUsed} real matches.`
+    : ` Worth knowing: real logged games have it at a below-average ${stat.winRateUsed}% wins across ${stat.timesUsed} matches -- everything else about the pick still stands, but that's worth watching.`;
+}
+
+/**
  * Milestone 21: candidate scoring for team-picking, now built on marginal,
  * threat-specific coverage (wcCandidateCoverageGain) instead of a flat
  * average, plus a weather-archetype bonus (wcWeatherCounterBonus) when the
@@ -1767,9 +1788,9 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     team.push(member);
     remaining.splice(idx, 1);
     reasoning.push(
-      forcedSource.get(name) === "selected"
+      (forcedSource.get(name) === "selected"
         ? `${name} — already picked on this team, so Dream Team kept it and built the rest around it.`
-        : `${name} — included because you named it in your team notes.`
+        : `${name} — included because you named it in your team notes.`) + wcMetaUsageReasoningNote(name, metaUsage)
     );
   });
 
@@ -1837,14 +1858,15 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(
-      `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.`
+      `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.` +
+        wcMetaUsageReasoningNote(best.name, metaUsage)
     );
   }
 
   for (let i = team.length; i < size && remaining.length > 0; i++) {
     const best = bestFromRemaining();
     if (!best) break;
-    const reasonText = describePick(best, i === 0);
+    const reasonText = describePick(best, i === 0) + wcMetaUsageReasoningNote(best.name, metaUsage);
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(reasonText);
