@@ -272,15 +272,24 @@ function wcPickItem(role, format, primaryCategory, usedItems) {
  * real Regulation M-B tournament results and aggregate usage stats (see the
  * "Meta-informed auto-build" section of README.md for the full sourcing —
  * Pikalytics and Pokémon Zone tournament/usage pages, cross-checked against
- * each other, late Aug 2026). This is a deliberately short, high-confidence
- * list, not an attempt to hand-author a "real" set for all 296 Pokémon —
- * everything not listed here still goes through the general-purpose
- * heuristic above. `moves` are used as forced picks (same mechanism
- * wcProposeSetterAmendment already uses for strategy moves) and `item`, if
- * present, is preferred over the generic role/format pools as long as no
- * earlier teammate already holds it (Item Clause still applies). A Mega
- * Pokémon's own stone (see WINCON_MEGA_STONES) always wins over any `item`
- * here, since it isn't optional for them the way a regular item choice is.
+ * each other). This is a deliberately short, high-confidence list, not an
+ * attempt to hand-author a "real" set for all 296 Pokémon — everything not
+ * listed here still goes through the general-purpose heuristic above.
+ * `moves` are used as forced picks (same mechanism wcProposeSetterAmendment
+ * already uses for strategy moves) and `item`, if present, is preferred
+ * over the generic role/format pools as long as no earlier teammate already
+ * holds it (Item Clause still applies). A Mega Pokémon's own stone (see
+ * WINCON_MEGA_STONES) always wins over any `item` here, since it isn't
+ * optional for them the way a regular item choice is.
+ *
+ * Last refreshed 2 Sep 2026 (the first run of the weekly meta-refresh
+ * process set up after Milestone 28 -- see README.md): re-checked every
+ * entry below against fresh post-Worlds-2026 usage data (Pikalytics'
+ * Regulation M-B pages, cross-checked against Pokémon Zone and Limitless
+ * VGC's own Worlds 2026 statistics) and confirmed all nine pre-existing
+ * entries are still current and correctly built. Added Incineroar and
+ * Sneasler, both newly confirmed top-tier by usage across all three
+ * sources this pass — everything else on the roster is unchanged.
  */
 const WINCON_META_KNOWN_SETS = {
   Kingambit: {
@@ -325,6 +334,25 @@ const WINCON_META_KNOWN_SETS = {
     moves: ["Light Screen", "Reflect", "Parting Shot", "Spirit Break"],
     item: "Light Clay",
     note: "the meta's main screens setter — Prankster guarantees Light Screen/Reflect go up before the opponent can punish it",
+  },
+  Incineroar: {
+    // Added in the 2 Sep 2026 weekly meta refresh: #7 in the Reg M-B
+    // metagame per Pikalytics, 48.2% win rate, with Fake Out/Parting
+    // Shot/Flare Blitz/Throat Chop and Intimidate + Sitrus Berry all
+    // agreeing across Pikalytics and Pokémon Zone independently.
+    moves: ["Fake Out", "Parting Shot", "Flare Blitz", "Throat Chop"],
+    item: "Sitrus Berry",
+    note: "the meta's most reliable Intimidate support — Fake Out flinches while Parting Shot forces a switch with an Attack drop already in effect, buying its team a turn twice over before it starts chipping damage with Flare Blitz",
+  },
+  Sneasler: {
+    // Added in the 2 Sep 2026 weekly meta refresh: Unburden (87-89%
+    // usage) + White Herb (70-71%) is the dominant build across every
+    // source checked, not a close split like Kingambit's two viable sets
+    // above — White Herb cancels Close Combat's own stat drop and, once
+    // consumed, immediately doubles Sneasler's Speed via Unburden.
+    moves: ["Close Combat", "Fake Out", "Dire Claw", "Protect"],
+    item: "White Herb",
+    note: "White Herb shrugs off Close Combat's own Defense/Sp. Def drop, and Unburden doubles its Speed the instant that berry is used up — one of the meta's fastest attackers once it's triggered",
   },
   "Mega Charizard Y": {
     moves: ["Heat Wave", "Solar Beam", "Protect", "Weather Ball"],
