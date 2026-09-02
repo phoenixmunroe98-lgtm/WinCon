@@ -180,10 +180,12 @@ async function init() {
   // account's would look, from the cloud's side, exactly like the account
   // just deleted every team it had (see wcPushTeamsToCloudIfSignedIn's
   // delete-diff in teams.js).
-  teamState = await wcLoadAndSyncTeamState();
-  activeId = teamState.activeId;
-  ensureActiveTeam();
-  loadActiveIntoWorkingState();
+  // Milestone 26: wcSyncTeamStateForAuth() wraps that same cloud merge and
+  // additionally decides -- via a direct, race-free session check, not the
+  // possibly-not-yet-resolved window.wcAuth.isSignedIn() -- whether it's
+  // actually safe to load any of it into view (see that function's own
+  // comment for why this matters).
+  await wcSyncTeamStateForAuth();
 
   renderTeamTabs();
   renderSheetToggle();
@@ -241,9 +243,22 @@ async function init() {
   // above lifts live, with no reload needed. Guarded on wcInitDone since
   // this listener is registered once at module load (see below) and can
   // fire before this init() has finished its own first render.
-  window.addEventListener("wc:auth-changed", () => {
+  // Milestone 26: also re-runs wcSyncTeamStateForAuth() first, so signing
+  // in loads this account's real teams into view (and signing out clears
+  // whatever was showing) instead of just re-rendering whatever was
+  // already sitting in the working state.
+  window.addEventListener("wc:auth-changed", async () => {
     if (!wcInitDone) return;
+    await wcSyncTeamStateForAuth();
+    invalidateComputedNotes();
+    autogenHint.textContent = "";
+    saveStatus.textContent = "";
     wcUpdateSignedOutBodyClass();
+    renderTeamTabs();
+    renderSheetToggle();
+    renderTeamNotes();
+    renderMatchRecord();
+    renderPicker();
     renderSlots();
   });
 
@@ -441,6 +456,30 @@ function renderMatchRecord() {
 }
 
 function renderTeamTabs() {
+  // Milestone 26: no confirmed signed-in session means there is no team
+  // data safe to show or manage here -- not even the list of tabs, since
+  // that would reveal how many teams/what they're named without an
+  // account. Same allowance as everywhere else on this page: nothing to
+  // manage until a real session is confirmed.
+  //
+  // newTeamBtn is deliberately left enabled (not .disabled = true) here --
+  // unlike the legitimate "5 of 5 teams saved" disable below, this isn't
+  // "nothing more you could ever do," it's an auth gate, and every other
+  // auth gate on this page (item/move/ability fields, sheet toggle,
+  // notes, tracker buttons) stays clickable and explains itself via
+  // wcRequireAccount()'s hint + popup on click rather than going inertly
+  // disabled. addTeam() already gates on wcRequireAccount() independently
+  // of this render, so leaving the button live keeps that same consistent
+  // click-and-get-told-why experience.
+  if (!wcTeamDataSignedIn) {
+    teamTabsEl.innerHTML = "";
+    teamNameInput.value = "";
+    newTeamBtn.disabled = false;
+    teamsHint.textContent =
+      "Sign in or sign up to save, name, and manage teams — picking your six above stays free, but nothing is remembered until then.";
+    return;
+  }
+
   teamTabsEl.innerHTML = "";
   visibleTeams().forEach((team) => {
     const tab = document.createElement("button");
@@ -466,8 +505,19 @@ function renderTeamTabs() {
       : `${visibleCount} ${formatLabel} team${visibleCount === 1 ? "" : "s"} here (${teamState.teams.length} of ${WINCON_MAX_TEAMS} saved across both builders).`;
 }
 
-/** Milestone 25: read-only navigation among whatever teams already exist stays open when signed out (nothing here changes/creates/destroys anything), same allowance as the picker itself. */
+/**
+ * Milestone 26: reversed from Milestone 25's original comment here, which
+ * left this open as "read-only navigation" on the theory that switching
+ * tabs changes nothing. It actually does: syncWorkingStateIntoActiveTeam()
+ * and loadActiveIntoWorkingState() below both read and write whatever's in
+ * teamState, which while signed out is empty/blank by design (see
+ * wcSyncTeamStateForAuth()) -- so there is no other team's data to
+ * navigate to, and no tabs are rendered to click in the first place once
+ * !wcTeamDataSignedIn (see renderTeamTabs()). This guard is defense in
+ * depth for that.
+ */
 function switchTeam(id) {
+  if (!wcTeamDataSignedIn) return;
   if (id === activeId) return;
   syncWorkingStateIntoActiveTeam();
   activeId = id;
@@ -585,6 +635,78 @@ function moveActiveTeamToOtherFormat() {
  */
 function wcIsSignedIn() {
   return Boolean(window.wcAuth && window.wcAuth.isSignedIn());
+}
+
+/**
+ * Milestone 26: true only once wcSyncTeamStateForAuth() below has confirmed
+ * -- via a direct Supabase session check, not the racy wcIsSignedIn() --
+ * that the team data currently sitting in teamState/chosen/builds/notes
+ * really does belong to a signed-in account and is safe to show, save over,
+ * or navigate between. renderTeamTabs() and switchTeam() gate on this
+ * specifically (rather than wcIsSignedIn()) because what's at stake there
+ * is whether previously-stored team data gets displayed or persisted at
+ * all, not just whether an editing control looks locked.
+ */
+let wcTeamDataSignedIn = false;
+
+/**
+ * Milestone 26: loads/merges this account's teams as usual, but first asks
+ * Supabase directly (via wcHasRealSession() in teams.js) whether there's
+ * really a signed-in session right now, rather than trusting
+ * window.wcAuth.isSignedIn() -- which depends on auth.js's own async init
+ * having already resolved and can still read "false" for a genuinely
+ * signed-in player for a moment after this page's own init() starts.
+ * Guessing wrong in that direction here wouldn't just show a locked-looking
+ * button for a beat (the acceptable, self-healing race the other Milestone
+ * 25 gates allow) -- it would mean loading and displaying somebody's actual
+ * team data. So when there's no confirmed real session, this page starts
+ * (or reverts to) a completely blank working state instead: nothing
+ * remembered from a previous signed-in session on this device, and nothing
+ * saved back out, until a real session is confirmed.
+ */
+async function wcSyncTeamStateForAuth() {
+  // Milestone 26: a player who picked Pokémon while signed out (M25 always
+  // allowed that, precisely so a visitor has something worth signing up
+  // to keep) has a real, unsaved, in-progress build sitting in this page's
+  // memory right now. If they then sign up/in in this same session --
+  // without ever reloading -- losing that the instant sign-in resolves
+  // would undo the entire point of letting them pick for free: it's the
+  // exact moment they were hoping to keep going, not start over blank.
+  // Captured before teamState/activeId get reassigned below.
+  const hadInProgressPicks = chosen.length > 0;
+
+  teamState = await wcLoadAndSyncTeamState();
+  wcTeamDataSignedIn = await wcHasRealSession();
+  if (wcTeamDataSignedIn) {
+    activeId = teamState.activeId;
+    // Checked BEFORE ensureActiveTeam() below (which can itself create a
+    // team, making visibleTeams() non-empty) -- this is "did the account
+    // already have a real saved team for this format" at the moment of
+    // sign-in, not after.
+    const accountAlreadyHadATeam = visibleTeams().length > 0;
+    ensureActiveTeam();
+    if (hadInProgressPicks && !accountAlreadyHadATeam) {
+      // Nothing on the account to conflict with -- keep the in-progress
+      // picks in the working state exactly as they are (now attached to
+      // the fresh team ensureActiveTeam() just created/pointed activeId
+      // at) rather than loading that brand-new team's own blank data over
+      // them. Still unsaved until Save is clicked, same as always.
+    } else {
+      // Either nothing was in progress (a normal sign-in/page load, load
+      // the account's real data as usual), or the account already has a
+      // real saved team for this format -- in that case, silently
+      // overwriting it with whatever was picked while signed out would be
+      // a worse surprise than losing the in-progress picks, so this loads
+      // the real saved team instead.
+      loadActiveIntoWorkingState();
+    }
+  } else {
+    activeId = null;
+    chosen = [];
+    builds = {};
+    notes = "";
+    sheetMode = "closed";
+  }
 }
 
 /**

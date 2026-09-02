@@ -48,17 +48,61 @@ async function init() {
   homeData = { pokemon, baseStats, sprites, threats, typeChart };
   homeNonMegaPokemon = pokemon.filter((p) => !wcIsMegaForm(p));
 
-  // Milestone 22: home.js never saves a team itself, but still awaits the
-  // cloud merge here (rather than the plain local-only read used at line
-  // ~346 below) so the overview/top-teams/wishlist sections reflect teams
-  // saved from another device, not just this browser's own history.
-  const teamState = await wcLoadAndSyncTeamState();
+  await homeRenderAccountSections();
+  renderOwnedSection();
+  wcHomeMountAddSearch();
+
+  // Milestone 26: re-render the account-derived sections the moment
+  // sign-in state changes (sign in, sign out, or the initial session check
+  // resolving after this page's own first render already ran
+  // signed-out-by-default) -- same pattern as builder.js's own
+  // wc:auth-changed listener. Guarded on homeInitDone since this listener
+  // is registered once at module load and can fire before this init() has
+  // finished its own first render.
+  window.addEventListener("wc:auth-changed", () => {
+    if (!homeInitDone) return;
+    homeRenderAccountSections();
+  });
+
+  homeInitDone = true;
+}
+
+/** Set once init()'s first render has completed -- see the wc:auth-changed listener above, registered before this can be guaranteed true. */
+let homeInitDone = false;
+
+/**
+ * Milestone 26: true only once a direct Supabase session check (not the
+ * possibly-not-yet-resolved window.wcAuth.isSignedIn()) has confirmed
+ * there's really a signed-in account right now. wcHomeMountAddSearch()'s
+ * own wishlist re-render below reads this instead of re-checking directly,
+ * so it stays in sync with whatever homeRenderAccountSections() last
+ * decided rather than risking a second, differently-timed check.
+ */
+let homeTeamDataSignedIn = false;
+
+/**
+ * Milestone 22: home.js never saves a team itself, but still awaits the
+ * cloud merge here (rather than the plain local-only read wcHomeMountAddSearch()
+ * uses for its own quick wishlist refresh below) so the overview/top-teams/
+ * wishlist sections reflect teams saved from another device, not just this
+ * browser's own history.
+ *
+ * Milestone 26: also confirms, via wcHasRealSession() (a direct Supabase
+ * check -- see its own comment in teams.js), whether there's really a
+ * signed-in session before showing any of that data at all. Without a
+ * confirmed real session this renders a completely empty team state
+ * instead -- so a Pokémon/team history saved during an earlier signed-in
+ * session on this device (or, shared computer, a different account's
+ * entirely) never shows up on the homepage while signed out.
+ */
+async function homeRenderAccountSections() {
+  const rawTeamState = await wcLoadAndSyncTeamState();
+  homeTeamDataSignedIn = await wcHasRealSession();
+  const teamState = homeTeamDataSignedIn ? rawTeamState : wcEmptyTeamState();
 
   renderOverview(teamState);
   renderTopTeams(teamState);
   renderMostUsed(teamState);
-  renderOwnedSection();
-  wcHomeMountAddSearch();
   renderWishlist(teamState);
 }
 
@@ -347,7 +391,11 @@ function wcHomeMountAddSearch() {
     input.value = "";
     closeSuggestions();
     renderOwnedSection();
-    renderWishlist(wcLoadTeamState());
+    // Milestone 26: mirrors homeRenderAccountSections()'s own gate -- this
+    // quick refresh intentionally skips the cloud-merge round trip (see the
+    // Milestone 22 comment above homeRenderAccountSections()), but must
+    // still not show real team data while signed out.
+    renderWishlist(homeTeamDataSignedIn ? wcLoadTeamState() : wcEmptyTeamState());
   }
 
   input.addEventListener("input", () => {

@@ -242,6 +242,31 @@ function wcWithTimeout(promise, ms) {
   return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
 }
 
+/**
+ * Milestone 26: a direct, reliable check for whether a real Supabase
+ * session exists right now. Unlike `window.wcAuth.isSignedIn()`, which
+ * depends on auth.js's own async init (kicked off on DOMContentLoaded)
+ * having already resolved, this asks Supabase directly -- the same call
+ * wcLoadAndSyncTeamState() below already makes for its own merge decision.
+ * A page uses this specifically to decide whether it's safe to show
+ * whatever's sitting in this browser's local storage (this account's team
+ * from an earlier signed-in session on this device, or -- shared computer
+ * -- a different account's entirely) or whether it must start blank
+ * instead: guessing "signed out" from a `window.wcAuth` check that simply
+ * hasn't caught up yet would flash someone's real team, which is exactly
+ * the leak this exists to prevent. Resolves false (never "unknown") on
+ * any error/timeout/missing SDK -- when in doubt, don't show anything.
+ */
+async function wcHasRealSession() {
+  if (typeof window === "undefined" || !window.wcSupabase) return false;
+  try {
+    const sessionResult = await wcWithTimeout(window.wcSupabase.auth.getSession(), 5000);
+    return Boolean(sessionResult && sessionResult.data && sessionResult.data.session);
+  } catch {
+    return false;
+  }
+}
+
 function wcCloudRowToTeam(row) {
   return {
     id: row.id,
