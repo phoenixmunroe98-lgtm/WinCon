@@ -75,6 +75,12 @@ const WINCON_BUILDER_FORMAT = window.WINCON_BUILDER_FORMAT === "singles" ? "sing
  */
 let data = {};
 
+/** Milestone 28: data.pokemon keyed by name, built once data loads — a lookup wcAugmentThreatsWithMetaUsage (strategy.js) needs to attach real types to any species meta_usage_stats names that isn't already in the curated threat list. */
+let pokemonByName = {};
+
+/** Milestone 28: the real, cross-user usage/win-rate lookup from meta_usage_stats (see wcFetchMetaUsageStats in teams.js) for THIS page's format — {} (meaning "no real data yet, defer entirely to the curated heuristics") until init() below resolves it, and again whenever nobody's signed in (meta_usage_stats is read-only to signed-in accounts only, same as the rest of this page's toolkit). */
+let metaUsageLookup = {};
+
 /** Full multi-team state: { teams: [...], activeId }. Shared across BOTH builder pages (and the Pokédex tracker's obtained-list, separately) via teams.js — up to 5 teams total, filtered per page by format below. */
 let teamState = { teams: [], activeId: null };
 
@@ -145,7 +151,6 @@ const scoreRivalHeaderRowEl = document.getElementById("score-rival-header-row");
 const scoreWinlossSectionEl = document.getElementById("score-winloss-section");
 const scoreMatrixSectionEl = document.getElementById("score-matrix-section");
 const coverageSectionEl = document.getElementById("coverage-section");
-const trackerSectionEl = document.getElementById("tracker-section");
 const noTeamEl = document.getElementById("no-team");
 
 const rivalSectionEl = document.getElementById("rival-section");
@@ -171,6 +176,8 @@ async function init() {
     fetchJSON("data/ability-dex.json"),
   ]);
   data = { pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex };
+  pokemonByName = {};
+  pokemon.forEach((p) => { pokemonByName[p.name] = p; });
 
   // Milestone 22: pulls in any teams saved to this account from another
   // device before anything else runs -- specifically before
@@ -220,15 +227,9 @@ async function init() {
     invalidateComputedNotes();
   });
 
-  setupOpponentGrid();
-  document.getElementById("tracker-log-win-btn").addEventListener("click", () => {
-    if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "log match results")) return;
-    logMatchResult("win");
-  });
-  document.getElementById("tracker-log-loss-btn").addEventListener("click", () => {
-    if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "log match results")) return;
-    logMatchResult("loss");
-  });
+  // Milestone 28: logging a result (and its history) now lives on
+  // battle-tracker.html -- see that page's own script for the form/list
+  // this used to mount here.
 
   const analysisLockedSigninBtn = document.getElementById("analysis-locked-signin-btn");
   if (analysisLockedSigninBtn) {
@@ -303,14 +304,15 @@ function getObtainedNames() {
   }
 }
 
-/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. Milestone 20: the Matchup Score section's own default win/loss display no longer uses this list (see getFullRosterThreatsWithTypes() below) — it was found to be heavily skewed toward Mega forms (13 of its 16 entries), so it stayed too narrow a picture of "your win rate." This list is kept for the other three features above, which are about picking/building a team's shape (archetype, coverage) rather than displaying a win-rate figure, and changing what they score against would silently change already-explained behavior nobody asked to change. */
+/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. Milestone 20: the Matchup Score section's own default win/loss display no longer uses this list (see getFullRosterThreatsWithTypes() below) — it was found to be heavily skewed toward Mega forms (13 of its 16 entries), so it stayed too narrow a picture of "your win rate." This list is kept for the other three features above, which are about picking/building a team's shape (archetype, coverage) rather than displaying a win-rate figure, and changing what they score against would silently change already-explained behavior nobody asked to change. Milestone 28: also layered with any real, cross-user "frequently faced and genuinely scary" species from meta_usage_stats (see wcAugmentThreatsWithMetaUsage in strategy.js and metaUsageLookup below) — silently a no-op until enough games have been logged site-wide. */
 function getThreatsWithTypes() {
-  return data.threats.map((t) => {
+  const curated = data.threats.map((t) => {
     const p = data.pokemon.find((x) => x.name === t.name);
     const baseStats = data.baseStats.find((b) => b.name === t.name);
     const ability = wcAbilityOf(data.abilities, t.name);
     return { ...t, types: p ? p.types : [], baseStats, ability };
   });
+  return wcAugmentThreatsWithMetaUsage(curated, metaUsageLookup, pokemonByName);
 }
 
 /** Milestone 20: literally every Pokémon in the roster (all base forms and Mega forms alike, data/pokemon.json) as a threats list — what Matchup Score's own default "Projected Win/Loss Ratio", score ring, Toughest matchups, and full matrix now compare your team against, replacing the old 16-entry curated list (still used elsewhere -- see getThreatsWithTypes() above). Every entry here has confirmed base stats (data/base-stats.json covers the full roster), so nothing in this list hits the matrix's "no base-stat data yet" fallback. */
@@ -371,11 +373,14 @@ function renderTeamNotes() {
 }
 
 // ---------------------------------------------------------------------------
-// Win/loss stat pills — shared by the Matchup Score section's "Projected
-// Win/Loss Ratio" (see renderRival()) and the results tracker's "actual"
-// win/loss readout (see renderMatchTracker()). Two small pure helpers plus
-// one DOM builder so both places render the exact same green/orange/red
-// treatment instead of quietly drifting apart.
+// Win/loss stat pills — used by the Matchup Score section's "Projected
+// Win/Loss Ratio" (see renderRival()) on this page. Milestone 28: the
+// results tracker's own "actual" win/loss readout that used to share
+// this moved to battle-tracker.js, which keeps its own small copy of
+// these same pure helpers (same duplicated-small-helper pattern as
+// wcShowAccountPopup elsewhere in this project) so both places still
+// render the exact same green/orange/red treatment without this page
+// needing to export anything.
 // ---------------------------------------------------------------------------
 
 /**
@@ -463,7 +468,7 @@ function renderMatchRecord() {
   const active = getActiveTeam();
   const summary = wcMatchRecordSummary(active);
   if (summary.total === 0) {
-    matchRecordEl.textContent = "No logged results yet for this team — log wins/losses in the tracker below and they'll show up here for reference while you plan its strategy.";
+    matchRecordEl.innerHTML = 'No logged results yet for this team — log wins/losses on the <a href="battle-tracker.html">Battle Tracker</a> page and they\'ll show up here for reference while you plan its strategy.';
   } else {
     matchRecordEl.textContent = `Logged record: ${summary.wins}W–${summary.losses}L (${summary.winRate}% win rate).`;
   }
@@ -691,6 +696,14 @@ async function wcSyncTeamStateForAuth() {
 
   teamState = await wcLoadAndSyncTeamState();
   wcTeamDataSignedIn = await wcHasRealSession();
+  // Milestone 28: refreshed alongside the sign-in check above (same
+  // function, same event -- init() and every later wc:auth-changed) since
+  // meta_usage_stats is read-only to signed-in accounts only, exactly
+  // like everything else this page locks behind sign-in. {} while signed
+  // out means getThreatsWithTypes()/wcPickDreamTeam's calls below defer
+  // entirely to the existing curated heuristics -- the same behavior as
+  // before this milestone existed.
+  metaUsageLookup = wcTeamDataSignedIn ? await wcFetchMetaUsageStats(WINCON_BUILDER_FORMAT) : {};
   if (wcTeamDataSignedIn) {
     activeId = teamState.activeId;
     // Checked BEFORE ensureActiveTeam() below (which can itself create a
@@ -1592,7 +1605,7 @@ function generateDreamTeam() {
     excludedNames,
     notesIncludedNames,
     droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities);
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup);
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
@@ -2065,7 +2078,6 @@ function refreshDerivedSections() {
   scoreWinlossSectionEl.hidden = !showAnalysis;
   scoreMatrixSectionEl.hidden = !showAnalysis;
   coverageSectionEl.hidden = !showAnalysis;
-  trackerSectionEl.hidden = !showAnalysis;
   rivalSectionEl.hidden = !showAnalysis;
   if (!showAnalysis) return;
 
@@ -2074,7 +2086,6 @@ function refreshDerivedSections() {
   renderToughList(document.getElementById("tough-list"), result.perThreat.filter((t) => t.best.result.verdict === "unfavorable"));
   renderMatrix(result.roster, result.perThreat);
   renderTypeCoverage();
-  renderMatchTracker();
 }
 
 function renderScoreHero(score, favorableCount, toughCount, total) {
@@ -2305,156 +2316,15 @@ function renderCoverageTable(members, perType) {
 }
 
 // ---------------------------------------------------------------------------
-// Track your results
+// Milestone 28: the full "Track your results" section (log form, summary,
+// history list, delete) moved to its own page -- battle-tracker.html/
+// battle-tracker.js -- so this page stays focused on building a team
+// rather than also being where its game history lives. All that remains
+// here is the compact win/loss percentage above (matchRecordEl /
+// renderMatchRecord(), still reading the same team.matchLog) and the
+// "log a result" entry points on that record, which now link over to
+// Battle Tracker instead of opening an inline form.
 // ---------------------------------------------------------------------------
-
-const trackerNoteInput = document.getElementById("tracker-note-input");
-const trackerSummaryEl = document.getElementById("tracker-summary");
-const trackerLogListEl = document.getElementById("tracker-log-list");
-const trackerOpponentGrid = document.getElementById("tracker-opponent-grid");
-const trackerOpponentDetails = document.getElementById("tracker-opponent-details");
-const OPPONENT_SLOT_COUNT = 6;
-
-function setupOpponentGrid() {
-  const datalistId = "tracker-opponent-options";
-  if (!document.getElementById(datalistId)) {
-    const datalist = document.createElement("datalist");
-    datalist.id = datalistId;
-    data.pokemon.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.name;
-      datalist.appendChild(opt);
-    });
-    document.body.appendChild(datalist);
-  }
-
-  trackerOpponentGrid.innerHTML = "";
-  for (let i = 0; i < OPPONENT_SLOT_COUNT; i++) {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "tracker-opponent-input";
-    input.setAttribute("list", datalistId);
-    input.placeholder = `Opponent Pokémon ${i + 1} (optional)`;
-    trackerOpponentGrid.appendChild(input);
-  }
-}
-
-function collectOpponentTeam() {
-  return [...trackerOpponentGrid.querySelectorAll(".tracker-opponent-input")].map((input) => input.value);
-}
-
-function clearOpponentTeam() {
-  trackerOpponentGrid.querySelectorAll(".tracker-opponent-input").forEach((input) => (input.value = ""));
-  trackerOpponentDetails.open = false;
-}
-
-function logMatchResult(result) {
-  const team = getActiveTeam();
-  if (!team) return;
-  wcRecordMatchResult(team, result, trackerNoteInput.value, collectOpponentTeam());
-  trackerNoteInput.value = "";
-  clearOpponentTeam();
-  wcSaveTeamState(teamState);
-  renderMatchRecord();
-  renderMatchTracker();
-}
-
-function deleteMatchResult(index) {
-  const team = getActiveTeam();
-  if (!team) return;
-  wcDeleteMatchResult(team, index);
-  wcSaveTeamState(teamState);
-  renderMatchRecord();
-  renderMatchTracker();
-}
-
-function renderMatchTracker() {
-  const team = getActiveTeam();
-  if (!team) return;
-  const summary = wcMatchRecordSummary(team);
-  trackerSummaryEl.innerHTML = "";
-
-  if (summary.total === 0) {
-    const p = document.createElement("p");
-    p.className = "hint";
-    p.style.margin = "0";
-    p.textContent = "No results logged yet for this team.";
-    trackerSummaryEl.appendChild(p);
-  } else {
-    // winRate is already rounded by wcMatchRecordSummary; lossRate is its
-    // own independent rounding of losses/total, so the two don't always
-    // sum to exactly 100 — a normal, minor artifact of rounding two
-    // integers separately, not a bug.
-    const lossRate = Math.round((summary.losses / summary.total) * 100);
-
-    const caption = document.createElement("p");
-    caption.className = "hint";
-    caption.style.margin = "0 0 8px";
-    caption.textContent = `${summary.wins}W – ${summary.losses}L across ${summary.total} logged game${summary.total === 1 ? "" : "s"}.`;
-
-    const row = document.createElement("div");
-    row.className = "winloss-row";
-    row.append(
-      wcBuildWinLossStat("Win rate", `${summary.winRate}%`, summary.winRate),
-      wcBuildWinLossStat("Loss rate", `${lossRate}%`, 100 - lossRate),
-      wcBuildWinLossStat("Win ratio", wcFormatRatioFromCounts(summary.wins, summary.losses), summary.winRate)
-    );
-
-    trackerSummaryEl.append(caption, row);
-  }
-
-  trackerLogListEl.innerHTML = "";
-  const log = Array.isArray(team.matchLog) ? team.matchLog : [];
-  const RECENT_LIMIT = 10;
-  const recentIndexed = log.map((entry, index) => ({ entry, index })).slice(-RECENT_LIMIT).reverse();
-
-  if (log.length > RECENT_LIMIT) {
-    const olderNote = document.createElement("li");
-    olderNote.className = "hint";
-    olderNote.textContent = `Showing the ${RECENT_LIMIT} most recent of ${log.length} logged games.`;
-    trackerLogListEl.appendChild(olderNote);
-  }
-
-  recentIndexed.forEach(({ entry, index }) => {
-    const li = document.createElement("li");
-    li.className = `tracker-log-entry tracker-log-${entry.result}`;
-
-    const resultTag = document.createElement("span");
-    resultTag.className = "tracker-log-result";
-    resultTag.textContent = entry.result === "win" ? "Win" : "Loss";
-    li.appendChild(resultTag);
-
-    if (entry.note) {
-      const noteSpan = document.createElement("span");
-      noteSpan.className = "tracker-log-note";
-      noteSpan.textContent = entry.note;
-      li.appendChild(noteSpan);
-    }
-
-    if (Array.isArray(entry.opponent) && entry.opponent.length > 0) {
-      const opponentSpan = document.createElement("span");
-      opponentSpan.className = "tracker-log-opponent";
-      opponentSpan.textContent = `vs. ${entry.opponent.join(", ")}`;
-      li.appendChild(opponentSpan);
-    }
-
-    const dateSpan = document.createElement("span");
-    dateSpan.className = "tracker-log-date";
-    const parsed = new Date(entry.loggedAt);
-    dateSpan.textContent = Number.isNaN(parsed.getTime()) ? "" : parsed.toLocaleDateString();
-    li.appendChild(dateSpan);
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "tracker-log-delete";
-    deleteBtn.setAttribute("aria-label", "Delete this logged result");
-    deleteBtn.textContent = "×";
-    deleteBtn.addEventListener("click", () => deleteMatchResult(index));
-    li.appendChild(deleteBtn);
-
-    trackerLogListEl.appendChild(li);
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Your Rival (Milestone 14) — synthesized from the full roster, not just
@@ -2538,7 +2408,7 @@ function findYourRival() {
   // 8) — run here in reverse, with the pool being the WHOLE roster and
   // the "threats" being your own team, so it picks a 6 that specifically
   // answers your typing/stats well instead of a generic reference list.
-  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities);
+  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup);
   const rivalMembers = rivalNames.map((name) => pool.find((m) => m.name === name));
 
   pendingRival = { rivalMembers, rivalBuilds: {}, reasoning, rivalSuccessRate: 0, myResult: null, customized: false };

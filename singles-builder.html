@@ -82,6 +82,7 @@
           <a href="pokedex.html">Pokédex</a>
           <a href="singles-builder.html" class="current">Singles Builder</a>
           <a href="doubles-builder.html">Doubles Builder</a>
+          <a href="battle-tracker.html">Battle Tracker</a>
         </nav>
       </div>
     </div>
@@ -195,29 +196,10 @@
       <button type="button" id="analysis-locked-signin-btn" class="btn-primary">Sign In / Sign Up</button>
     </section>
 
-    <section id="tracker-section" hidden>
-      <h3 class="section-title">Track your results</h3>
-      <p class="hint">
-        Log each real game's result for this team — stored with it for reference when deciding its strategy above.
-        There's no opponent-team or replay data behind this, just a running win/loss count and whatever note you
-        leave yourself (e.g. "vs Trick Room").
-      </p>
-      <div class="tracker-log-form">
-        <input id="tracker-note-input" type="text" maxlength="80" placeholder="Optional note (e.g. vs Trick Room)…" />
-        <button id="tracker-log-win-btn" type="button" class="btn-secondary tracker-win-btn">Log a win</button>
-        <button id="tracker-log-loss-btn" type="button" class="btn-secondary tracker-loss-btn">Log a loss</button>
-      </div>
-      <details id="tracker-opponent-details" class="tracker-opponent-details">
-        <summary>+ Add opponent's team (optional)</summary>
-        <p class="hint">
-          Never required to log a result — jot down whatever you remember of what they brought, if you want it
-          saved alongside this result. Leave any of these blank.
-        </p>
-        <div id="tracker-opponent-grid" class="tracker-opponent-grid"></div>
-      </details>
-      <div id="tracker-summary" class="tracker-summary"></div>
-      <ul id="tracker-log-list" class="tracker-log-list"></ul>
-    </section>
+    <!-- Milestone 28: the "Track your results" section that used to sit
+         here (log form, summary, history list) moved to its own page --
+         battle-tracker.html -- so this page only keeps the compact
+         win/loss percentage above (#match-record-note). -->
 
     <section id="score-rival-header-row" class="score-rival-header-row" hidden>
       <div class="score-rival-col">

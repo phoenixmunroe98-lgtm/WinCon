@@ -1517,6 +1517,36 @@ function wcWeatherCounterBonus(candidate, weatherInfo, typeChart, abilitiesData)
 }
 
 /**
+ * Milestone 28: minimum number of REAL logged games (across every player
+ * on the site, not just one person) a species needs before its
+ * meta_usage_stats numbers are trusted enough to influence anything --
+ * below this, a Pokémon that's 1-0 or 0-1 in the whole site's history
+ * would otherwise swing scoring off a single data point. Early on, with
+ * a brand new site, this means the real-data signal below will mostly
+ * sit at 0 and every pick still comes from the existing curated
+ * heuristics -- that's the correct, honest behavior until enough games
+ * get logged, not a bug. See README.md's Milestone 28 section.
+ */
+const WC_META_USAGE_MIN_SAMPLE = 5;
+
+/** How much weight a real, sample-size-qualified win rate gets in wcDreamTeamCandidateScore below -- deliberately modest next to the existing coverage/weather/stat terms, since this is a supplement to the explainable heuristics already there, not a replacement for them. */
+const WC_META_USAGE_WEIGHT = 2;
+
+/**
+ * 0 when there isn't enough real logged data yet for this species (or
+ * none was passed at all -- an un-migrated/offline call site, or nobody
+ * signed in), otherwise a signed nudge: a species with a real win_rate_used
+ * above 50% (across every player who's logged a game with it, not just
+ * this one) scores up, below 50% scores down, scaled by how far from 50%
+ * it sits.
+ */
+function wcMetaUsageCandidateBonus(name, metaUsage) {
+  const stat = metaUsage && metaUsage[name];
+  if (!stat || !(stat.timesUsed >= WC_META_USAGE_MIN_SAMPLE) || stat.winRateUsed == null) return 0;
+  return ((stat.winRateUsed - 50) / 50) * WC_META_USAGE_WEIGHT;
+}
+
+/**
  * Milestone 21: candidate scoring for team-picking, now built on marginal,
  * threat-specific coverage (wcCandidateCoverageGain) instead of a flat
  * average, plus a weather-archetype bonus (wcWeatherCounterBonus) when the
@@ -1524,6 +1554,13 @@ function wcWeatherCounterBonus(candidate, weatherInfo, typeChart, abilitiesData)
  * required for the new per-pair scoring; a caller that hasn't been
  * updated to pass them yet falls back to the old flat average rather than
  * throwing, so this never hard-breaks an un-migrated call site.
+ *
+ * Milestone 28: also folds in a real, cross-user win-rate signal (see
+ * wcMetaUsageCandidateBonus above) when `opts.metaUsage` is given -- this
+ * is what lets logged battles actually feed Dream Team's own picks (and
+ * Your Rival's, which reuses this same scorer "in reverse" -- see
+ * README.md's Milestone 14 section), not just the threat list they're
+ * scored against (see wcAugmentThreatsWithMetaUsage below for that half).
  */
 function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, opts) {
   const options = opts || {};
@@ -1544,7 +1581,44 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
   const coverage = wcDefenseCoverageBonus(candidate.types, teamTypesList, allTypes, typeChart);
   const dup = wcSameTypingPenalty(candidate.types, teamTypesList);
   const bst = wcBaseStatTotal(candidate.baseStats);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5;
+  const metaBonus = wcMetaUsageCandidateBonus(candidate.name, options.metaUsage);
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus;
+}
+
+/**
+ * Milestone 28: folds real, cross-user logged-battle data
+ * (meta_usage_stats) into a curated threats list -- any species
+ * frequently FACED in real games (past the same WC_META_USAGE_MIN_SAMPLE
+ * bar) with a real win rate against opponents worth calling out gets
+ * added alongside the curated list, so Auto-build team/Auto-build
+ * strategy/Generate Dream Team's move and matchup scoring (which all
+ * read `threats`, via getThreatsWithTypes() in builder.js) gives real,
+ * currently-scary Pokémon their due -- not just whatever
+ * data/starter-threats.json happened to name when this project started.
+ * Silently returns the original list, untouched, when there's no meta
+ * usage data yet (a brand new site, or too few games logged) -- see
+ * README.md's Milestone 28 section for the honesty note on how sparse
+ * this will be at first. `allPokemonByName` supplies types for any
+ * species this pulls in that isn't already in `threats`.
+ */
+function wcAugmentThreatsWithMetaUsage(threats, metaUsage, allPokemonByName) {
+  if (!metaUsage) return threats;
+  const existingNames = new Set(threats.map((t) => t.name));
+  const additions = [];
+  Object.keys(metaUsage).forEach((name) => {
+    if (existingNames.has(name)) return;
+    const stat = metaUsage[name];
+    if (!stat || stat.timesFaced < WC_META_USAGE_MIN_SAMPLE) return;
+    if (stat.winRateFaced == null || stat.winRateFaced < 55) return; // only genuinely-scary real opponents, not a coin flip
+    const pokemon = allPokemonByName && allPokemonByName[name];
+    if (!pokemon) return;
+    additions.push({
+      name,
+      role: `Real-world threat — beat opponents ${stat.winRateFaced}% of the time across ${stat.timesFaced} logged games`,
+      types: pokemon.types,
+    });
+  });
+  return additions.length ? [...threats, ...additions] : threats;
 }
 
 /**
@@ -1653,8 +1727,14 @@ function wcNotesIncludedSpecies(notes, pool) {
  * wcCandidateCoverageGain/wcDetectWeatherArchetype for the reasoning) --
  * optional so an un-migrated caller still gets a working, if less sharp,
  * pick using the old flat-average fallback rather than an error.
+ *
+ * Milestone 28: `metaUsage` (optional, trailing so every existing call
+ * site keeps working untouched) is the same real, cross-user usage
+ * lookup `threats` may already have been augmented with (see
+ * wcAugmentThreatsWithMetaUsage) -- passed through into scoreOpts so
+ * wcDreamTeamCandidateScore's own win-rate nudge applies too.
  */
-function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData) {
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
@@ -1674,7 +1754,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
 
   const canScoreCoverage = Boolean(natures && movesData);
   const weatherInfo = canScoreCoverage ? wcDetectWeatherArchetype(threats, abilitiesData) : null;
-  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo };
+  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage };
 
   const remaining = [...usablePool];
   const team = [];

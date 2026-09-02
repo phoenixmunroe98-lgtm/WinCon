@@ -1,24 +1,34 @@
 # WinCon
 
-A team-building assistant for Pokémon Champions. Three pages — no
-backend, no login, no build step, just open the HTML files.
+A team-building assistant for Pokémon Champions. Still no build step —
+open the HTML files (or point a static host at the folder) — but as of
+Milestone 15 onward it's backed by a real account system and a Supabase
+database, not just `localStorage`. Five pages now, not three; see below.
 
 ## What's in here
 
-- `index.html` / `app.js` — the **Pokédex tracker**: check off every
-  Pokémon you've obtained
+- `index.html` / `home.js` — the **Home** dashboard (added between
+  Milestones 16 and 17): your overall win/loss record, your best Singles
+  and Doubles team, your 5 most-used Pokémon across every saved team, an
+  auto-advancing carousel of the Pokémon you've obtained, and a Wishlist
+  carousel suggesting what to obtain next (ranked by how much it'd improve
+  your best team's type coverage, or a rotating set of Mega Pokémon if you
+  don't have a team yet)
+- `pokedex.html` / `app.js` — the **Pokédex tracker**: check off every
+  Pokémon you've obtained (this used to be `index.html` itself, before the
+  Home dashboard above took that slot)
 - `singles-builder.html` / `doubles-builder.html` / `builder.js` — the
   **Singles Builder** and **Doubles Builder** (Milestone 14, replacing the
   old separate Team Builder and Matchup Score pages): one page per
   competitive format, each doing all of the following for whichever of
   your (shared, up to 5) teams is tagged for that format —
-  - pick 6 obtained Pokémon and set each one's Nature, item, up to 4
-    moves, and Stat Point spread, by hand, with **Auto-build team** and
-    **Auto-build strategy** (two separate steps that fill in all 6 and
+  - pick 6 obtained Pokémon and set each one's Nature, item, ability, up
+    to 4 moves, and Stat Point spread, by hand, with **Auto-build team**
+    and **Auto-build strategy** (two separate steps that fill in all 6 and
     then propose a shared team strategy), or with **Generate Dream
     Team**, which picks the 6 for you too and runs the whole flow in one
     click
-  - a live **Matchup Score** against a reference list of strong Pokémon,
+  - a live **Matchup Score** against every Pokémon on the full roster,
     your toughest matchups, a full matchup matrix, and a **team type
     coverage** breakdown against all 18 attacking types — all re-scored
     as you edit the team above, not a separately-selected saved team on
@@ -26,18 +36,35 @@ backend, no login, no build step, just open the HTML files.
   - **Your Rival** — a hypothetical 6-Pokémon team synthesized from the
     *entire* Champions roster (not just what you've obtained), picked
     specifically to give your current team its hardest possible matchup,
-    plus an estimated success rate
+    plus an estimated success rate, with individual members swappable
   - an **Open/Closed Team Sheet** toggle modeling the real difference
     between the online ladder (nobody's seen your set) and tournament
     play (your opponent has your full sheet ahead of time) — see the
     Milestone 14 section below
+  - a compact win/loss percentage for the active team, reading the same
+    logged record as Battle Tracker below (Milestone 28 moved the actual
+    log-a-result form and history off this page and onto its own)
+- `battle-tracker.html` / `battle-tracker.js` — the **Battle Tracker**
+  page (Milestone 28): log a real game's win or loss for any of your
+  saved teams, with an optional note and opponent lineup, and see a
+  combined summary across every team plus that one team's own record,
+  streak, and full history
 - `stats.js` / `type-utils.js` — small shared modules (stat-calculation
   math, type-effectiveness lookups) used by more than one page, so the
   formulas can't quietly drift apart between them
+- `auth.js` — accounts: sign up (name, 16+ age, username, starting
+  avatar) and sign in with email + password, a forgot-password flow, the
+  account-info popup, and the shared sign-in-required prompt every locked
+  feature reuses (Milestones 15/16/24/25)
+- `theme.js` — the color-theme picker (default, Charizard, Fairy, Water,
+  Grass, Electric); saved to your account, not just the browser
 - `teams.js` — shared multi-team storage: up to 5 named teams (each with
   its own format tag, sheet-mode tag, free-text notes, and logged
-  win/loss record) in one `localStorage` key, with automatic migration
-  from the old single-draft format if you had one saved before this update
+  win/loss record). Synced to your Supabase account across every device
+  signed into it (Milestone 22), with a `localStorage` fallback if you're
+  signed out or the network's unavailable. Every individual logged result
+  also gets pushed, fire-and-forget, into a shared `match_results` table
+  (Milestone 28) that feeds `meta_usage_stats` — see below
 - `megas.js` — the base-species ↔ Mega-form relationship every page
   shares (Milestone 11): which Mega form(s) a base Pokémon has, which Mega
   Stone belongs to which Mega form, and which of the two a build slot
@@ -48,23 +75,45 @@ backend, no login, no build step, just open the HTML files.
   analyzes the finished team for a shared strategy; also the Dream Team
   picker (a greedy heuristic for choosing which 6 to build in the first
   place, reused in reverse by Your Rival) and the Matchup Score formula
-  both builder pages share
+  both builder pages share. As of Milestone 28, its picks can also be
+  nudged by real, anonymized, cross-user battle results once enough have
+  been logged — see that section below
 - `styles.css` — shared visual styling (colors are defined once, at the
-  top, as variables — that's what makes light/dark mode work)
+  top, as variables — that's what makes light/dark mode, and every color
+  theme, work)
+- `supabase-config.js` and `supabase/migrations/*.sql` — the Supabase
+  project URL/anon key and the full database schema, in the order it was
+  built: `0001_init.sql` (Milestone 15's foundation — profiles, teams,
+  match_results, meta_usage_stats, friend requests, notifications, push
+  subscriptions), `0002_profile_details.sql` (Milestone 16's username/
+  name/age/avatar fields), `0003_color_theme.sql` (the account-level color
+  theme), `0004_team_match_log.sql` (Milestone 22's `teams.match_log`
+  mirror column), and `0005_meta_usage_stats.sql` (Milestone 28's
+  cross-user aggregation trigger). Each one needs to be pasted into
+  Supabase's own SQL Editor and run once, in order, on a fresh project —
+  see "Putting it on the internet" below
 - `data/` — roster, moves, items, Natures, learnsets, base stats, and the
   type chart, trimmed from the open
   [Pokémon Champions Data](https://github.com/otterlyclueless/pokemon-champions-data)
   project (CC BY 4.0), plus `AUDIT.md` (36 entries added after an audit
-  against Serebii/Bulbapedia), `starter-threats.json` (see below), and
-  `sprites.json` + `sprites/` (296 sprite PNGs from PokeAPI, see Milestone
-  4 below for the sourcing/cross-check methodology)
+  against Serebii/Bulbapedia), `starter-threats.json` (see below),
+  `ability-options.json` + `ability-dex.json` (Milestone 17's real
+  per-species ability choices), and `sprites.json` + `sprites/` (296
+  sprite PNGs from PokeAPI, see Milestone 4 below for the sourcing/
+  cross-check methodology)
 
-All three pages read and write the same `localStorage`, so checking off a
-Pokémon on the tracker makes it available on both builder pages, and each
-builder page's live sections all read the team you're actively editing on
-it. Everything's saved to this browser only for now — it won't follow you
-to another device yet. That's a later upgrade, once there's an account
-system to sync to.
+Every page reads and writes the same account-synced team/Pokédex state
+once you're signed in, so checking off a Pokémon on the Pokédex makes it
+available on both builder pages, and each builder page's live sections
+all read the team you're actively editing on it. **Most of the real
+functionality here requires a free account (16+)** — Milestones 24/25
+locked saving, auto-generation, build details, Matchup Score, Your Rival,
+and Battle Tracker behind sign-in, since none of it had anywhere durable
+to persist without one anyway. Picking Pokémon on the Pokédex and up to 6
+onto a team still works while signed out, capped at 6, and — since
+Milestones 26/27 fixed an earlier privacy gap — that signed-out preview is
+forgotten the moment the tab closes rather than saved to the browser
+indefinitely.
 
 ## Multi-team saves (Milestone 3)
 
@@ -688,6 +737,413 @@ Matchup Score and Dream Team's picks are built against) and
 build reaches for) are exactly the two places Milestone 10's tournament
 research went in, and where updated meta reads should go as they come in.
 
+## Accounts and cloud sync: Supabase foundation (Milestone 15)
+
+Everything from here through Milestone 28 rests on this milestone, so it's
+worth calling out even though it shipped no user-visible feature on its
+own. `supabase/migrations/0001_init.sql` created the whole database schema
+up front — including several tables nothing would actually use until
+milestones later on:
+
+- `profiles` — the private account record (email, and later name/age/
+  username/avatar/color theme), readable only by its own owner.
+- `profile_public` — a small, deliberately separate table holding just
+  the fields a friend should ever see (username, favourite team, avatar
+  species). This is the real mechanism, not just a UI convention, behind
+  "friends only see your public info" — the database's own row-level
+  security enforces it, so a bug in a page's JavaScript can't leak a
+  private field the same way it could if there were only one `profiles`
+  table with a filtered `SELECT`.
+- `teams` — one row per saved team (format, sheet mode, chosen Pokémon,
+  builds, notes), the eventual sync target for `teams.js`'s local state
+  (Milestone 22 is what actually wires this up).
+- `match_results` and `meta_usage_stats` — created here anticipating a
+  normalized, cross-user battle-log feature, explicitly commented at the
+  time as "rebuilt by a scheduled Edge Function from match_results across
+  every user (anonymized aggregate) — this is what eventually replaces
+  `starter-threats.json`'s hand-picked list." Nothing wrote to either
+  table until Milestone 28 finally built that feature.
+- `friend_requests`, `notifications`, and `push_subscriptions` — schema
+  for social features and notifications that, as of Milestone 28, still
+  have no client-side UI anywhere in the app. They exist in the database
+  and nowhere else yet — a genuine gap, not a hidden feature.
+
+Every table has row-level security from the start; nothing is readable or
+writable by default. `supabase-config.js` (added right after, wiring the
+project URL and anon key into every page) is the only thing any page
+needs to start talking to this database — the admin/service-role key
+that would bypass these RLS policies is explicitly never meant to reach
+client-side code at all.
+
+## Real accounts: sign-up, sign-in, and the 16+ age gate (Milestone 16)
+
+Three commits, each refining the one before it. The first shipped
+magic-link sign-in (click a link in your email, no password) plus a
+mandatory 16+ age-confirmation modal that gates the rest of the site
+until you confirm — chosen because Pokémon Champions itself carries an
+age requirement. The second swapped magic-link for a real email +
+password form (Log In and Sign Up as tabs of the same modal), plus a
+proper forgot-password flow (a reset email, then a "set new password"
+modal opened automatically when Supabase reports you've followed that
+link) — worth noting plainly: **nothing in this app ever sees or stores a
+raw password**; Supabase's own auth handles that end entirely. The third
+added real sign-up detail collection: first/last name, age (under 16
+blocks sign-up outright now, not just a checkbox), a username (typed by
+hand or generated as a random "{Adjective} {Pokémon}" pairing, checked
+live — and re-checked right before the account is actually created, to
+close a race where two people could grab the same name in the same
+instant), and a starting avatar (matched to a Pokémon named in the
+username, or a random non-Mega pick otherwise). `supabase/migrations/
+0002_profile_details.sql` renames the account's display name to
+`username` (now unique) and adds `first_name`/`last_name`/`age`/
+`avatar_species` — with an explicit privacy rule in the migration itself:
+**first/last name and age never reach `profile_public`** — a friend sees
+a username and an avatar, never a real name or an age.
+
+A same-day follow-up fixed avatar sprites 404ing (a raw `sprites/x.png`
+path was used as an `<img src>` instead of the `data/` prefix every other
+sprite lookup on the site already used) and added an actual image-load
+check to the test suite specifically so a broken sprite path "fails
+loudly next time" instead of silently rendering a blank box.
+
+## Header redesign, five color themes, and a dashboard homepage (between Milestones 16 and 17)
+
+A run of same-day commits, none individually tagged with a milestone
+number in code, that together shipped three visible features:
+
+**A redesigned header and account-level color themes.** The header
+became a centered WinCon logo/tagline with a theme toggle, and a banner
+row with the account widget on the left and page navigation centered.
+The account dropdown gained a real "Account information" panel
+(username, avatar, email, first/last name, age — the private fields).
+Five color themes shipped in total: **Charizard** (red/gold in light
+mode, black/blue in dark, with Charizard/Mega Charizard X/Mega Charizard
+Y background art), **Fairy** (pink/white, Fairy-type art), **Water**
+(blue, the 8 highest-base-stat Water types), **Grass** (green, the 8
+highest-base-stat Grass types), and **Electric** (yellow, specifically
+the Pikachu family rather than every Electric type, with dark text since
+white text read poorly against yellow). Whichever theme you pick is
+saved to your account (`supabase/migrations/0003_color_theme.sql` adds
+a `color_theme` column to `profiles`), not just the browser, so it
+follows you to any device signed into the same account — `localStorage`
+still keeps a copy too, purely so the very first paint of a new page load
+can apply it before the account data has had a chance to arrive.
+
+**A dashboard homepage.** `index.html` (with the Pokédex tracker itself
+moving to `pokedex.html` to make room) became a real dashboard: your
+overall win/loss record, your best Singles and Doubles team by win rate
+(falling back to whichever's newest if neither has a logged record yet),
+your 5 most-used Pokémon across every saved team, an auto-advancing
+carousel of Pokémon you've already obtained with an inline add-to-
+Pokédex search, and a Wishlist carousel suggesting what to obtain next —
+ranked by how much each candidate would improve your best team's type
+coverage, reusing Dream Team's own scoring function, or a rotating set of
+Mega Pokémon if you don't have a team built yet.
+
+**Win/loss stat pills, refined twice.** Both Your Rival's own projected
+result and the Matchup Score section's win/loss figures got dedicated
+green/yellow/red stat-pill treatment (win rate, loss rate, and a
+simplified win:loss ratio like "4 : 1"), which then went through two
+rounds of polish: first, explicit thresholds (above 80% green, 35–80%
+yellow, below 35% red, replacing an earlier three-tier split whose middle
+color read too close to both ends), then a switch from those discrete
+bands to a single continuous red-to-yellow-to-green gradient via CSS
+`color-mix()`, so a win rate crossing a boundary like 80% shades smoothly
+instead of snapping between colors. (This gradient work is what
+Milestone 18, immediately after, then had to fix for theme-independence —
+see above.) The Pokédex progress bar also picked up a small marker of
+your own account avatar riding along its leading edge as you check off
+more Pokémon.
+
+## Real per-Pokémon ability selection (Milestone 17)
+
+Every roster entry used to show only the site's single best-guess ability
+(Milestone 13) with no way to change it. This sources the real Ability
+1/Ability 2/Hidden Ability options for all 221 non-Mega roster entries
+(Mega forms are excluded on purpose — every Mega form locks to one fixed
+ability with no alternates in any game), landing in two new files:
+`data/ability-options.json` (per-species option lists) and `data/
+ability-dex.json` (a shared ability-name-to-description pool, the same
+pattern `moves.json` already uses). The "Ability: X" tag on a build slot
+becomes a real dropdown wherever a species has more than one option,
+defaulting to the site's recommended pick and saving with the rest of
+that team's build.
+
+Researching this surfaced a real data bug already sitting in the
+roster: **Falinks was listed with No Guard**, an ability it has never had
+in any official game — corrected to Defiant (flagged as lower-confidence,
+same convention the audit already uses for ambiguous entries, pending a
+usage-data cross-check). The picked ability also now feeds the Open Team
+Sheet's Expected/Tech tagging from Milestone 14 (e.g. whether Sylveon's
+Cute Charm vs. Pixilate changes how a Normal-type move should read).
+Deliberately unchanged: Auto-build, Auto-build strategy, and Matchup
+Score still score against the site's one recommended ability per
+species — this is a per-slot reference/planning tool, not a retroactive
+rescore of everything auto-generation already does.
+
+## Theme-independent win/loss colors, and a Matchup Score/Your Rival layout pass (Milestone 18)
+
+Two fixes. First, a real color bug: the win/loss stat pills' green end
+read the shared `--positive` variable, but every color theme re-picks
+`--positive` as its own brand color (Charizard's dark mode makes it
+blue) — so a genuinely high win rate could render blue instead of green.
+Fixed by adding `--stat-positive`, a copy of the original green no theme
+is allowed to touch, and pointing the win/loss gradient helper at that
+instead. Second, a layout reorganization: the old single Matchup Score
+section split into its own win/loss block and its own full-matrix block,
+with Your Rival's section moved up alongside the win/loss block — final
+page order became header row → Your Rival's own result → Matchup Score's
+win/loss block → full matrix → team type coverage. (The immediately
+preceding handful of commits — the win/loss pill color-gradient rework
+and the `.score-rival-header-row` side-by-side layout it built on — are
+the groundwork this milestone's fixes describe cumulatively; only this
+final commit's own code comments carry the number 18.)
+
+## Dream Team: include/exclude Pokémon by name, and keep what's already picked (Milestone 19)
+
+Team notes could already exclude a Pokémon by name ("no Gholdengo",
+"don't want Whimsicott" — a same-day precursor to this milestone). This
+adds the inclusion half: phrases like "built around Greninja and
+Feraligatr" or "must include Gholdengo" now force those specific Pokémon
+onto the team instead of just nudging the greedy search toward them;
+negated phrasing still reads as exclusion, and exclusion always wins if
+the same Pokémon is named both ways. Whatever's already picked in the
+builder's own slots when Generate Dream Team is clicked is now **kept**,
+with the rest of the team built around it, rather than the whole team
+being overwritten from scratch. The guaranteed-Mega-slot logic from
+Milestone 12 was updated to account for forced/kept picks that are
+themselves Mega-capable, so it never tries to guarantee more Mega slots
+than there's actually room for. The "Why these six" note explains kept
+and included picks by name, and separately flags when your team notes
+name a real Pokémon that isn't obtained or eligible yet, or ask for more
+inclusions than fit in 6.
+
+## Your Rival gets individually swappable Pokémon; Matchup Score compares against the full roster (Milestone 20)
+
+Three changes. Your Rival's roster cards gain a species dropdown per
+slot — swapping a member recomputes the win/loss tiles, score ring, and
+roster live, duplicate species across slots are prevented, and a note
+appears once you've edited anything so "Why this rival beats you" never
+claims to explain a matchup it didn't actually pick. Separately, Matchup
+Score's own default win/loss figures (the ring, Toughest matchups, and
+the full matrix) now compare your team against **every** Pokémon in the
+dataset — all 296 base-and-Mega entries — instead of the old 16-entry
+curated `starter-threats.json` list, which turned out to be 13 of 16
+Mega forms and too narrow a picture of "your actual win rate." Generate
+Dream Team, Auto-build team, and Auto-build strategy deliberately keep
+scoring against the curated list — they're about picking or building a
+team's *shape* (archetype, coverage), not displaying a win-rate figure,
+and widening what they score against would silently change already-
+explained behavior nobody asked to change. Third, since the matchup
+matrix now has a row per roster Pokémon instead of a fixed 16, it's
+collapsed behind a "Show full matchup matrix" toggle by default, the same
+pattern the type-coverage breakdown already used.
+
+## Fixing Dream Team and Your Rival always picking the same few Pokémon (Milestone 21)
+
+The actual bug: candidate scoring averaged type effectiveness across
+every threat in the reference list, which smooths away the exact signal
+that should reward countering one specific dangerous matchup — so a
+handful of generically-strong Pokémon (Charizard and Floette turned up in
+8 of 8 sampled rival rosters, checked directly) kept winning regardless
+of what they were actually up against. The fix replaces that flat average
+with a marginal-coverage-gain model: a candidate is scored by how much it
+improves the team's *worst currently-unanswered* matchup, weighting
+turning a losing matchup into a winning one far above padding an
+already-comfortable one — the "chain-counter" idea (Charizard answers
+Venusaur, Venusaur answers Feraligatr, Archaludon answers Mega
+Feraligatr) made concrete. The same change also adds real weather-
+archetype detection: a team is only credited with a genuine Sun/Rain/
+Sand/Snow strategy if it has a real setter (an innate ability, or an
+actual chosen move) — deliberately **not** "can this species learn Rain
+Dance via TM," since roughly three-quarters of the entire roster can
+learn one weather move or another via TM, which would make that signal
+"nearly meaningless as a discriminator." Both fixes live in the one
+scoring function Dream Team and Your Rival already shared, so a single
+change improved both features at once.
+
+Honesty note carried over from Milestone 12: the guaranteed-Mega slots
+still lean on Charizard, Floette, and Staraptor specifically, because
+those remain the only three Mega forms with a real, tournament-informed
+set behind them — that recurrence is a data-honesty constraint, not a
+sign the fix didn't work.
+
+## Syncing saved teams to your account across devices (Milestone 22)
+
+The actual gap: Supabase accounts, profiles, and color themes already
+existed, and the `teams` table from Milestone 15 had been sitting there
+unused this whole time — but nothing in any page had ever read or
+written it. Every saved team still lived only in one browser's
+`localStorage`, so signing into the same account on a second device
+showed nothing. This wires up real two-way sync through the same two
+functions every page already called: `wcLoadAndSyncTeamState()` pulls
+your cloud teams on load and merges them with whatever's local by id
+(nothing gets deleted by the merge itself); `wcPushTeamsToCloudIfSignedIn()`,
+called from inside the existing save path, upserts every local team and
+removes any cloud team no longer present locally — so roughly 20 existing
+call sites across the builder pages get cloud sync for free, with no
+per-call-site changes needed. Both fall back cleanly to local-only
+storage if you're signed out, the Supabase script didn't load, or the
+network doesn't respond within 5 seconds — cloud sync is treated as an
+enhancement layer over local storage, never a hard requirement, the same
+pattern every other Supabase-backed feature on this site follows. Team
+ids became real UUIDs to match the `teams` table's own id column; a team
+saved before this milestone gets one assigned the next time it's saved.
+`supabase/migrations/0004_team_match_log.sql` adds a `match_log` JSON
+column mirroring each team's local win/loss log, so a logged result
+travels with the team across devices too — while explicitly deferring
+the bigger, separate feature of a normalized, cross-user match log
+(that's Milestone 28).
+
+This also fixed a real crash the cloud-sync prerequisite work had
+introduced on the homepage: the Wishlist section's scoring call had been
+passing bare type-arrays where the underlying scorer (rewritten by
+Milestone 21) now expected full team-member objects, which threw for
+anyone with a real saved team. Wrapped correctly, it stopped crashing.
+
+## Vercel Web Analytics (Milestone 23)
+
+Adds the standard `<script defer src="/_vercel/insights/script.js">` tag
+to every page. Since this is a static site with no build step, there's no
+npm package to install — Vercel serves that script itself for any hosted
+project, and it just 404s harmlessly (confirmed no page errors either
+way) when running locally or somewhere other than Vercel. One thing this
+change can't do on its own: **Web Analytics still needs to be switched on
+for this project in the Vercel dashboard** (Project → Analytics → Enable)
+after it's deployed — a one-time toggle only the account owner can make.
+
+## Requiring an account to save or auto-generate (Milestone 24)
+
+Save team, Generate Dream Team, Auto-build team, and Auto-build strategy
+now require a signed-in account, gated through one shared
+`wcRequireAccount()` check reused across all four. The reasoning is
+straightforward: without an account there was never anywhere for a save
+to persist beyond the current browser tab anyway (see Milestone 22's
+cloud sync), so this just makes that limitation visible up front, with a
+clear message and a one-click path straight into the sign-up modal. At
+this point Find Your Rival and Matchup Score/coverage were still
+explicitly left open to everyone, as "read-only exploration of a team
+already on screen" — Milestone 25, immediately after, removed that
+carve-out.
+
+## Locking the full toolkit behind sign-in, and a homepage welcome banner (Milestone 25)
+
+Widens Milestone 24's gate substantially. Signed out, you can now *only*
+mark Pokémon obtained on the Pokédex and pick/unpick up to 6 onto a team.
+Everything past that — every build-detail field (Nature, item, ability,
+all 4 moves, Stat Points), every team-management action (rename, new,
+delete, move between Singles/Doubles, Open/Closed toggle, notes, the
+results tracker as it existed then), and the entire Matchup Score/
+coverage/Your Rival analysis — now requires an account, on the reasoning
+that none of it had anywhere to persist without one regardless. The
+UX changed too: a shared, dismissible popup (bottom-right, auto-dismisses
+after 7 seconds) now explains the lock and links to sign-up, replacing
+the previous behavior of force-opening the sign-up modal on every single
+blocked click, which read as an interruption rather than a notification.
+Locked controls are visually dimmed, and everything unlocks live the
+moment you sign in mid-session — no reload needed. Separately, the
+homepage gained a one-time welcome banner explaining what WinCon does,
+dismissed (and remembered) per browser.
+
+## Closing a read-side privacy gap: team data no longer lingers while signed out (Milestone 26)
+
+Milestone 25 locked down every path that could *write* team data while
+signed out, but never touched the *read* side — the builder pages' own
+page-load logic, and the homepage's overview/top-teams/most-used/wishlist
+sections, kept displaying whatever `localStorage` already held, which
+could be leftover data from an earlier signed-in session on the same
+computer, or from a different account entirely on a shared machine. The
+fix is `wcHasRealSession()`: a direct Supabase session check, deliberately
+kept separate from the existing "am I signed in" flag because that flag
+can briefly read "signed out" while auth.js is still finishing its own
+async startup, even for someone who genuinely is signed in — a race that
+would have made this fix intermittently wrong in exactly the case it
+exists to catch. Both builder pages and the homepage now render a
+completely blank state until a real session is confirmed one way or the
+other, re-checking live on every sign-in/sign-out. One deliberate
+carve-out survives: Pokémon picked while signed out aren't discarded the
+instant you sign in mid-session, as long as there's no existing saved
+team for them to conflict with — only reloading the page while still
+signed out clears them.
+
+## Closing the same privacy gap for the Pokédex's "obtained" list (Milestone 27)
+
+The same class of bug Milestone 26 fixed, left unaddressed on the
+Pokédex tracker and the homepage's owned-Pokémon carousel — both still
+read and wrote the real, permanent "obtained" set in `localStorage`
+regardless of whether anyone was actually signed in. The fix: while
+signed out, marking a Pokémon obtained now lives in `sessionStorage`
+instead — capped at 6 (matching the Team Builder's own signed-out
+preview limit) and forgotten the moment the tab closes, rather than kept
+indefinitely. `sessionStorage` specifically, not just an in-memory
+variable, so that marking something obtained on the Pokédex still hands
+off correctly to the Team Builder's picker within that same visit.
+Signing in merges any signed-out marks into the real account and lifts
+the 6-Pokémon cap.
+
+## Battle Tracker: its own page, a 250-character note, a delete confirmation, and real cross-user battle data (Milestone 28)
+
+Four related changes, all from the same round of feedback.
+
+**Notes can now run up to 250 characters,** not 80 — the cap lives in one
+place (`WC_MATCH_NOTE_MAX_LEN` in `teams.js`) that both the input field's
+own `maxlength` and the underlying save function enforce, so a note can't
+get truncated by one without the other agreeing.
+
+**Deleting a logged result now asks for confirmation first**, so a stray
+click on the small "×" next to an old entry can't silently erase a real
+result. Its wording matches what was asked for exactly: "Delete log (I
+made a mistake)" as the heading, "Confirm:" as the body, and Yes/No as
+the two buttons — Yes deletes, No dismisses with nothing changed.
+
+**Logging and reviewing results moved off the Builder pages onto their
+own page, Battle Tracker** (`battle-tracker.html`/`battle-tracker.js`).
+The full log form, opponent-team entry, running history, and delete
+button used to live in a "Track your results" section on the Singles and
+Doubles Builder pages; as more got added there over Milestones 11 and
+27, it started crowding out the actual team-building work those pages
+exist for. Battle Tracker is that entire feature pulled out on its own:
+pick any one of your saved teams, either format, log a win or a loss with
+an optional note and opponent lineup, and see that team's own record,
+current streak, and up to its 25 most recent games, plus a summary
+combined across every team you have. The Builder pages now keep only a
+single compact line — the team's win/loss percentage — linking over to
+Battle Tracker for the detail, exactly as asked ("the only thing that
+should stay on the team builder page is the percentages for real team
+win loss").
+
+**Every logged battle now also feeds a real, cross-user pool of usage
+data, not just that one player's own team.** This is the deferred feature
+Milestone 15's schema anticipated and Milestone 22 explicitly set aside
+in favor of a simpler per-team mirror column — completed here. Every
+logged result is still saved to that team's own record exactly as
+before, and now also pushed (fire-and-forget, same shape as every other
+cloud call in this app, and only ever while signed in) to a normalized
+`match_results` table, with a snapshot of the team's roster *at the exact
+moment it was logged* — needed because a team's roster can change later,
+and without that snapshot the aggregate would silently attribute a game
+to whatever the team looks like today rather than what was actually
+played. A database trigger (`supabase/migrations/0005_meta_usage_stats.sql`)
+re-aggregates `match_results` into `meta_usage_stats` — an anonymized,
+cross-user table of how often each species gets used and faced, and how
+often it wins, with no user identity anywhere in it — the moment a row is
+inserted or deleted. Generate Dream Team, Auto-build team, and Auto-build
+strategy all read this as a supplement to the existing curated matchup
+data (`data/starter-threats.json`): a species needs at least 5 real
+logged games, site-wide, before its numbers are trusted enough to nudge
+anything, so a Pokémon that's 1–0 in the whole site's history so far
+doesn't swing a recommendation off a single game. **Honesty note, same
+spirit as the one on the Matchup Score above:** on a small or brand-new
+site, this will mostly sit quiet at first and defer entirely to the
+existing curated heuristics — that's the correct, intended behavior until
+enough games get logged by enough players, not a bug. It gets more useful
+the more anyone logs, not just you.
+
+One deployment step this milestone can't do on its own: `supabase/
+migrations/0005_meta_usage_stats.sql` needs to be pasted into Supabase's
+SQL Editor and run once, the same way every earlier migration was,
+before the cross-user data actually starts flowing.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your
@@ -709,22 +1165,47 @@ somewhere new:
 1. Create a free account at [github.com](https://github.com) and a new
    repository (call it `wincon`).
 2. Upload this folder's contents to that repository, preserving the
-   `data/` folder structure — GitHub's uploader can be finicky about this
-   if you drag loose files instead of the folder itself. If a file lands
-   at the repo root instead of inside `data/`, open it on GitHub, click
-   the pencil (edit) icon, and change its filename at the top to include
-   the `data/` prefix — that moves it without needing to re-upload.
+   `data/` and `supabase/` folder structures — GitHub's uploader can be
+   finicky about this if you drag loose files instead of the folder
+   itself. If a file lands at the repo root instead of inside `data/`,
+   open it on GitHub, click the pencil (edit) icon, and change its
+   filename at the top to include the `data/` prefix — that moves it
+   without needing to re-upload.
 3. Create a free account at [vercel.com](https://vercel.com) and connect
    it to that GitHub repository. Vercel will detect it's a static site and
    give you a live URL — and redeploy automatically every time you update
    the repository.
+4. Create a free project at [supabase.com](https://supabase.com) (needed
+   since Milestone 15 — accounts, saved teams, and Battle Tracker all
+   depend on it; the site still runs without one, but only in its
+   signed-out, 6-Pokémon-preview mode). In that project's SQL Editor,
+   paste in and run each file under `supabase/migrations/`, **in order**
+   (`0001_init.sql` through `0005_meta_usage_stats.sql`) — each one only
+   adds to what the last one created, so running them out of order or
+   skipping one will fail partway through with a clear "relation/column
+   does not exist" error telling you which one you missed. Then copy that
+   project's URL and anon (public) key from Project Settings → API into
+   `supabase-config.js` — see that file's own header comment for why the
+   anon key is safe to commit and what must never go anywhere near it.
 
 ## What's next (see the WinCon Blueprint for the full roadmap)
 
-- Swap `starter-threats.json` for real usage data from
-  championsbattledata.com — the highest-value fix, see the honesty note above
+- Swap `starter-threats.json`'s hand-picked reference list for real usage
+  data — Milestone 28 made a start on this from the inside (real, logged,
+  cross-user battle results now nudge Dream Team/Auto-build/Auto-build
+  strategy once enough games exist per species — see that section above),
+  but it's a supplement, not the swap itself, and stays quiet until real
+  usage accumulates. Pulling in an external source like
+  championsbattledata.com remains the faster way to get a genuinely
+  current picture from day one; see the honesty note earlier in this
+  file for why that attempt didn't land yet.
 - ~~An account (Supabase) so progress and saved teams sync across
   devices~~ — done as of Milestone 22: sign in on any device and your
   saved teams (including their logged win/loss record) show up there too.
   See teams.js's "Cloud sync" section and
   `supabase/migrations/0004_team_match_log.sql`.
+- Friend requests, notifications, and push subscriptions have had their
+  database tables sitting ready since Milestone 15's foundation schema
+  (`friend_requests`, `notifications`, `push_subscriptions`) but no
+  client-side page has ever used them — a real, open gap, not a hidden
+  feature.

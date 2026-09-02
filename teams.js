@@ -82,24 +82,58 @@ function wcGetSheetMode(team) {
 // the kind of unexplainable heuristic this project has avoided everywhere
 // else. It's stored for the strategist to reference (e.g. in that team's
 // own notes field on the Team Builder page), not reasoned about here.
+//
+// Milestone 28: this real per-game history now lives on its own page
+// (battle-tracker.html/battle-tracker.js) instead of Team Builder, which
+// only keeps the compact win/loss percentage (see wcMatchRecordSummary
+// below, still read from the same team.matchLog). Every logged result
+// also feeds the shared, cross-user meta_usage_stats table (see "Cloud
+// sync of individual results" further down) -- not just this one team's
+// own record.
 
-/** Appends one logged result to `team.matchLog`, initializing it if this team was saved before Milestone 11. `opponent`, if given, is an array of opponent Pokémon names the player chose to note down — entirely optional, never required to log a result. Does not save to localStorage itself — callers save the whole team state afterward, same as every other team mutation in this file. */
+/** A note over this length gets silently trimmed -- also enforced as the tracker-note-input's own maxlength in battle-tracker.html, this is the defensive backstop for anything that reaches this function some other way. */
+const WC_MATCH_NOTE_MAX_LEN = 250;
+
+/**
+ * Appends one logged result to `team.matchLog`, initializing it if this
+ * team was saved before Milestone 11. `opponent`, if given, is an array
+ * of opponent Pokémon names the player chose to note down — entirely
+ * optional, never required to log a result. Does not save to
+ * localStorage itself — callers save the whole team state afterward,
+ * same as every other team mutation in this file.
+ *
+ * Milestone 28: every entry now gets a real id (so a later delete can
+ * remove the matching cloud row, not just splice the local array — see
+ * wcDeleteMatchResult below), and — fire-and-forget, exactly like every
+ * other cloud call in this file — gets pushed to the shared
+ * match_results table with a snapshot of this team's CURRENT roster
+ * (`team.chosen` at this exact moment), since the roster can change after
+ * this game is logged and the cross-user aggregate needs what was
+ * actually played, not whatever the team looks like later. Returns the
+ * new entry so a caller (battle-tracker.js) can reference its id.
+ */
 function wcRecordMatchResult(team, result, note, opponent) {
-  if (!team) return;
+  if (!team) return null;
   if (!Array.isArray(team.matchLog)) team.matchLog = [];
   const cleanOpponent = Array.isArray(opponent) ? opponent.map((n) => (n || "").trim()).filter(Boolean) : [];
-  team.matchLog.push({
+  const entry = {
+    id: wcNewTeamId(),
     result: result === "loss" ? "loss" : "win",
-    note: (note || "").trim(),
+    note: (note || "").trim().slice(0, WC_MATCH_NOTE_MAX_LEN),
     opponent: cleanOpponent,
     loggedAt: new Date().toISOString(),
-  });
+  };
+  team.matchLog.push(entry);
+  wcPushMatchResultToCloud(entry, team.id, wcGetTeamFormat(team), [...(team.chosen || [])]).catch(() => {});
+  return entry;
 }
 
-/** Removes one logged entry by its index in `team.matchLog`. */
+/** Removes one logged entry by its index in `team.matchLog`, and (Milestone 28, fire-and-forget) the matching row in the shared match_results table. Returns the removed entry, or null if there was nothing at that index. */
 function wcDeleteMatchResult(team, index) {
-  if (!team || !Array.isArray(team.matchLog)) return;
-  team.matchLog.splice(index, 1);
+  if (!team || !Array.isArray(team.matchLog)) return null;
+  const [removed] = team.matchLog.splice(index, 1);
+  if (removed && removed.id) wcDeleteMatchResultFromCloud(removed.id).catch(() => {});
+  return removed || null;
 }
 
 /** Wins/losses/total/win-rate-percent for a team's logged record — `winRate` is null when there's nothing logged yet, rather than 0, so callers can tell "no data" apart from "0%". */
@@ -397,5 +431,96 @@ async function wcPushTeamsToCloudIfSignedIn(state) {
     }
   } catch (err) {
     console.warn("WinCon: cloud team sync failed", err && err.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 28: cloud sync of INDIVIDUAL logged results, into a normalized
+// match_results table -- separate from the whole-team upsert above, and
+// from team.matchLog's own JSON-column mirror (0004_team_match_log.sql,
+// still how a team's own history round-trips to another device). This is
+// what a database trigger (supabase/migrations/0005_meta_usage_stats.sql)
+// re-aggregates into meta_usage_stats: an anonymized, cross-user table of
+// "how often is this species used/faced, and how often does it win" that
+// Dream Team, Auto-build team, and Auto-build strategy all read as a real-
+// world supplement to the hand-curated threat list (see
+// wcAugmentThreatsWithMetaUsage/wcMetaUsageCandidateBonus in strategy.js).
+//
+// Logging (and therefore this) already requires a signed-in account --
+// see wcRequireAccount's guard on every "log a result" button -- so every
+// call here always has a real userId. Fire-and-forget, same shape as
+// every other cloud call in this file: a network hiccup must never block
+// or fail a log/delete that already succeeded locally.
+// ---------------------------------------------------------------------------
+
+async function wcPushMatchResultToCloud(entry, teamId, format, teamSnapshot) {
+  if (typeof window === "undefined" || !window.wcSupabase) return;
+  const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
+  if (!userId) return;
+  try {
+    const { error } = await window.wcSupabase.from("match_results").insert({
+      id: entry.id,
+      team_id: teamId,
+      user_id: userId,
+      result: entry.result,
+      note: entry.note,
+      opponent: entry.opponent,
+      format,
+      team_snapshot: teamSnapshot,
+      logged_at: entry.loggedAt,
+    });
+    if (error) console.warn("WinCon: this result saved to your team, but couldn't sync to the shared stats", error.message);
+  } catch (err) {
+    console.warn("WinCon: this result saved to your team, but couldn't sync to the shared stats", err && err.message);
+  }
+}
+
+async function wcDeleteMatchResultFromCloud(entryId) {
+  if (typeof window === "undefined" || !window.wcSupabase) return;
+  const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
+  if (!userId) return;
+  try {
+    const { error } = await window.wcSupabase.from("match_results").delete().eq("id", entryId).eq("user_id", userId);
+    if (error) console.warn("WinCon: deleted locally, but couldn't remove this result from the shared stats", error.message);
+  } catch (err) {
+    console.warn("WinCon: deleted locally, but couldn't remove this result from the shared stats", err && err.message);
+  }
+}
+
+/**
+ * The anonymized, cross-user aggregate every logged battle feeds (see
+ * supabase/migrations/0005_meta_usage_stats.sql) -- read-only to any
+ * signed-in account by that table's own RLS policy, so this is never
+ * called while signed out (Dream Team/Auto-build/Auto-build strategy are
+ * already sign-in-only). Returns a plain lookup keyed by species name --
+ * {timesUsed, winRateUsed, timesFaced, winRateFaced} -- for
+ * wcAugmentThreatsWithMetaUsage/wcMetaUsageCandidateBonus (strategy.js) to
+ * read. Never throws; an empty object on any error/timeout/missing SDK
+ * reads to every caller exactly like "not enough data logged yet," which
+ * early on (a brand new site, or just a handful of games) is often
+ * literally true.
+ */
+async function wcFetchMetaUsageStats(format) {
+  if (typeof window === "undefined" || !window.wcSupabase) return {};
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase.from("meta_usage_stats").select("species, times_used, times_faced, win_rate_used, win_rate_faced").eq("format", format),
+      5000
+    );
+    if (!selectResult) return {};
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return {};
+    const lookup = {};
+    rows.forEach((row) => {
+      lookup[row.species] = {
+        timesUsed: row.times_used || 0,
+        timesFaced: row.times_faced || 0,
+        winRateUsed: row.win_rate_used,
+        winRateFaced: row.win_rate_faced,
+      };
+    });
+    return lookup;
+  } catch {
+    return {};
   }
 }

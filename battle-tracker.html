@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WinCon — Battle Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231E9C86%22/><text x=%2216%22 y=%2222%22 font-size=%2214%22 font-family=%22sans-serif%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>WC</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Anti-flash: apply a saved color theme before first paint -- see
+    // singles-builder.html's copy of this same script for the full
+    // explanation. Keep this list in sync with WC_VALID_THEMES in theme.js.
+    (function () {
+      try {
+        var t = localStorage.getItem("wincon.colorTheme");
+        var validThemes = ["charizard", "fairy", "water", "grass", "electric"];
+        if (validThemes.indexOf(t) !== -1) document.documentElement.setAttribute("data-color-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <div class="site-bg" aria-hidden="true"></div>
+
+  <!--
+    MILESTONE 28: Battle Tracker. Logging a real game's result, and
+    everything about its history, used to live on the Singles/Doubles
+    Builder pages (see #tracker-section, removed there this milestone) --
+    as more got added (opponent teams, a running log, delete), it started
+    crowding out the actual team-building work those pages are for. This
+    page is that entire feature, pulled out on its own: pick any one of
+    your saved teams (either format), log a win/loss for it with an
+    optional note and opponent lineup, see its full history, and delete a
+    mistaken entry (with a confirmation, so a stray click can't silently
+    erase a real result). The Builder pages now only keep a one-line
+    win/loss percentage (#match-record-note there) — see battle-tracker.js
+    for how everything here works, and its own top-of-file comment for
+    how a logged result also feeds WinCon's shared, anonymized usage
+    stats (meta_usage_stats), not just this one team's own record.
+  -->
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-brand-row">
+        <div class="brand">
+          <span class="brand-mark">WC</span>
+          <span class="brand-name">WinCon</span>
+        </div>
+      </div>
+      <div class="topbar-tagline-row">
+        <p class="tagline">Pokémon Champions</p>
+        <div class="theme-toggle-mount" id="wc-theme-toggle-mount"></div>
+      </div>
+      <div class="topbar-banner-row">
+        <div class="account-widget-slot" id="wc-account-widget-slot"></div>
+        <nav class="page-nav">
+          <a href="index.html">Home</a>
+          <a href="pokedex.html">Pokédex</a>
+          <a href="singles-builder.html">Singles Builder</a>
+          <a href="doubles-builder.html">Doubles Builder</a>
+          <a href="battle-tracker.html" class="current">Battle Tracker</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="tracker-intro" class="tracker-block">
+      <h2 class="section-title">Battle Tracker</h2>
+      <p class="hint">
+        Log each real game's result for any of your saved teams — win or loss, an optional note (e.g. "vs Trick
+        Room"), and whatever you remember of the opponent's team. Every logged result also adds to WinCon's shared,
+        anonymized usage stats across every player — over time, that real data supplements Generate Dream Team,
+        Auto-build team, and Auto-build strategy on the Builder pages, alongside the existing curated matchup data.
+        See the note at the bottom of this page for how sparse that will be at first.
+      </p>
+    </section>
+
+    <section id="tracker-locked" class="callout-box tracker-block" hidden>
+      <p>Sign in or sign up to track your battles — logging a result and seeing your history both require an account.</p>
+      <button type="button" id="tracker-locked-signin-btn" class="btn-primary">Sign In / Sign Up</button>
+    </section>
+
+    <section id="tracker-no-team" class="callout-box tracker-block" hidden>
+      <p>
+        You don't have any saved teams yet. Pick and save a team on the
+        <a href="singles-builder.html">Singles Builder</a> or <a href="doubles-builder.html">Doubles Builder</a>
+        page first, then come back here to log games for it.
+      </p>
+    </section>
+
+    <div id="tracker-body" hidden>
+      <section id="combined-summary-section" class="tracker-block">
+        <h2 class="section-title">All teams combined</h2>
+        <p class="hint">Every logged game across every one of your saved teams, singles and doubles alike.</p>
+        <div id="combined-summary" class="tracker-summary"></div>
+      </section>
+
+      <section id="team-select-section" class="tracker-block">
+        <h2 class="section-title">Pick a team</h2>
+        <div id="tracker-team-tabs" class="team-tabs"></div>
+      </section>
+
+      <section id="team-summary-section" class="tracker-block">
+        <h2 class="section-title" id="team-summary-title">Record</h2>
+        <div id="team-summary" class="tracker-summary"></div>
+        <p id="team-streak" class="hint"></p>
+      </section>
+
+      <section id="log-form-section" class="tracker-block">
+        <h2 class="section-title">Log a result</h2>
+        <div class="tracker-log-form">
+          <input id="tracker-note-input" type="text" maxlength="250" placeholder="Optional note (e.g. vs Trick Room)…" />
+          <button id="tracker-log-win-btn" type="button" class="btn-secondary tracker-win-btn">Log a win</button>
+          <button id="tracker-log-loss-btn" type="button" class="btn-secondary tracker-loss-btn">Log a loss</button>
+        </div>
+        <details id="tracker-opponent-details" class="tracker-opponent-details">
+          <summary>+ Add opponent's team (optional)</summary>
+          <p class="hint">
+            Never required to log a result — jot down whatever you remember of what they brought, if you want it
+            saved alongside this result. Leave any of these blank.
+          </p>
+          <div id="tracker-opponent-grid" class="tracker-opponent-grid"></div>
+        </details>
+      </section>
+
+      <section id="history-section" class="tracker-block">
+        <h2 class="section-title">Battle history</h2>
+        <ul id="tracker-log-list" class="tracker-log-list"></ul>
+      </section>
+    </div>
+
+    <p class="hint">
+      <strong>A note on the shared usage stats:</strong> Dream Team/Auto-build/Auto-build strategy only start
+      leaning on real logged results for a species once enough games (across every player, not just you) have been
+      logged with it — a handful of games isn't enough to trust over the existing curated matchup data. Early on,
+      with only a few games logged site-wide, this will mostly sit quiet. It gets more useful the more battles
+      anyone logs.
+    </p>
+  </main>
+
+  <div id="changes-modal" class="modal-overlay" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="changes-modal-title">
+      <h3 id="changes-modal-title"></h3>
+      <p id="changes-modal-body"></p>
+      <div id="changes-modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="auth.js"></script>
+  <script src="theme.js"></script>
+  <script src="teams.js"></script>
+  <script src="battle-tracker.js"></script>
+  <!-- Milestone 23: Vercel Web Analytics -- see index.html's copy of this
+       comment for what it does and why it's safe to leave in everywhere. -->
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

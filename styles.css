@@ -1107,6 +1107,9 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 
 #teams-section { margin-bottom: 28px; }
 
+/* Milestone 28: generic spacing for battle-tracker.html's own sections -- same 28px rhythm as #teams-section above, just not tied to one page-specific id since this page has several such sections in a row. */
+.tracker-block { margin-bottom: 28px; }
+
 .team-tabs {
   display: flex;
   flex-wrap: wrap;
