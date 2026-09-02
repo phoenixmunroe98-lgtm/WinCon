@@ -179,6 +179,13 @@
           <button id="autostrategy-btn" class="btn-secondary" disabled>Auto-build strategy</button>
         </div>
       </div>
+      <!-- Milestone 25: picking your six is free for anyone; building the
+           details (Nature/item/ability/moves/Stat Points below) requires an
+           account -- see wcIsSignedIn()'s guards throughout builder.js. -->
+      <p id="build-lock-hint" class="hint" hidden>
+        Sign in or sign up to build the details below — Nature, item, ability, moves, and Stat Points are locked
+        until then. Picking your six above stays free.
+      </p>
       <p id="autogen-hint" class="hint"></p>
       <p id="autostrategy-hint" class="hint"></p>
       <div id="strategy-note" class="callout-box" hidden></div>
@@ -192,6 +199,18 @@
 
     <section id="no-team" class="callout-box" hidden>
       <p>Pick your six above to see your Matchup Score, team type coverage, and Your Rival.</p>
+    </section>
+
+    <!-- Milestone 25: shown instead of the real Matchup Score/coverage/
+         Your Rival/results-tracker sections (all still hidden below) when
+         a full analysis-worthy team is picked but the player isn't signed
+         in yet -- see refreshDerivedSections() in builder.js. -->
+    <section id="analysis-locked" class="callout-box" hidden>
+      <p>
+        Sign in or sign up to see your Matchup Score, team type coverage, and Your Rival for this team — picking
+        your six stays free, this analysis is for signed-in accounts.
+      </p>
+      <button type="button" id="analysis-locked-signin-btn" class="btn-primary">Sign In / Sign Up</button>
     </section>
 
     <section id="tracker-section" hidden>

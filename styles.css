@@ -2431,3 +2431,142 @@ select.ability-badge:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Milestone 25: sign-up gate ---------- */
+
+/*
+  Applied to <body> whenever the player isn't signed in (see
+  wcUpdateSignedOutBodyClass() in builder.js) — purely visual, so it stays
+  in one spot rather than repeating an is-locked class on every control.
+  The actual lock is enforced by each control's own click/change handler
+  (they revert the value and show the popup below); this just makes that
+  state visible before a player tries to interact, so it doesn't come as a
+  surprise. pointer-events stays normal (not "none") — the controls still
+  need to receive the click/mousedown that triggers the popup.
+*/
+body.wc-signed-out .slot-card select,
+body.wc-signed-out .slot-card input,
+body.wc-signed-out #team-notes-input,
+body.wc-signed-out #sheet-toggle .format-option,
+body.wc-signed-out .team-controls button,
+body.wc-signed-out #rival-btn,
+body.wc-signed-out #save-btn,
+body.wc-signed-out #dream-team-btn,
+body.wc-signed-out #autobuild-btn,
+body.wc-signed-out #tracker-log-win-btn,
+body.wc-signed-out #tracker-log-loss-btn {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/*
+  #autostrategy-btn already dims itself via its own [disabled] state
+  (unreachable while locked anyway, since a locked team can never reach
+  "every field filled in") — left out above so the two dimmed looks don't
+  fight each other.
+*/
+
+/* One shared, dismissible popup — see wcShowAccountPopup() in builder.js. */
+.wc-account-popup {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 600;
+  max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  animation: wc-account-popup-in 0.2s ease-out;
+}
+
+.wc-account-popup[hidden] { display: none; }
+
+@keyframes wc-account-popup-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.wc-account-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.wc-account-popup-close:hover { color: var(--ink); }
+
+.wc-account-popup-title {
+  margin: 0 22px 6px 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.wc-account-popup-body {
+  margin: 0 0 12px;
+  color: var(--ink-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.wc-account-popup-actions .btn-primary {
+  width: 100%;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .wc-account-popup {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
+}
+
+/* ---------- Milestone 25: homepage welcome banner ---------- */
+
+.welcome-banner {
+  position: relative;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 44px 18px 20px;
+  margin-bottom: 20px;
+}
+
+.welcome-banner h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.welcome-banner p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.welcome-banner-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.welcome-banner-close:hover { color: var(--ink); }
+
+.welcome-banner[hidden] { display: none; }

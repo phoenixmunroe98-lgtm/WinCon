@@ -205,6 +205,10 @@ async function init() {
     btn.addEventListener("click", () => setSheetMode(btn.dataset.sheet));
   });
   teamNotesInput.addEventListener("change", () => {
+    if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "add team notes")) {
+      teamNotesInput.value = notes;
+      return;
+    }
     notes = teamNotesInput.value;
     const active = getActiveTeam();
     if (active) {
@@ -215,8 +219,44 @@ async function init() {
   });
 
   setupOpponentGrid();
-  document.getElementById("tracker-log-win-btn").addEventListener("click", () => logMatchResult("win"));
-  document.getElementById("tracker-log-loss-btn").addEventListener("click", () => logMatchResult("loss"));
+  document.getElementById("tracker-log-win-btn").addEventListener("click", () => {
+    if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "log match results")) return;
+    logMatchResult("win");
+  });
+  document.getElementById("tracker-log-loss-btn").addEventListener("click", () => {
+    if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "log match results")) return;
+    logMatchResult("loss");
+  });
+
+  const analysisLockedSigninBtn = document.getElementById("analysis-locked-signin-btn");
+  if (analysisLockedSigninBtn) {
+    analysisLockedSigninBtn.addEventListener("click", () => {
+      if (window.wcAuth && window.wcAuth.openModal) window.wcAuth.openModal("signup");
+    });
+  }
+
+  // Milestone 25: re-render the moment sign-in state changes (sign in,
+  // sign out, or the initial session check resolving after this page's
+  // own first render already ran signed-out-by-default) so every lock
+  // above lifts live, with no reload needed. Guarded on wcInitDone since
+  // this listener is registered once at module load (see below) and can
+  // fire before this init() has finished its own first render.
+  window.addEventListener("wc:auth-changed", () => {
+    if (!wcInitDone) return;
+    wcUpdateSignedOutBodyClass();
+    renderSlots();
+  });
+
+  wcInitDone = true;
+  wcUpdateSignedOutBodyClass();
+}
+
+/** Set once init()'s first render has completed -- see the wc:auth-changed listener above, registered before this can be guaranteed true. */
+let wcInitDone = false;
+
+/** Milestone 25: toggles a body-level class the stylesheet uses to visually dim every locked control/button at once (see "Milestone 25: sign-up gate" in styles.css) -- kept separate from the actual click/change guards below, which are what really enforce the lock; this only makes that state visible before a player tries to interact. */
+function wcUpdateSignedOutBodyClass() {
+  document.body.classList.toggle("wc-signed-out", !wcIsSignedIn());
 }
 
 async function fetchJSON(path) {
@@ -426,6 +466,7 @@ function renderTeamTabs() {
       : `${visibleCount} ${formatLabel} team${visibleCount === 1 ? "" : "s"} here (${teamState.teams.length} of ${WINCON_MAX_TEAMS} saved across both builders).`;
 }
 
+/** Milestone 25: read-only navigation among whatever teams already exist stays open when signed out (nothing here changes/creates/destroys anything), same allowance as the picker itself. */
 function switchTeam(id) {
   if (id === activeId) return;
   syncWorkingStateIntoActiveTeam();
@@ -445,6 +486,7 @@ function switchTeam(id) {
 }
 
 function addTeam() {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "create another team")) return;
   if (teamState.teams.length >= WINCON_MAX_TEAMS) return;
   syncWorkingStateIntoActiveTeam();
   wcSaveTeamState(teamState);
@@ -468,6 +510,7 @@ function addTeam() {
 }
 
 function renameActiveTeam() {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "rename a team")) return;
   const active = getActiveTeam();
   if (!active) return;
   const newName = teamNameInput.value.trim();
@@ -479,6 +522,7 @@ function renameActiveTeam() {
 
 /** Milestone 14: deletion no longer requires keeping at least one team overall — confirm() is the only safety net — since a page with zero teams left for its own format just gets a fresh blank one from ensureActiveTeam() right after, same as first ever visiting this page. */
 function deleteActiveTeam() {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "delete a team")) return;
   const active = getActiveTeam();
   if (!active) return;
   const confirmed = window.confirm(`Delete "${active.name}"? This can't be undone.`);
@@ -502,6 +546,7 @@ function deleteActiveTeam() {
 
 /** Milestone 14: a team is tagged Singles or Doubles, and each builder page only shows teams tagged for it — so "changing a team's format" now means moving it to the other page entirely, not just flipping a toggle in place here. */
 function moveActiveTeamToOtherFormat() {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "move a team to the other builder")) return;
   const active = getActiveTeam();
   if (!active) return;
   const otherFormat = WINCON_BUILDER_FORMAT === "singles" ? "doubles" : "singles";
@@ -525,30 +570,89 @@ function moveActiveTeamToOtherFormat() {
 }
 
 /**
- * Milestone 24: Save team, Generate Dream Team, Auto-build team, and
- * Auto-build strategy all require a signed-in account -- with no account,
- * there's nowhere for a "saved" team to persist beyond this one browser
- * tab anyway (see teams.js's cloud sync), and gating the three heavier
- * auto-generation features the same way keeps the rule simple and
- * explainable rather than picking and choosing. Find Your Rival and the
- * Matchup Score/type-coverage displays stay open to everyone -- those are
- * read-only exploration of a team already on screen, not something that
- * needs to be saved or attributed to an account.
- *
+ * Milestone 25: the only things a signed-out player can do on this page
+ * are pick up to 6 obtained Pokémon into slots (Step 1) and see the
+ * resulting cards -- everything else (building the details on each slot,
+ * every team-management action, Save/Dream Team/Auto-build/Auto-strategy,
+ * and the whole Matchup Score/coverage/Your Rival/results-tracker
+ * analysis) requires a signed-in account. Widened from Milestone 24, which
+ * only gated Save/Dream Team/Auto-build team/Auto-build strategy and
+ * deliberately left Find Your Rival and the Matchup Score/coverage
+ * displays open as "read-only exploration" -- that carve-out is gone: with
+ * no account there's nowhere for a team to persist beyond this one browser
+ * tab anyway, so the simpler, more explainable rule is that an account is
+ * what unlocks the actual toolkit, not just saving.
+ */
+function wcIsSignedIn() {
+  return Boolean(window.wcAuth && window.wcAuth.isSignedIn());
+}
+
+/**
+ * A small dismissible notification (not the full sign-in/sign-up modal --
+ * see wcRequireAccount's comment for why) telling the player an account is
+ * needed, with its own button to open that modal on demand. Reused by
+ * every gate on this page instead of each one building its own; calling
+ * it again while already showing just resets its auto-dismiss timer
+ * rather than stacking a second copy.
+ */
+let wcAccountPopupEl = null;
+let wcAccountPopupTimer = null;
+
+function wcEnsureAccountPopupEl() {
+  if (wcAccountPopupEl) return wcAccountPopupEl;
+  const el = document.createElement("div");
+  el.id = "wc-account-popup";
+  el.className = "wc-account-popup";
+  el.hidden = true;
+  el.setAttribute("role", "alert");
+  el.innerHTML = `
+    <button type="button" class="wc-account-popup-close" aria-label="Dismiss">×</button>
+    <p class="wc-account-popup-title">Sign in required</p>
+    <p class="wc-account-popup-body">Create a free account to unlock the full toolkit — building your team's details, Matchup Score, Your Rival, and saving across devices. Picking your six stays free.</p>
+    <div class="wc-account-popup-actions">
+      <button type="button" class="btn-primary wc-account-popup-signin">Sign In / Sign Up</button>
+    </div>
+  `;
+  document.body.appendChild(el);
+  el.querySelector(".wc-account-popup-close").addEventListener("click", wcHideAccountPopup);
+  el.querySelector(".wc-account-popup-signin").addEventListener("click", () => {
+    wcHideAccountPopup();
+    if (window.wcAuth && window.wcAuth.openModal) window.wcAuth.openModal("signup");
+  });
+  wcAccountPopupEl = el;
+  return el;
+}
+
+function wcHideAccountPopup() {
+  if (wcAccountPopupEl) wcAccountPopupEl.hidden = true;
+  if (wcAccountPopupTimer) {
+    clearTimeout(wcAccountPopupTimer);
+    wcAccountPopupTimer = null;
+  }
+}
+
+function wcShowAccountPopup() {
+  const el = wcEnsureAccountPopupEl();
+  el.hidden = false;
+  if (wcAccountPopupTimer) clearTimeout(wcAccountPopupTimer);
+  wcAccountPopupTimer = setTimeout(wcHideAccountPopup, 7000);
+}
+
+/**
  * Returns true (and does nothing) if already signed in. Otherwise shows
  * `message` via the caller's own `showMessage` callback -- reusing
  * whatever feedback element that action already has (saveStatus,
- * autogenHint, the Dream Team note) rather than adding a new one -- opens
- * the sign-up modal, and returns false so the caller bails out before
- * doing any real work. `window.wcAuth.openModal` is a no-op if the
- * account system itself never loaded (Supabase CDN blocked/offline); in
- * that rare case the message still shows, there's just nothing to click
- * open yet.
+ * autogenHint, teamsHint, the Dream Team note) rather than adding a new
+ * one for each -- plus the shared popup above, and returns false so the
+ * caller bails out before doing any real work. Unlike Milestone 24, this
+ * no longer force-opens the sign-up modal immediately: the popup's own
+ * button does that on demand, which reads as a notification rather than
+ * an interruption on every single locked click.
  */
 function wcRequireAccount(showMessage, actionLabel) {
-  if (window.wcAuth && window.wcAuth.isSignedIn()) return true;
+  if (wcIsSignedIn()) return true;
   showMessage(`Sign up free to ${actionLabel} — it only takes a minute, and your teams follow you to any device once you're signed in.`);
-  if (window.wcAuth && window.wcAuth.openModal) window.wcAuth.openModal("signup");
+  wcShowAccountPopup();
   return false;
 }
 
@@ -577,6 +681,7 @@ function emptyBuild() {
 // ---------------------------------------------------------------------------
 
 function setSheetMode(newMode) {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "switch Team Sheet mode")) return;
   sheetMode = newMode === "open" ? "open" : "closed";
   const active = getActiveTeam();
   if (active) {
@@ -667,8 +772,17 @@ function togglePick(name) {
 // Step 2: the build slots
 // ---------------------------------------------------------------------------
 
+/** Milestone 25: the "sign in to build the details" hint, mirrored on both builder pages. */
+const buildLockHintEl = document.getElementById("build-lock-hint");
+
 function renderSlots() {
+  // Defense in depth alongside the wc:auth-changed listener in init() --
+  // keeps the CSS-only "everything's dimmed" cue honest even if sign-in
+  // state ever changes without that event firing (e.g. a test stubbing
+  // window.wcAuth directly), since this runs on every team edit anyway.
+  wcUpdateSignedOutBodyClass();
   slotsSection.hidden = chosen.length === 0;
+  if (buildLockHintEl) buildLockHintEl.hidden = wcIsSignedIn();
   slotsEl.innerHTML = "";
 
   chosen.forEach((name) => {
@@ -784,7 +898,18 @@ function buildNatureSelect(build) {
     if (n.name === build.nature) opt.selected = true;
     select.appendChild(opt);
   });
+  select.addEventListener("mousedown", (event) => {
+    if (!wcIsSignedIn()) {
+      event.preventDefault();
+      wcShowAccountPopup();
+    }
+  });
   select.addEventListener("change", () => {
+    if (!wcIsSignedIn()) {
+      select.value = build.nature || "";
+      wcShowAccountPopup();
+      return;
+    }
     build.nature = select.value;
     invalidateComputedNotes();
     refreshStrategyAvailability();
@@ -812,7 +937,18 @@ function buildItemField(build, pokemonName, baseName) {
   input.setAttribute("list", "item-options");
   input.value = build.item || "";
   input.placeholder = "Search items…";
+  input.addEventListener("mousedown", (event) => {
+    if (!wcIsSignedIn()) {
+      event.preventDefault();
+      wcShowAccountPopup();
+    }
+  });
   input.addEventListener("change", () => {
+    if (!wcIsSignedIn()) {
+      input.value = build.item || "";
+      wcShowAccountPopup();
+      return;
+    }
     build.item = input.value;
     invalidateComputedNotes();
     // The item decides whether this slot is currently its base form or a
@@ -939,7 +1075,18 @@ function buildAbilityControl(build, effective, abilityInfo) {
     showAbilityFieldTooltip(el, { ability: currentName, description: currentDescription, confidence: showConfidence ? "low" : undefined })
   );
 
+  select.addEventListener("mousedown", (event) => {
+    if (!wcIsSignedIn()) {
+      event.preventDefault();
+      wcShowAccountPopup();
+    }
+  });
   select.addEventListener("change", () => {
+    if (!wcIsSignedIn()) {
+      select.value = currentName;
+      wcShowAccountPopup();
+      return;
+    }
     build.ability = select.value;
     invalidateComputedNotes();
     // The chosen ability feeds each move field's Expected/Tech tag (see
@@ -1018,12 +1165,32 @@ function buildMoveInput(build, index, moveOptions, meta, tag, effectivePokemon, 
 
   const commit = (value) => commitMoveValue(input, meta, tag, build, index, value, effectivePokemon, abilityName);
 
-  input.addEventListener("focus", () => openMoveDropdown(input, moveOptions, commit));
-  input.addEventListener("click", () => openMoveDropdown(input, moveOptions, commit));
+  input.addEventListener("focus", () => {
+    if (!wcIsSignedIn()) {
+      input.blur();
+      wcShowAccountPopup();
+      return;
+    }
+    openMoveDropdown(input, moveOptions, commit);
+  });
+  input.addEventListener("click", () => {
+    if (!wcIsSignedIn()) {
+      wcShowAccountPopup();
+      return;
+    }
+    openMoveDropdown(input, moveOptions, commit);
+  });
   input.addEventListener("input", () => {
+    if (!wcIsSignedIn()) return;
     if (isMoveDropdownOpenFor(input)) renderMoveDropdownRows(input, moveOptions, commit);
   });
-  input.addEventListener("change", () => commit(input.value));
+  input.addEventListener("change", () => {
+    if (!wcIsSignedIn()) {
+      input.value = build.moves[index] || "";
+      return;
+    }
+    commit(input.value);
+  });
   attachFieldHoverTooltip(input, showMoveFieldTooltip);
   return input;
 }
@@ -1191,7 +1358,15 @@ function buildStatPointAllocator(build) {
     input.min = "0";
     input.max = String(SP_STAT_CAP);
     input.value = String(build.sp[s.key] || 0);
+    input.addEventListener("mousedown", (event) => {
+      if (!wcIsSignedIn()) event.preventDefault();
+    });
     input.addEventListener("input", () => {
+      if (!wcIsSignedIn()) {
+        input.value = String(build.sp[s.key] || 0);
+        wcShowAccountPopup();
+        return;
+      }
       let value = parseInt(input.value, 10);
       if (Number.isNaN(value) || value < 0) value = 0;
       if (value > SP_STAT_CAP) value = SP_STAT_CAP;
@@ -1740,16 +1915,23 @@ function scoreAgainstThreats(threatsList) {
   return { roster, perThreat, favorableCount, toughCount, score };
 }
 
+/** Milestone 25: the analysis-locked callout, mirrored on both builder pages -- see refreshDerivedSections() below. */
+const analysisLockedEl = document.getElementById("analysis-locked");
+
 function refreshDerivedSections() {
   const hasTeam = chosen.length > 0;
+  const signedIn = wcIsSignedIn();
+
   noTeamEl.hidden = hasTeam;
-  scoreRivalHeaderRowEl.hidden = !hasTeam;
-  scoreWinlossSectionEl.hidden = !hasTeam;
-  scoreMatrixSectionEl.hidden = !hasTeam;
-  coverageSectionEl.hidden = !hasTeam;
-  trackerSectionEl.hidden = !hasTeam;
-  rivalSectionEl.hidden = !hasTeam;
-  if (!hasTeam) return;
+  if (analysisLockedEl) analysisLockedEl.hidden = !(hasTeam && !signedIn);
+  const showAnalysis = hasTeam && signedIn;
+  scoreRivalHeaderRowEl.hidden = !showAnalysis;
+  scoreWinlossSectionEl.hidden = !showAnalysis;
+  scoreMatrixSectionEl.hidden = !showAnalysis;
+  coverageSectionEl.hidden = !showAnalysis;
+  trackerSectionEl.hidden = !showAnalysis;
+  rivalSectionEl.hidden = !showAnalysis;
+  if (!showAnalysis) return;
 
   const result = scoreAgainstThreats(getFullRosterThreatsWithTypes());
   renderScoreHero(result.score, result.favorableCount, result.toughCount, result.perThreat.length);
@@ -2187,6 +2369,13 @@ function myTeamAsThreats() {
 }
 
 function findYourRival() {
+  // Defensive: #rival-section (which holds this button) is already hidden
+  // whenever signed out (see refreshDerivedSections()), but this guards
+  // the function itself too, same as the other analysis/build actions.
+  if (!wcIsSignedIn()) {
+    wcShowAccountPopup();
+    return;
+  }
   if (chosen.length === 0) {
     rivalNoteEl.hidden = false;
     rivalNoteEl.innerHTML = "";

@@ -88,6 +88,22 @@
 
   <main class="shell home-shell">
 
+    <!-- Milestone 25: a one-time front-door explainer for anyone landing
+         here for the first time -- dismissing it just sets a localStorage
+         flag (wincon.welcomeBannerDismissed) so it doesn't come back on
+         later visits, same "local to this browser" rule as everything
+         else on this page (obtained list, saved teams). -->
+    <section class="welcome-banner" id="welcome-banner" aria-label="Welcome">
+      <button type="button" class="welcome-banner-close" id="welcome-banner-close" aria-label="Dismiss">×</button>
+      <h2>Welcome to WinCon — Pokémon Champions Team Builder</h2>
+      <p>
+        Mark the Pokémon you've obtained, build up to 5 Singles and Doubles teams with full movesets, items,
+        abilities and Stat Points, then see your Matchup Score against the entire Champions roster and generate a
+        synthesized rival built specifically to counter you. Sign in free to unlock the full toolkit and save your
+        teams across every device.
+      </p>
+    </section>
+
     <section class="home-overview" aria-label="Overall record">
       <div class="home-stat-card">
         <p class="home-stat-label">Overall record</p>
@@ -189,6 +205,24 @@
   <script src="type-utils.js"></script>
   <script src="strategy.js"></script>
   <script src="home.js"></script>
+  <script>
+    // Milestone 25: dismiss/remember the welcome banner above. Kept as a
+    // tiny inline script rather than home.js since it's fully independent
+    // of everything else that page loads (data, obtained list, etc.).
+    (function () {
+      var KEY = "wincon.welcomeBannerDismissed";
+      var banner = document.getElementById("welcome-banner");
+      var closeBtn = document.getElementById("welcome-banner-close");
+      if (!banner || !closeBtn) return;
+      try {
+        if (localStorage.getItem(KEY) === "1") banner.hidden = true;
+      } catch (e) {}
+      closeBtn.addEventListener("click", function () {
+        banner.hidden = true;
+        try { localStorage.setItem(KEY, "1"); } catch (e) {}
+      });
+    })();
+  </script>
   <!-- Milestone 23: Vercel Web Analytics (page views/visitors) -- only
        does anything once "Web Analytics" is switched on for this project
        in the Vercel dashboard (Project -> Analytics -> Enable). Vercel
