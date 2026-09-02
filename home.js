@@ -32,6 +32,9 @@
 
 const HOME_OBTAINED_KEY = "wincon.obtained";
 
+/** Milestone 27: while signed out, marking obtained (via the search box below) is capped at 6 -- same free-preview limit as pokedex.html's own tracker. */
+const WC_OBTAINED_FREE_LIMIT = 6;
+
 let homeData = null; // { pokemon, baseStats, sprites, threats, typeChart }
 let homeNonMegaPokemon = [];
 
@@ -49,7 +52,6 @@ async function init() {
   homeNonMegaPokemon = pokemon.filter((p) => !wcIsMegaForm(p));
 
   await homeRenderAccountSections();
-  renderOwnedSection();
   wcHomeMountAddSearch();
 
   // Milestone 26: re-render the account-derived sections the moment
@@ -81,6 +83,17 @@ let homeInitDone = false;
 let homeTeamDataSignedIn = false;
 
 /**
+ * Milestone 27: true only once the same direct Supabase session check
+ * (shared with homeTeamDataSignedIn -- see homeRenderAccountSections()
+ * below, which computes it once for both) has confirmed there's really a
+ * signed-in account right now. Gates whether the obtained-Pokémon
+ * carousel/progress bar show real saved data, and whether the free
+ * 6-Pokémon cap applies to the "add to Pokédex" search box -- mirrors
+ * pokedex.html's own wcObtainedSignedIn in app.js.
+ */
+let homeObtainedSignedIn = false;
+
+/**
  * Milestone 22: home.js never saves a team itself, but still awaits the
  * cloud merge here (rather than the plain local-only read wcHomeMountAddSearch()
  * uses for its own quick wishlist refresh below) so the overview/top-teams/
@@ -94,16 +107,43 @@ let homeTeamDataSignedIn = false;
  * instead -- so a Pokémon/team history saved during an earlier signed-in
  * session on this device (or, shared computer, a different account's
  * entirely) never shows up on the homepage while signed out.
+ *
+ * Milestone 27: the same confirmed-session boolean now also drives the
+ * obtained-Pokémon carousel/progress bar (renderOwnedSection()) -- reusing
+ * one wcHasRealSession() check for both rather than asking twice. Any
+ * Pokémon marked obtained via the search box while signed out (sitting in
+ * sessionStorage -- see homeGetObtainedSet()'s own comment) get folded
+ * into the real saved set the moment a real session is confirmed here, the
+ * same non-destructive merge wcSyncObtainedForAuth() does in app.js -- a
+ * flat set can only ever gain entries this way, never silently overwrite
+ * anything.
  */
 async function homeRenderAccountSections() {
   const rawTeamState = await wcLoadAndSyncTeamState();
-  homeTeamDataSignedIn = await wcHasRealSession();
+  const signedIn = await wcHasRealSession();
+  homeTeamDataSignedIn = signedIn;
+  if (signedIn) {
+    const sessionObtained = homeLoadSignedOutObtained();
+    if (sessionObtained.size > 0) {
+      homeObtainedSignedIn = true; // so homeGetObtainedSet() below reads real storage
+      const stored = homeGetObtainedSet();
+      sessionObtained.forEach((name) => stored.add(name));
+      homeSaveObtainedSet(stored);
+      try {
+        sessionStorage.removeItem(HOME_OBTAINED_KEY);
+      } catch {
+        // ignore
+      }
+    }
+  }
+  homeObtainedSignedIn = signedIn;
   const teamState = homeTeamDataSignedIn ? rawTeamState : wcEmptyTeamState();
 
   renderOverview(teamState);
   renderTopTeams(teamState);
   renderMostUsed(teamState);
   renderWishlist(teamState);
+  renderOwnedSection();
 }
 
 async function fetchJSON(path) {
@@ -125,7 +165,19 @@ function homeSpriteImg(name, className) {
   return img;
 }
 
+/**
+ * Milestone 27: while signed out, this reads sessionStorage instead of the
+ * real, long-lived localStorage -- same read-leak fix Milestone 26 applied
+ * to team data, applied here to the obtained-Pokémon set every section on
+ * this page derives from (the carousel, the progress bar, and the
+ * wishlist's "what's not obtained yet" scoring). sessionStorage rather
+ * than an in-memory variable specifically so a Pokémon marked obtained via
+ * the Pokédex tracker page (app.js) while signed out shows up here too,
+ * and vice versa, as long as it's the same browser tab/session -- see
+ * app.js's wcLoadSignedOutObtained() for the fuller reasoning.
+ */
 function homeGetObtainedSet() {
+  if (!homeObtainedSignedIn) return homeLoadSignedOutObtained();
   try {
     const raw = localStorage.getItem(HOME_OBTAINED_KEY);
     return new Set(raw ? JSON.parse(raw) : []);
@@ -134,7 +186,26 @@ function homeGetObtainedSet() {
   }
 }
 
+function homeLoadSignedOutObtained() {
+  try {
+    const raw = sessionStorage.getItem(HOME_OBTAINED_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Milestone 27: while signed out, saves to sessionStorage instead of persisting to localStorage (see homeGetObtainedSet()'s comment) -- addPokemon() below is what actually enforces the free 6-Pokémon cap before this is ever called. */
 function homeSaveObtainedSet(set) {
+  if (!homeObtainedSignedIn) {
+    try {
+      sessionStorage.setItem(HOME_OBTAINED_KEY, JSON.stringify([...set]));
+    } catch {
+      // ignore -- this page view's search box still works, it just won't
+      // carry over to another page.
+    }
+    return true;
+  }
   try {
     localStorage.setItem(HOME_OBTAINED_KEY, JSON.stringify([...set]));
     return true;
@@ -345,6 +416,7 @@ function renderOwnedSection() {
   document.getElementById("home-total-count").textContent = total;
   document.getElementById("home-caught-count").textContent = obtained.size;
   document.getElementById("home-progress-fill").style.width = `${total ? (obtained.size / total) * 100 : 0}%`;
+  updateHomeObtainedLockHint(obtained);
 
   const carousel = document.getElementById("home-owned-carousel");
   const emptyEl = document.getElementById("home-owned-empty");
@@ -386,6 +458,15 @@ function wcHomeMountAddSearch() {
 
   function addPokemon(name) {
     const obtained = homeGetObtainedSet();
+    // Milestone 27: same free 6-Pokémon preview as pokedex.html's own
+    // toggleObtained() in app.js -- this quick-add box is a second entry
+    // point to the same obtained set, so it needs the same cap.
+    if (!homeObtainedSignedIn && obtained.size >= WC_OBTAINED_FREE_LIMIT) {
+      wcShowAccountPopup(
+        `Sign up free to mark more than ${WC_OBTAINED_FREE_LIMIT} Pokémon obtained — it only takes a minute, and your progress follows you to any device once you're signed in.`
+      );
+      return;
+    }
     obtained.add(name);
     homeSaveObtainedSet(obtained);
     input.value = "";
@@ -589,4 +670,66 @@ function wcMountCarousel(container, items, renderItem, options) {
 
   start();
   return { start, stop };
+}
+
+/** Milestone 27: the "sign in to keep more than 6" hint above this section's search box, mirrored on the full Pokédex tracker (pokedex.html). */
+function updateHomeObtainedLockHint(obtained) {
+  const el = document.getElementById("home-obtained-lock-hint");
+  if (!el) return;
+  el.hidden = homeObtainedSignedIn;
+  if (homeObtainedSignedIn) return;
+  el.textContent =
+    obtained.size >= WC_OBTAINED_FREE_LIMIT
+      ? `${WC_OBTAINED_FREE_LIMIT} of ${WC_OBTAINED_FREE_LIMIT} free obtained slots used — sign in or sign up to mark more, and to keep this list instead of losing it when you leave.`
+      : `Sign in or sign up to mark more than ${WC_OBTAINED_FREE_LIMIT} Pokémon obtained — everything you check off here is lost when you leave unless you're signed in.`;
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 27: shared sign-in-required popup -- mirrors builder.js's own
+// wcEnsureAccountPopupEl/wcShowAccountPopup/wcHideAccountPopup (and
+// app.js's identical copy for pokedex.html), reusing the same
+// .wc-account-popup CSS classes from styles.css.
+// ---------------------------------------------------------------------------
+let wcAccountPopupEl = null;
+let wcAccountPopupTimer = null;
+
+function wcEnsureAccountPopupEl() {
+  if (wcAccountPopupEl) return wcAccountPopupEl;
+  const el = document.createElement("div");
+  el.id = "wc-account-popup";
+  el.className = "wc-account-popup";
+  el.hidden = true;
+  el.setAttribute("role", "alert");
+  el.innerHTML = `
+    <button type="button" class="wc-account-popup-close" aria-label="Dismiss">×</button>
+    <p class="wc-account-popup-title">Sign in required</p>
+    <p class="wc-account-popup-body"></p>
+    <div class="wc-account-popup-actions">
+      <button type="button" class="btn-primary wc-account-popup-signin">Sign In / Sign Up</button>
+    </div>
+  `;
+  document.body.appendChild(el);
+  el.querySelector(".wc-account-popup-close").addEventListener("click", wcHideAccountPopup);
+  el.querySelector(".wc-account-popup-signin").addEventListener("click", () => {
+    wcHideAccountPopup();
+    if (window.wcAuth && window.wcAuth.openModal) window.wcAuth.openModal("signup");
+  });
+  wcAccountPopupEl = el;
+  return el;
+}
+
+function wcHideAccountPopup() {
+  if (wcAccountPopupEl) wcAccountPopupEl.hidden = true;
+  if (wcAccountPopupTimer) {
+    clearTimeout(wcAccountPopupTimer);
+    wcAccountPopupTimer = null;
+  }
+}
+
+function wcShowAccountPopup(message) {
+  const el = wcEnsureAccountPopupEl();
+  el.querySelector(".wc-account-popup-body").textContent = message;
+  el.hidden = false;
+  if (wcAccountPopupTimer) clearTimeout(wcAccountPopupTimer);
+  wcAccountPopupTimer = setTimeout(wcHideAccountPopup, 7000);
 }

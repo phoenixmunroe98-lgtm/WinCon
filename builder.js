@@ -280,9 +280,23 @@ async function fetchJSON(path) {
   return response.json();
 }
 
+/**
+ * Milestone 27: while signed out, this reads sessionStorage rather than
+ * the real, long-lived localStorage -- the same read-leak fix Milestone 26
+ * applied to team data, applied here to the picker's pool of obtained
+ * Pokémon. sessionStorage (not an in-memory variable, and not
+ * localStorage) specifically so marking obtained on the Pokédex tracker
+ * page while signed out (see app.js's wcLoadSignedOutObtained()) still
+ * shows up here after navigating over -- both pages agree on the exact
+ * same key, just in a store that forgets itself once this browser
+ * tab/session ends rather than remembering indefinitely. Reads
+ * wcTeamDataSignedIn (set by wcSyncTeamStateForAuth(), which always runs
+ * before this is called from renderPicker()) rather than re-checking
+ * sign-in itself.
+ */
 function getObtainedNames() {
   try {
-    const raw = localStorage.getItem(OBTAINED_KEY);
+    const raw = wcTeamDataSignedIn ? localStorage.getItem(OBTAINED_KEY) : sessionStorage.getItem(OBTAINED_KEY);
     return new Set(raw ? JSON.parse(raw) : []);
   } catch {
     return new Set();
