@@ -1413,6 +1413,19 @@ function renderSlot(baseName, build) {
     header.appendChild(megaHint);
   }
 
+  // Milestone 31: a lightweight "just fill in a good set for this one" —
+  // reuses the same wcGenerateBuild engine as Auto-build team (below),
+  // scoped to a single slot, for anyone who already picked their 6 by
+  // hand and just wants a real starting point for one of them rather
+  // than regenerating (and losing tweaks on) the other five.
+  const autofillBtn = document.createElement("button");
+  autofillBtn.type = "button";
+  autofillBtn.className = "btn-secondary slot-autofill-btn";
+  autofillBtn.textContent = "Auto-fill this Pokémon";
+  autofillBtn.title = `Fill in a real, tournament-informed Nature/item/moves/Stat Points build for ${baseName} — respects Item Clause against your other slots' items.`;
+  autofillBtn.addEventListener("click", () => autoBuildSingle(baseName));
+  header.appendChild(autofillBtn);
+
   const spSection = buildStatPointAllocator(build, effective);
 
   const row1 = document.createElement("div");
@@ -2159,6 +2172,63 @@ function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNa
 // ---------------------------------------------------------------------------
 // Step 3a: Auto-build team
 // ---------------------------------------------------------------------------
+
+/**
+ * Milestone 31: single-slot version of Auto-build team, below — fills in
+ * one Pokémon's Nature/item/moves/Stat Points via the same wcGenerateBuild
+ * engine, without touching any other slot. Item Clause is enforced against
+ * this slot's SIBLINGS (the other chosen slots' current items), not a
+ * fresh empty Set the way a whole-team generation starts — so this won't
+ * hand out an item one of your other 5 is already holding, but it also
+ * won't retroactively flag/change anything already on the team.
+ */
+function autoBuildSingle(baseName) {
+  if (!wcRequireAccount((msg) => { autogenHint.textContent = msg; }, "auto-fill a moveset")) return;
+
+  const pokemon = data.pokemon.find((p) => p.name === baseName);
+  const baseStats = data.baseStats.find((b) => b.name === baseName);
+  const learnableNames = data.learnsets[baseName];
+  if (!pokemon || !baseStats || !learnableNames) {
+    autogenHint.textContent = `${baseName} doesn't have complete base-stat/learnset data yet (one of the Reg M-B additions) — build it by hand for now.`;
+    invalidateComputedNotes();
+    return;
+  }
+
+  const usedItems = new Set();
+  chosen.forEach((name) => {
+    if (name === baseName) return;
+    const item = builds[name] && builds[name].item;
+    if (item) usedItems.add(item.trim());
+  });
+
+  const threatsWithTypes = getThreatsWithTypes();
+  const generated = wcGenerateBuild(
+    { name: baseName, types: pokemon.types },
+    baseStats,
+    learnableNames,
+    data.moves,
+    threatsWithTypes,
+    data.typeChart,
+    {
+      format: WINCON_BUILDER_FORMAT,
+      usedItems,
+      megaForms: megaFormsFor(baseName),
+      abilitiesData: data.abilities,
+      sheetMode,
+    }
+  );
+
+  builds[baseName] = generated;
+  invalidateComputedNotes();
+  renderSlots();
+
+  const isMegaBuild = Object.values(WINCON_MEGA_STONES).some(
+    (stone) => stone.toLowerCase() === (generated.item || "").trim().toLowerCase()
+  );
+  autogenHint.textContent = isMegaBuild
+    ? `Auto-filled ${baseName} with a real Mega build — review and tweak anything, or change its item to revert to the base form.`
+    : `Auto-filled ${baseName}. Review and tweak anything — Nature, item, moves, and Stat Points are all editable.`;
+}
 
 function autoBuildTeam() {
   if (!wcRequireAccount((msg) => { autogenHint.textContent = msg; }, "auto-build a moveset")) return;

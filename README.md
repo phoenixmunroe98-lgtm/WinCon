@@ -1234,6 +1234,29 @@ shows the actual Level 50 stat each input works out to, live, right next
 to it (using the exact same `wcCalcStat` formula Matchup Score itself
 reads) — previously the numbers you typed were the only feedback you got.
 
+## Auto-fill just one Pokémon, without touching the other five (Milestone 31)
+
+**"Auto-build team" and "Auto-build strategy" only ever worked on all 6
+slots at once** — useful for starting a team from scratch, but overkill
+for the common case of already having 5 slots you're happy with and just
+wanting a real starting point for the 6th. Every slot card on both
+Builder pages now has its own **Auto-fill this Pokémon** button, next to
+its name and types, that fills in just that one slot — real Nature, item,
+all 4 moves, and the full 66 Stat Points, from the same tournament-
+informed engine ("`wcGenerateBuild`") "Auto-build team" already uses per
+member. The other five slots are left completely alone: nothing else on
+the team is re-rolled, re-ordered, or even re-read except to check their
+items.
+
+That last part matters for **Item Clause** — no two Pokémon on a real
+Champions team can hold the same item. A single-slot fill checks this
+slot's item choice against what every *other* slot on the team is
+currently holding (not a fresh empty pool the way a whole-team generation
+starts), so it won't hand out an item one of your other Pokémon already
+has, even if that's not what this Pokémon's own real-tournament set would
+normally carry. Like every other write action in the Builder, it's gated
+behind being signed in.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your

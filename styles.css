@@ -918,6 +918,15 @@ body {
 
 .slot-header .card-name { font-size: 1.05rem; }
 
+/* Milestone 31: per-slot "Auto-fill this Pokémon" — pushed to the far
+   right of the (flex-wrap) header row via margin-left:auto, so it sits
+   clear of the sprite/name/types/ability cluster on wide screens and
+   drops to its own line on narrow ones rather than crowding them. */
+.slot-autofill-btn {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .slot-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
