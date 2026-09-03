@@ -1257,6 +1257,39 @@ has, even if that's not what this Pokémon's own real-tournament set would
 normally carry. Like every other write action in the Builder, it's gated
 behind being signed in.
 
+## A Paldean Tauros breed dropdown, and a Base/Mega stat toggle (Milestone 32)
+
+**Paldean Tauros breed switcher.** The Sept 3 roster audit added Blaze
+Breed and Aqua Breed as their own roster entries alongside the existing
+(unlabeled) Combat Breed — accurate to how Champions treats them, but
+inconvenient if you picked one and realize partway through building that
+you meant a different breed you've also got. Any Tauros slot with more
+than one breed marked obtained on the Pokédex now shows a small dropdown
+right under its name to switch between them in place — Nature, item,
+moves, and Stat Points all carry over untouched (the three breeds share
+identical base stats, ability options, and learnset; only the typing
+changes), so switching breeds isn't a fresh pick, just a relabel. Only
+breeds you've actually checked off as obtained are offered, same rule as
+everywhere else a Pokémon gets onto a team.
+
+**Base/Mega stat toggle.** Mega Evolution has always been entirely
+item-driven — hold a species' own Mega Stone and the slot automatically
+shows the Mega form's stats/typing; hold anything else and it's the base
+form. That's still true, but a Pokémon actually starts a battle in its
+base form and only Mega Evolves mid-battle as an action, so planning
+sometimes calls for seeing (or building around) both stat blocks without
+losing the item. Once a slot's item matches one of its own Mega Stones, a
+small Base/Mega toggle now appears right under its name — flipping it
+changes which stat block that slot is currently viewed and built against
+(typing, ability, base stats, the SP allocator's live final-stat readout)
+without touching the item field at all. It defaults to Mega, matching the
+old always-on-item-match behavior, so nothing changes unless you actually
+click it. Matchup Score, team type coverage, and Auto-build strategy all
+read the toggle too, so they never disagree with what the slot card
+itself is showing. Changing the item away from the stone still wins
+outright — the toggle disappears and the slot reverts to base, the same
+as it always has.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your

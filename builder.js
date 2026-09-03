@@ -1363,9 +1363,137 @@ function renderSlots() {
   refreshDerivedSections();
 }
 
+// Milestone 32: the 3 Paldean Tauros breeds (Combat/Blaze/Aqua) are
+// separately-obtainable roster entries (see data/AUDIT.md's Sept 3
+// re-audit) but share identical base stats, ability options, and
+// learnset — so switching a slot between them is just a typing change,
+// not really a fresh pick. "Paldean Tauros" itself (unlabeled, for
+// backwards-compatibility reasons — see the same audit) is Combat Breed.
+const WINCON_TAUROS_BREEDS = [
+  { name: "Paldean Tauros", label: "Combat Breed" },
+  { name: "Paldean Tauros (Blaze Breed)", label: "Blaze Breed" },
+  { name: "Paldean Tauros (Aqua Breed)", label: "Aqua Breed" },
+];
+
+function wcTaurosBreedFor(name) {
+  return WINCON_TAUROS_BREEDS.some((b) => b.name === name) ? WINCON_TAUROS_BREEDS : null;
+}
+
+/**
+ * Swaps which roster entry this slot represents, in place — used by the
+ * Paldean Tauros breed dropdown. The in-progress build (Nature/item/
+ * moves/Stat Points/ability) carries over untouched, since every breed
+ * shares identical base stats/learnset/ability options; only the name
+ * (and its typing) changes. Mirrors togglePick's own mutation style
+ * (chosen/builds only — no explicit save call needed here either; see
+ * syncWorkingStateIntoActiveTeam's own comment for why).
+ */
+function wcSwitchSlotSpecies(oldName, newName) {
+  if (oldName === newName) return;
+  const index = chosen.indexOf(oldName);
+  if (index === -1) return;
+  chosen[index] = newName;
+  builds[newName] = builds[oldName] || emptyBuild();
+  delete builds[oldName];
+  invalidateComputedNotes();
+  renderSlots();
+}
+
+/** Only offers breeds actually marked obtained on the Pokédex tracker — same rule as every other way a Pokémon gets onto a team — but always keeps this slot's own current breed in the list even on the off chance it's since been un-obtained, so the dropdown never hides what's actually on the team right now. Returns null (render nothing) when there's nothing to switch to. */
+function buildBreedSelect(baseName, breedGroup) {
+  const obtained = getObtainedNames();
+  const availableBreeds = breedGroup.filter((b) => obtained.has(b.name) || b.name === baseName);
+  if (availableBreeds.length < 2) return null;
+
+  const select = document.createElement("select");
+  select.className = "breed-select";
+  select.title = "Switch which Paldean Tauros breed this slot is — only breeds you've marked obtained on the Pokédex are offered here.";
+  availableBreeds.forEach((b) => {
+    const opt = document.createElement("option");
+    opt.value = b.name;
+    opt.textContent = b.label;
+    if (b.name === baseName) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.addEventListener("mousedown", (event) => {
+    if (!wcIsSignedIn()) {
+      event.preventDefault();
+      wcShowAccountPopup();
+    }
+  });
+  select.addEventListener("change", () => {
+    if (!wcIsSignedIn()) {
+      select.value = baseName;
+      wcShowAccountPopup();
+      return;
+    }
+    wcSwitchSlotSpecies(baseName, select.value);
+  });
+  return select;
+}
+
+/**
+ * Milestone 32: the one place every consumer should go through instead of
+ * calling wcEffectivePokemon directly (Your Rival's own synthesized
+ * roster at the bottom of this file is the one deliberate exception — its
+ * Mega/base choice is decided by wcGenerateBuild itself, never the user,
+ * so it has nothing to toggle). Layers build.megaView's manual override
+ * on top of the item-driven eligibility wcEffectivePokemon already
+ * computes: the item is still what UNLOCKS a Mega form at all (holding
+ * nothing/the wrong item always means base, same as before), but once
+ * unlocked, megaView lets that one slot be viewed/built as its base stats
+ * instead — e.g. to plan around a Pokémon's pre-Mega-Evolution stats,
+ * since it starts a battle in base form and only transforms mid-battle.
+ * Every consumer (the slot card, Matchup Score, team coverage, Auto-
+ * build strategy) goes through this so they all agree on which stat
+ * block a slot is currently using.
+ */
+function wcSlotEffective(baseName, build) {
+  const itemDerived = wcEffectivePokemon(data.pokemon, baseName, build && build.item);
+  if (!itemDerived || itemDerived.name === baseName) return itemDerived;
+  if (build && build.megaView === "base") {
+    return data.pokemon.find((p) => p.name === baseName) || itemDerived;
+  }
+  return itemDerived;
+}
+
+/** The Base/Mega toggle itself — only rendered once a slot's item actually matches one of its own Mega Stones (see isMegaEligible in renderSlot). Reuses the same .format-toggle/.format-option pill styling as the page-level Open/Closed Team Sheet toggle, sized down for the card header (see .mega-view-toggle in styles.css). */
+function buildMegaViewToggle(build, baseName, megaName) {
+  const wrap = document.createElement("div");
+  wrap.className = "format-toggle mega-view-toggle";
+
+  const isBaseView = build.megaView === "base";
+  [
+    { key: "mega", label: "Mega", title: `View and build ${megaName}'s Mega stats/typing.` },
+    { key: "base", label: "Base", title: `View and build ${baseName}'s base stats/typing, even while holding its Mega Stone.` },
+  ].forEach(({ key, label, title }) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    const isActive = (key === "base") === isBaseView;
+    btn.className = "format-option" + (isActive ? " is-active" : "");
+    btn.textContent = label;
+    btn.title = title;
+    btn.addEventListener("click", () => {
+      if (!wcIsSignedIn()) {
+        wcShowAccountPopup();
+        return;
+      }
+      const nextView = key === "base" ? "base" : "mega";
+      if ((build.megaView === "base") === (nextView === "base")) return;
+      build.megaView = nextView;
+      invalidateComputedNotes();
+      renderSlots();
+    });
+    wrap.appendChild(btn);
+  });
+  return wrap;
+}
+
 function renderSlot(baseName, build) {
   const basePokemon = data.pokemon.find((p) => p.name === baseName);
-  const effective = wcEffectivePokemon(data.pokemon, baseName, build.item) || basePokemon;
+  const itemDerivedEffective = wcEffectivePokemon(data.pokemon, baseName, build.item) || basePokemon;
+  const isMegaEligible = itemDerivedEffective.name !== baseName;
+  const effective = wcSlotEffective(baseName, build) || basePokemon;
   const isMega = effective.name !== baseName;
 
   const card = document.createElement("article");
@@ -1381,9 +1509,20 @@ function renderSlot(baseName, build) {
     const megaTag = document.createElement("span");
     megaTag.className = "mega-badge";
     megaTag.textContent = "Mega Evolved";
-    megaTag.title = `${baseName} holding ${build.item} — remove or change the item to revert to ${baseName}.`;
+    megaTag.title = `${baseName} holding ${build.item} — use the Base/Mega toggle above to preview base stats, or remove/change the item to revert to ${baseName} for good.`;
     title.appendChild(megaTag);
   }
+
+  const breedGroup = wcTaurosBreedFor(baseName);
+  if (breedGroup) {
+    const breedSelect = buildBreedSelect(baseName, breedGroup);
+    if (breedSelect) title.appendChild(breedSelect);
+  }
+
+  if (isMegaEligible) {
+    title.appendChild(buildMegaViewToggle(build, baseName, itemDerivedEffective.name));
+  }
+
   const types = document.createElement("div");
   types.className = "card-types";
   effective.types.forEach((type) => {
@@ -1407,9 +1546,13 @@ function renderSlot(baseName, build) {
       .map((m) => WINCON_MEGA_STONES[m.name])
       .filter(Boolean)
       .join(", ");
-    megaHint.textContent = isMega
-      ? `Holding ${build.item} — this slot is ${effective.name}. Change the item to something else to revert to ${baseName}.`
-      : `Has a Mega form — hold ${stoneList} in the item field below to Mega Evolve this slot.`;
+    if (isMega) {
+      megaHint.textContent = `Holding ${build.item} — this slot is ${effective.name}. Use the Base/Mega toggle above to preview its base stats without losing the item, or change the item itself to revert to ${baseName} for good.`;
+    } else if (isMegaEligible) {
+      megaHint.textContent = `Holding ${build.item} — toggled to view ${baseName}'s base stats above. Switch the toggle back to Mega to build around ${itemDerivedEffective.name} instead.`;
+    } else {
+      megaHint.textContent = `Has a Mega form — hold ${stoneList} in the item field below to Mega Evolve this slot.`;
+    }
     header.appendChild(megaHint);
   }
 
@@ -2022,7 +2165,7 @@ function megaFormsFor(baseName) {
 }
 
 function effectiveMemberFor(baseName, baseTypes, baseStats, learnableNames, build) {
-  const effective = wcEffectivePokemon(data.pokemon, baseName, build && build.item);
+  const effective = wcSlotEffective(baseName, build);
   if (!effective || effective.name === baseName) {
     return { name: baseName, slotName: baseName, types: baseTypes, baseStats, learnableNames };
   }
@@ -2559,7 +2702,7 @@ function applyAmendments(strategy, target) {
 // ---------------------------------------------------------------------------
 
 function effectivePokemonFor(name, build) {
-  return wcEffectivePokemon(data.pokemon, name, build && build.item) || data.pokemon.find((p) => p.name === name);
+  return wcSlotEffective(name, build) || data.pokemon.find((p) => p.name === name);
 }
 
 /**

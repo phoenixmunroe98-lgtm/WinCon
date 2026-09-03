@@ -918,6 +918,32 @@ body {
 
 .slot-header .card-name { font-size: 1.05rem; }
 
+/* Milestone 32: the Paldean Tauros breed dropdown and the Mega Base/Mega
+   toggle both live inside .card-name (a block element) specifically so
+   they render on their own line directly under the Pokémon's name,
+   regardless of .slot-header's own flex-wrap layout around them. */
+.breed-select {
+  display: block;
+  margin-top: 4px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.mega-view-toggle {
+  margin-top: 4px;
+}
+
+.mega-view-toggle.format-toggle .format-option {
+  padding: 3px 10px;
+  font-size: 0.78rem;
+}
+
 /* Milestone 31: per-slot "Auto-fill this Pokémon" — pushed to the far
    right of the (flex-wrap) header row via margin-left:auto, so it sits
    clear of the sprite/name/types/ability cluster on wide screens and
