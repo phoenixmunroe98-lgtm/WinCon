@@ -1471,35 +1471,14 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 0.92rem;
 }
 
-/* Matchup Score's ring/heading and Your Rival's intro/button sit side by
-   side here — just these two compact "headers". Milestone 18 moved the
-   heavier content that used to trail far below both of them right up
-   underneath this row instead: #rival-section (Your Rival's own
-   generated team + its own win/loss numbers) comes first, then
-   #score-winloss-section (Matchup Score's own Projected Win/Loss Ratio +
-   Toughest matchups), with the full per-threat matrix
-   (#score-matrix-section) and team type coverage (#coverage-section)
+/* Simulated Win Rate (the real mechanical simulator) replaced Matchup
+   Score's old full-roster ring/matrix outright, so #rival-header-row is
+   now just Your Rival's own compact intro/button -- no longer a two-
+   column row, so no grid/media-query treatment is needed here any more.
+   #simulated-winrate-section (its own styling further below) comes
+   first, then #rival-section (Your Rival's generated team + its own
+   win/loss numbers), with team type coverage (#coverage-section) still
    pushed further down the page. */
-.score-rival-header-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-.score-rival-col { min-width: 0; }
-
-@media (max-width: 760px) {
-  .score-rival-header-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Author styles that set `display` on an element otherwise beat the
-   browser's own [hidden] rule at equal specificity (see .team-selector's
-   own note above) -- without this, a hidden header row still shows up as
-   an empty grid box. */
-.score-rival-header-row[hidden] { display: none; }
 
 .score-hero {
   display: flex;
@@ -1566,6 +1545,36 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   border: 1px solid var(--border);
   border-radius: 10px;
   margin-bottom: 20px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Simulated Win Rate -- replaces the old Matchup Score ring/matrix with a  */
+/* real mechanical battle simulation (see wcRunSimulatedWinRate() and      */
+/* renderSimulatedWinRateResult() in builder.js). One .simwinrate-card per */
+/* Mega-Evolution scenario (0-3), each reusing .score-hero/.score-ring/    */
+/* .score-meta -- the exact same ring markup Your Rival's own result       */
+/* builds -- so a Simulated Win Rate card and Your Rival's success-rate    */
+/* ring already look like the same family of result without new rules.    */
+/* ---------------------------------------------------------------------- */
+
+.simwinrate-scenarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 12px 0 16px;
+}
+
+.simwinrate-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.simwinrate-card .score-hero { margin-bottom: 12px; }
+
+.simwinrate-lineup-note {
+  margin: 4px 0 16px;
 }
 
 .matrix {
@@ -1987,9 +1996,9 @@ select.ability-badge:focus-visible {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Win/loss stat pills — shared by the Matchup Score section's Projected  */
-/* Win/Loss Ratio (renderRival()) and this results tracker's actual      */
-/* record (renderMatchTracker()). See --mediocre/--negative above.       */
+/* Win/loss stat pills — shared by Your Rival's own Projected Win/Loss    */
+/* Ratio (renderRival()) and this results tracker's actual record        */
+/* (renderMatchTracker()). See --mediocre/--negative above.              */
 /* ---------------------------------------------------------------------- */
 
 .winloss-block {
@@ -2042,6 +2051,49 @@ select.ability-badge:focus-visible {
   flex-direction: column;
   gap: 6px;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Simulated Win Rate on the Battle Tracker: the required bring-N lineup   */
+/* picker on the log form (reuses .picker-grid/.pick-chip from the        */
+/* Builder pages' own species picker), and the Team vs Team matchup       */
+/* table further up the page. See battle-tracker.js.                     */
+/* ---------------------------------------------------------------------- */
+
+.tracker-lineup-picker { margin-bottom: 14px; }
+.tracker-lineup-picker .picker-grid { margin-bottom: 8px; }
+
+.matchup-team-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 14px 0;
+}
+
+.matchup-team-pickers .field { min-width: 200px; }
+.matchup-team-pickers select { width: 100%; }
+
+.matchup-winner-banner {
+  margin-bottom: 16px;
+}
+
+.matchup-lineups {
+  margin-bottom: 16px;
+}
+
+.matchup-grid-table {
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.matchup-grid-table th,
+.matchup-grid-table td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.matchup-grid-table th { background: var(--surface-muted); }
 
 .tracker-log-entry {
   display: flex;

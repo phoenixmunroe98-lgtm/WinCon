@@ -1,0 +1,1808 @@
+{
+  "Trick Room": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "fieldEffect": {
+      "type": "trick-room",
+      "duration": 5
+    }
+  },
+  "Tailwind": {
+    "target": "self-side",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "fieldEffect": {
+      "type": "tailwind",
+      "duration": 4
+    }
+  },
+  "Sunny Day": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "fieldEffect": {
+      "type": "weather-sun",
+      "duration": 5
+    }
+  },
+  "Rain Dance": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "fieldEffect": {
+      "type": "weather-rain",
+      "duration": 5
+    }
+  },
+  "Follow Me": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Rage Powder": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Stealth Rock": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Spikes": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Toxic Spikes": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Sticky Web": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Rock Slide": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 30,
+      "effect": "flinch"
+    }
+  },
+  "Earthquake": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Surf": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Muddy Water": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Heat Wave": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 10
+    }
+  },
+  "Icy Wind": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spe",
+        "stages": -1
+      }
+    ]
+  },
+  "Discharge": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 30
+    }
+  },
+  "Blizzard": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "freeze",
+      "chance": 10
+    }
+  },
+  "Hyper Voice": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": true
+    }
+  },
+  "Dazzling Gleam": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Eruption": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Water Spout": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Lava Plume": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 30
+    }
+  },
+  "Sludge Wave": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "poison",
+      "chance": 10
+    }
+  },
+  "Parabolic Charge": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "drainFraction": 0.5
+  },
+  "Struggle Bug": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spa",
+        "stages": -1
+      }
+    ]
+  },
+  "Snarl": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spa",
+        "stages": -1
+      }
+    ]
+  },
+  "Bulldoze": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spe",
+        "stages": -1
+      }
+    ]
+  },
+  "Electroweb": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spe",
+        "stages": -1
+      }
+    ]
+  },
+  "Brutal Swing": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Boomburst": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": true
+    }
+  },
+  "Petal Blizzard": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Breaking Swipe": {
+    "target": "all-adjacent-foes",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "atk",
+        "stages": -1
+      }
+    ]
+  },
+  "Wide Guard": {
+    "target": "self-side",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Quick Guard": {
+    "target": "self-side",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Toxic": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "badly-poison",
+      "chance": 100
+    }
+  },
+  "Will-O-Wisp": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 100
+    }
+  },
+  "Thunder Wave": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 100
+    }
+  },
+  "Recover": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Roost": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Slack Off": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Synthesis": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Moonlight": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Soft-Boiled": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Milk Drink": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Rest": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 1.0
+  },
+  "U-turn": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Volt Switch": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Flip Turn": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Rapid Spin": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "spe",
+        "stages": 1
+      }
+    ]
+  },
+  "Defog": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "eva",
+        "stages": -1
+      }
+    ]
+  },
+  "Knock Off": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Leech Seed": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Protect": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Detect": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Fake Out": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 100,
+      "effect": "flinch"
+    }
+  },
+  "Helping Hand": {
+    "target": "ally",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Close Combat": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "def",
+        "stages": -1
+      },
+      {
+        "stat": "spd",
+        "stages": -1
+      }
+    ]
+  },
+  "Superpower": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "atk",
+        "stages": -1
+      },
+      {
+        "stat": "def",
+        "stages": -1
+      }
+    ]
+  },
+  "Swords Dance": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "selfStatChange": [
+      {
+        "stat": "atk",
+        "stages": 2
+      }
+    ]
+  },
+  "Nasty Plot": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "selfStatChange": [
+      {
+        "stat": "spa",
+        "stages": 2
+      }
+    ]
+  },
+  "Calm Mind": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "selfStatChange": [
+      {
+        "stat": "spa",
+        "stages": 1
+      },
+      {
+        "stat": "spd",
+        "stages": 1
+      }
+    ]
+  },
+  "Bulk Up": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "selfStatChange": [
+      {
+        "stat": "atk",
+        "stages": 1
+      },
+      {
+        "stat": "def",
+        "stages": 1
+      }
+    ]
+  },
+  "Dragon Dance": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "selfStatChange": [
+      {
+        "stat": "atk",
+        "stages": 1
+      },
+      {
+        "stat": "spe",
+        "stages": 1
+      }
+    ]
+  },
+  "Substitute": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Taunt": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Encore": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Icicle Crash": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 30,
+      "effect": "flinch"
+    }
+  },
+  "Flare Blitz": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.33,
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 10
+    }
+  },
+  "Wild Charge": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.25
+  },
+  "Zen Headbutt": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 20,
+      "effect": "flinch"
+    }
+  },
+  "Play Rough": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Moonblast": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Draco Meteor": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "spa",
+        "stages": -2
+      }
+    ]
+  },
+  "Overheat": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "spa",
+        "stages": -2
+      }
+    ]
+  },
+  "Leaf Storm": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "spa",
+        "stages": -2
+      }
+    ]
+  },
+  "Scald": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 30
+    }
+  },
+  "Ice Beam": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "freeze",
+      "chance": 10
+    }
+  },
+  "Thunderbolt": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 10
+    }
+  },
+  "Flamethrower": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 10
+    }
+  },
+  "Sludge Bomb": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "poison",
+      "chance": 30
+    }
+  },
+  "Shadow Ball": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Psychic": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Focus Blast": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Air Slash": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 30,
+      "effect": "flinch"
+    }
+  },
+  "Iron Head": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 30,
+      "effect": "flinch"
+    }
+  },
+  "Stone Edge": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": true,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Poison Jab": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "poison",
+      "chance": 30
+    }
+  },
+  "Body Press": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Body Slam": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 30
+    }
+  },
+  "Liquidation": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Crunch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Trailblaze": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "selfStatChange": [
+      {
+        "stat": "spe",
+        "stages": 1
+      }
+    ]
+  },
+  "Population Bomb": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 1,
+      "max": 10
+    }
+  },
+  "Spirit Break": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spa",
+        "stages": -1
+      }
+    ]
+  },
+  "Metal Sound": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "spd",
+        "stages": -2
+      }
+    ]
+  },
+  "Screech": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": true
+    },
+    "targetStatChange": [
+      {
+        "stat": "def",
+        "stages": -2
+      }
+    ]
+  },
+  "Sandstorm": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "fieldEffect": {
+      "type": "weather-sand",
+      "duration": 5
+    }
+  },
+  "Snowscape": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "fieldEffect": {
+      "type": "weather-snow",
+      "duration": 5
+    }
+  },
+  "Aurora Veil": {
+    "target": "self-side",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    }
+  },
+  "Light Screen": {
+    "target": "self-side",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "fieldEffect": {
+      "type": "light-screen",
+      "duration": 5
+    }
+  },
+  "Reflect": {
+    "target": "self-side",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "fieldEffect": {
+      "type": "reflect",
+      "duration": 5
+    }
+  },
+  "Whirlwind": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": false
+    }
+  },
+  "Roar": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": false
+    }
+  },
+  "Sing": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": true,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "sleep",
+      "chance": 100
+    }
+  },
+  "Spore": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "sleep",
+      "chance": 100
+    }
+  },
+  "Glare": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 100
+    }
+  },
+  "Kowtow Cleave": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Sucker Punch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Low Kick": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Scale Shot": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 2,
+      "max": 5
+    },
+    "selfStatChange": [
+      {
+        "stat": "spe",
+        "stages": 1
+      },
+      {
+        "stat": "def",
+        "stages": -1
+      }
+    ]
+  },
+  "Fire Fang": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 10,
+      "effect": "flinch"
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 10
+    }
+  },
+  "Wave Crash": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.33
+  },
+  "Aqua Jet": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Last Respects": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Fire Blast": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 10
+    }
+  },
+  "Solar Beam": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Extreme Speed": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Fire Punch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "burn",
+      "chance": 10
+    }
+  },
+  "Ice Punch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "freeze",
+      "chance": 10
+    }
+  },
+  "Outrage": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Wish": {
+    "target": "self",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false
+    },
+    "healFraction": 0.5
+  },
+  "Stored Power": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Dire Claw": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Acrobatics": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Beat Up": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 1,
+      "max": 5
+    }
+  },
+  "Ice Shard": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Bullet Punch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Mach Punch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Shadow Sneak": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Vacuum Wave": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Quick Attack": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "First Impression": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Brave Bird": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.33
+  },
+  "Double-Edge": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.33
+  },
+  "Volt Tackle": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.33,
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 10
+    }
+  },
+  "Head Smash": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "recoilFraction": 0.5
+  },
+  "Giga Drain": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "drainFraction": 0.5
+  },
+  "Drain Punch": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "drainFraction": 0.5
+  },
+  "Draining Kiss": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "drainFraction": 0.75
+  },
+  "Horn Leech": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "drainFraction": 0.5
+  },
+  "Bullet Seed": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 2,
+      "max": 5
+    }
+  },
+  "Icicle Spear": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 2,
+      "max": 5
+    }
+  },
+  "Rock Blast": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 2,
+      "max": 5
+    }
+  },
+  "Pin Missile": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 2,
+      "max": 5
+    }
+  },
+  "Triple Axel": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "multiHit": {
+      "min": 1,
+      "max": 3
+    }
+  },
+  "Electric Terrain": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Grassy Terrain": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Misty Terrain": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Psychic Terrain": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Dark Pulse": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "secondary": {
+      "chance": 20,
+      "effect": "flinch"
+    }
+  },
+  "Night Slash": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": true,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Throat Chop": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Foul Play": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Gunk Shot": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "poison",
+      "chance": 30
+    }
+  },
+  "Dragon Claw": {
+    "target": "any-adjacent",
+    "flags": {
+      "contact": true,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Hydro Pump": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Energy Ball": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Weather Ball": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  },
+  "Thunder": {
+    "target": "any-single",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    },
+    "statusInflicted": {
+      "status": "paralyze",
+      "chance": 30
+    }
+  },
+  "Haze": {
+    "target": "all-adjacent",
+    "flags": {
+      "contact": false,
+      "highCrit": false,
+      "sound": false,
+      "protectable": true
+    }
+  }
+}

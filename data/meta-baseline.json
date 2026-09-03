@@ -1,0 +1,124 @@
+{
+  "_readme": "Hand-curated reference opponent teams for the Simulated Win Rate feature (see battle-sim-baseline.js for how these get expanded into full battle-ready builds). 'source': 'worlds2026-top8' entries are real, sourced rosters from the Champions engine's first World Championships (Aug 28-30 2026, Regulation M-B) — currently seeded with the 2 confirmed top-8 rosters (Masters Champion Takuma Yamazaki, runner-up Hiroshi Onishi); the remaining real top-8 rosters are a follow-up data task (TODO: source the other 6 Masters top-8 teams and add them here). 'source': 'meta-archetype' entries are WinCon-built recombinations of the same Worlds-caliber Pokémon into different 6-member rosters, used to widen the sampled opponent field beyond exactly 2 real lists — not claimed as real tournament results. Singles has no official tournament (ladder-only per WinCon's own research), so every Singles entry is 'source': 'community-singles-staple' — generic, well-known archetype builds, explicitly a heuristic seed intended to be superseded by real logged Battle Tracker data over time (see strategy.js's wcComboSynergyBonus/wcAugmentThreatsWithMetaBaseline). Each member's 'role' selects a stat-spread template from battle-sim-baseline.js's WC_ROLE_SPREADS rather than hand-specifying Nature/Stat Points per member — a deliberate curation-effort tradeoff for reference opponents, not something a real user's own build ever does. 'ability' is optional; when omitted the resolver defaults to that species' own sourced ability from data/abilities.json.",
+  "doubles": [
+    {
+      "id": "worlds2026-yamazaki",
+      "source": "worlds2026-top8",
+      "label": "Yamazaki (Masters Champion, Worlds 2026)",
+      "members": [
+        { "name": "Mega Floette", "item": "Floettite", "role": "support-bulky", "moves": ["Moonblast", "Wish", "Protect", "Helping Hand"] },
+        { "name": "Mega Dragonite", "item": "Dragoninite", "role": "bulky-physical", "moves": ["Hurricane", "Extreme Speed", "Protect", "Dragon Dance"] },
+        { "name": "Kingambit", "item": "Life Orb", "role": "bulky-physical", "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Protect"] },
+        { "name": "Sneasler", "item": "Focus Sash", "role": "fast-physical", "moves": ["Close Combat", "Dire Claw", "Protect", "Fake Out"] },
+        { "name": "Basculegion", "item": "Choice Band", "role": "fast-physical", "moves": ["Wave Crash", "Flip Turn", "Aqua Jet", "Liquidation"] },
+        { "name": "Garchomp", "item": "Rocky Helmet", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Scale Shot", "Protect"] }
+      ]
+    },
+    {
+      "id": "worlds2026-onishi",
+      "source": "worlds2026-top8",
+      "label": "Onishi (Masters Runner-up, Worlds 2026)",
+      "members": [
+        { "name": "Mega Floette", "item": "Floettite", "role": "support-bulky", "moves": ["Moonblast", "Wish", "Protect", "Helping Hand"] },
+        { "name": "Mega Charizard Y", "item": "Charizardite Y", "role": "fast-special", "moves": ["Heat Wave", "Weather Ball", "Protect", "Overheat"] },
+        { "name": "Kingambit", "item": "Life Orb", "role": "bulky-physical", "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Protect"] },
+        { "name": "Basculegion", "item": "Choice Band", "role": "fast-physical", "moves": ["Wave Crash", "Flip Turn", "Aqua Jet", "Liquidation"] },
+        { "name": "Whimsicott", "item": "Focus Sash", "role": "fast-special", "moves": ["Tailwind", "Moonblast", "Encore", "Helping Hand"] },
+        { "name": "Garchomp", "item": "Rocky Helmet", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Scale Shot", "Protect"] }
+      ]
+    },
+    {
+      "id": "meta-archetype-sun-core",
+      "source": "meta-archetype",
+      "label": "Sun core (Mega Charizard Y variant)",
+      "members": [
+        { "name": "Mega Charizard Y", "item": "Charizardite Y", "role": "fast-special", "moves": ["Heat Wave", "Weather Ball", "Protect", "Overheat"] },
+        { "name": "Kingambit", "item": "Life Orb", "role": "bulky-physical", "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Protect"] },
+        { "name": "Garchomp", "item": "Rocky Helmet", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Scale Shot", "Protect"] },
+        { "name": "Whimsicott", "item": "Focus Sash", "role": "fast-special", "moves": ["Tailwind", "Moonblast", "Encore", "Helping Hand"] },
+        { "name": "Basculegion", "item": "Choice Band", "role": "fast-physical", "moves": ["Wave Crash", "Flip Turn", "Aqua Jet", "Liquidation"] },
+        { "name": "Sneasler", "item": "Focus Sash", "role": "fast-physical", "moves": ["Close Combat", "Dire Claw", "Protect", "Fake Out"] }
+      ]
+    },
+    {
+      "id": "meta-archetype-double-support",
+      "source": "meta-archetype",
+      "label": "Double support (Floette + Whimsicott)",
+      "members": [
+        { "name": "Mega Floette", "item": "Floettite", "role": "support-bulky", "moves": ["Moonblast", "Wish", "Protect", "Helping Hand"] },
+        { "name": "Whimsicott", "item": "Focus Sash", "role": "fast-special", "moves": ["Tailwind", "Moonblast", "Encore", "Helping Hand"] },
+        { "name": "Kingambit", "item": "Life Orb", "role": "bulky-physical", "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Protect"] },
+        { "name": "Garchomp", "item": "Rocky Helmet", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Scale Shot", "Protect"] },
+        { "name": "Basculegion", "item": "Choice Band", "role": "fast-physical", "moves": ["Wave Crash", "Flip Turn", "Aqua Jet", "Liquidation"] },
+        { "name": "Sneasler", "item": "Focus Sash", "role": "fast-physical", "moves": ["Close Combat", "Dire Claw", "Protect", "Fake Out"] }
+      ]
+    },
+    {
+      "id": "meta-archetype-bulky-dragon",
+      "source": "meta-archetype",
+      "label": "Bulky dragon core (Mega Dragonite variant)",
+      "members": [
+        { "name": "Mega Dragonite", "item": "Dragoninite", "role": "bulky-physical", "moves": ["Hurricane", "Extreme Speed", "Protect", "Dragon Dance"] },
+        { "name": "Kingambit", "item": "Life Orb", "role": "bulky-physical", "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Protect"] },
+        { "name": "Garchomp", "item": "Rocky Helmet", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Scale Shot", "Protect"] },
+        { "name": "Whimsicott", "item": "Focus Sash", "role": "fast-special", "moves": ["Tailwind", "Moonblast", "Encore", "Helping Hand"] },
+        { "name": "Basculegion", "item": "Choice Band", "role": "fast-physical", "moves": ["Wave Crash", "Flip Turn", "Aqua Jet", "Liquidation"] },
+        { "name": "Sneasler", "item": "Focus Sash", "role": "fast-physical", "moves": ["Close Combat", "Dire Claw", "Protect", "Fake Out"] }
+      ]
+    }
+  ],
+  "singles": [
+    {
+      "id": "community-singles-balance-1",
+      "source": "community-singles-staple",
+      "label": "Balance core",
+      "members": [
+        { "name": "Garchomp", "item": "Life Orb", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Swords Dance", "Fire Fang"] },
+        { "name": "Toxapex", "item": "Leftovers", "role": "support-bulky", "moves": ["Surf", "Toxic Spikes", "Haze", "Recover"] },
+        { "name": "Corviknight", "item": "Leftovers", "role": "support-bulky", "moves": ["Iron Head", "Roost", "Defog", "Body Press"] },
+        { "name": "Clefable", "item": "Leftovers", "role": "support-bulky", "moves": ["Moonblast", "Wish", "Stealth Rock", "Thunder Wave"] },
+        { "name": "Dragapult", "item": "Choice Specs", "role": "fast-special", "moves": ["Draco Meteor", "Shadow Ball", "U-turn", "Flamethrower"] },
+        { "name": "Kingambit", "item": "Life Orb", "role": "bulky-physical", "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Iron Head"] }
+      ]
+    },
+    {
+      "id": "community-singles-hyper-offense",
+      "source": "community-singles-staple",
+      "label": "Hyper offense",
+      "members": [
+        { "name": "Dragapult", "item": "Choice Specs", "role": "fast-special", "moves": ["Draco Meteor", "Shadow Ball", "U-turn", "Flamethrower"] },
+        { "name": "Weavile", "item": "Focus Sash", "role": "fast-physical", "moves": ["Knock Off", "Ice Shard", "Low Kick", "Swords Dance"] },
+        { "name": "Volcarona", "item": "Booster Energy", "role": "fast-special", "moves": ["Fiery Dance", "Giga Drain", "Quiver Dance", "Bug Buzz"] },
+        { "name": "Excadrill", "item": "Focus Sash", "role": "fast-physical", "moves": ["Earthquake", "Iron Head", "Rapid Spin", "Swords Dance"] },
+        { "name": "Hydreigon", "item": "Life Orb", "role": "fast-special", "moves": ["Draco Meteor", "Dark Pulse", "Flamethrower", "Nasty Plot"] },
+        { "name": "Charizard", "item": "Heavy-Duty Boots", "role": "fast-special", "moves": ["Flamethrower", "Air Slash", "Roost", "Solar Beam"] }
+      ]
+    },
+    {
+      "id": "community-singles-stall",
+      "source": "community-singles-staple",
+      "label": "Stall / bulky",
+      "members": [
+        { "name": "Toxapex", "item": "Leftovers", "role": "support-bulky", "moves": ["Surf", "Toxic Spikes", "Haze", "Recover"] },
+        { "name": "Skarmory", "item": "Leftovers", "role": "support-bulky", "moves": ["Iron Head", "Roost", "Spikes", "Whirlwind"] },
+        { "name": "Clefable", "item": "Leftovers", "role": "support-bulky", "moves": ["Moonblast", "Wish", "Stealth Rock", "Thunder Wave"] },
+        { "name": "Corviknight", "item": "Leftovers", "role": "support-bulky", "moves": ["Iron Head", "Roost", "Defog", "Body Press"] },
+        { "name": "Gliscor", "item": "Leftovers", "role": "bulky-physical", "moves": ["Earthquake", "Toxic", "Knock Off", "Protect"] },
+        { "name": "Gholdengo", "item": "Leftovers", "role": "bulky-special", "moves": ["Shadow Ball", "Make It Rain", "Nasty Plot", "Recover"] }
+      ]
+    },
+    {
+      "id": "community-singles-balance-2",
+      "source": "community-singles-staple",
+      "label": "Balance (secondary core)",
+      "members": [
+        { "name": "Garchomp", "item": "Life Orb", "role": "fast-physical", "moves": ["Earthquake", "Stone Edge", "Swords Dance", "Fire Fang"] },
+        { "name": "Rotom", "item": "Leftovers", "role": "support-bulky", "moves": ["Volt Switch", "Hydro Pump", "Will-O-Wisp", "Pain Split"] },
+        { "name": "Incineroar", "item": "Leftovers", "role": "bulky-physical", "moves": ["Flare Blitz", "Fake Out", "Parting Shot", "Will-O-Wisp"] },
+        { "name": "Tyranitar", "item": "Leftovers", "role": "bulky-physical", "moves": ["Stone Edge", "Crunch", "Earthquake", "Dragon Dance"] },
+        { "name": "Excadrill", "item": "Focus Sash", "role": "fast-physical", "moves": ["Earthquake", "Iron Head", "Rapid Spin", "Swords Dance"] },
+        { "name": "Dragapult", "item": "Choice Specs", "role": "fast-special", "moves": ["Draco Meteor", "Shadow Ball", "U-turn", "Flamethrower"] }
+      ]
+    }
+  ]
+}

@@ -81,6 +81,17 @@ let pokemonByName = {};
 /** Milestone 28: the real, cross-user usage/win-rate lookup from meta_usage_stats (see wcFetchMetaUsageStats in teams.js) for THIS page's format — {} (meaning "no real data yet, defer entirely to the curated heuristics") until init() below resolves it, and again whenever nobody's signed in (meta_usage_stats is read-only to signed-in accounts only, same as the rest of this page's toolkit). */
 let metaUsageLookup = {};
 
+/** Simulated Win Rate: the real, cross-user combo (bring-4/3 lineup) win-rate lookup from combo_synergy_stats (see wcFetchComboSynergyStats in teams.js) for THIS page's format — {} until init() resolves it or whenever signed out, same gating as metaUsageLookup. Consumed by wcComboSynergyBonus (strategy.js) when ranking candidate lineups in battle-sim-lineup.js. */
+let comboSynergyLookup = {};
+
+/** Simulated Win Rate: data/meta-baseline.json's curated Worlds-2026-grounded reference teams for THIS page's format ({doubles:[...], singles:[...]} — only this page's own array is read from). Static file, not auth-gated, loaded once in init() alongside the rest of data/*.json. Feeds wcMetaBaselineSynergyNote/wcMetaBaselineArchetypeBonus/wcAugmentThreatsWithMetaBaseline (strategy.js) and is the opponent pool battle-sim-lineup.js samples against for the Simulated Win Rate itself. */
+let metaBaselineData = { doubles: [], singles: [] };
+
+/** Simulated Win Rate: the three curated mechanical-effect overlay files (data/move-effects.json, ability-effects.json, item-effects.json) — keyed lookups merged onto data.moves/data.abilities/data.items by battle-sim-engine.js at battler-build time. Loaded once in init(); empty objects until then (every lookup in the engine already defaults safely to a no-op for any name absent from these). */
+let moveEffectsData = {};
+let abilityEffectsData = {};
+let itemEffectsData = {};
+
 /** Full multi-team state: { teams: [...], activeId }. Shared across BOTH builder pages (and the Pokédex tracker's obtained-list, separately) via teams.js — up to 5 teams total, filtered per page by format below. */
 let teamState = { teams: [], activeId: null };
 
@@ -111,6 +122,16 @@ let pendingStrategy = null;
 
 /** The last "Find Your Rival" result, or null if none is showing / it's gone stale since the team changed. See findYourRival() below. */
 let pendingRival = null;
+
+/** Simulated Win Rate state -- see refreshSimulatedWinRate()/runSimulatedWinRate() below.
+ * simWinRateResult: the last { lineup, format, scenarios } from wcRunSimAsync("simulateWinRate", ...), or null if none has run yet for the current complete-team streak.
+ * simWinRateNeedsRerun: true once an edit has happened since simWinRateResult was computed -- shows a "team has changed" note on the Re-run button rather than silently re-simulating.
+ * simWinRateWasComplete: isTeamComplete()'s value the last time refreshSimulatedWinRate() checked it -- the one-shot "incomplete -> complete" transition detector that triggers the auto-run.
+ * simWinRateInFlight: guards against overlapping runs (e.g. a stray extra click on Re-run while one is already running). */
+let simWinRateResult = null;
+let simWinRateNeedsRerun = false;
+let simWinRateWasComplete = false;
+let simWinRateInFlight = false;
 
 const teamTabsEl = document.getElementById("team-tabs");
 const teamNameInput = document.getElementById("team-name-input");
@@ -153,15 +174,19 @@ const modalTitle = document.getElementById("changes-modal-title");
 const modalBody = document.getElementById("changes-modal-body");
 const modalActions = document.getElementById("changes-modal-actions");
 
-const scoreRivalHeaderRowEl = document.getElementById("score-rival-header-row");
-// Milestone 18: the old single #score-section (Projected Win/Loss Ratio +
-// Toughest matchups + the full per-threat matrix, all together) was split
-// into #score-winloss-section and #score-matrix-section so the win/loss
-// summary could move up next to Your Rival's own result, while the heavier
-// full matrix stays further down the page -- see singles-builder.html's
-// comment above #rival-section for the full layout rationale.
-const scoreWinlossSectionEl = document.getElementById("score-winloss-section");
-const scoreMatrixSectionEl = document.getElementById("score-matrix-section");
+// Simulated Win Rate: replaces the old #score-winloss-section/#score-
+// matrix-section (both deleted from the DOM, along with their
+// renderScoreHero/renderScoreWinLoss/renderMatrix rendering functions) --
+// see refreshSimulatedWinRate()/runSimulatedWinRate() below.
+const simulatedWinrateSectionEl = document.getElementById("simulated-winrate-section");
+const simwinrateHintEl = document.getElementById("simwinrate-hint");
+const simwinrateLoadingEl = document.getElementById("simwinrate-loading");
+const simwinrateScenariosEl = document.getElementById("simwinrate-scenarios");
+const simwinrateRerunBtn = document.getElementById("simwinrate-rerun-btn");
+const simwinrateMethodologyEl = document.getElementById("simwinrate-methodology");
+
+/** Milestone 18 named this "score-rival-header-row" back when Matchup Score's own ring sat here too; Simulated Win Rate replacing that section made it just Your Rival's compact intro/button, so the id was simplified to match -- see #rival-header-row in singles-builder.html/doubles-builder.html. */
+const rivalHeaderRowEl = document.getElementById("rival-header-row");
 const coverageSectionEl = document.getElementById("coverage-section");
 const noTeamEl = document.getElementById("no-team");
 
@@ -173,7 +198,7 @@ const rivalResultEl = document.getElementById("rival-result");
 init();
 
 async function init() {
-  const [pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex] = await Promise.all([
+  const [pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex, metaBaseline, moveEffects, abilityEffects, itemEffects] = await Promise.all([
     fetchJSON("data/pokemon.json"),
     fetchJSON("data/moves.json"),
     fetchJSON("data/items.json"),
@@ -186,10 +211,21 @@ async function init() {
     fetchJSON("data/abilities.json"),
     fetchJSON("data/ability-options.json"),
     fetchJSON("data/ability-dex.json"),
+    fetchJSON("data/meta-baseline.json"),
+    fetchJSON("data/move-effects.json"),
+    fetchJSON("data/ability-effects.json"),
+    fetchJSON("data/item-effects.json"),
   ]);
   data = { pokemon, moves, items, natures, learnsets, baseStats, threats, typeChart, sprites, abilities, abilityOptions, abilityDex };
   pokemonByName = {};
   pokemon.forEach((p) => { pokemonByName[p.name] = p; });
+  // Simulated Win Rate: static overlay/reference data, not auth-gated --
+  // loaded once here alongside the rest of data/*.json (see the module-level
+  // doc comments above these four variables' declarations for what each feeds).
+  metaBaselineData = metaBaseline || { doubles: [], singles: [] };
+  moveEffectsData = moveEffects || {};
+  abilityEffectsData = abilityEffects || {};
+  itemEffectsData = itemEffects || {};
 
   // Milestone 22: pulls in any teams saved to this account from another
   // device before anything else runs -- specifically before
@@ -229,6 +265,7 @@ async function init() {
   autostrategyBtn.addEventListener("click", autoBuildStrategy);
   dreamTeamBtn.addEventListener("click", generateDreamTeam);
   rivalBtn.addEventListener("click", findYourRival);
+  if (simwinrateRerunBtn) simwinrateRerunBtn.addEventListener("click", () => runSimulatedWinRate());
   sheetToggleEl.querySelectorAll(".format-option").forEach((btn) => {
     btn.addEventListener("click", () => setSheetMode(btn.dataset.sheet));
   });
@@ -323,7 +360,7 @@ function getObtainedNames() {
   }
 }
 
-/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. Milestone 20: the Matchup Score section's own default win/loss display no longer uses this list (see getFullRosterThreatsWithTypes() below) — it was found to be heavily skewed toward Mega forms (13 of its 16 entries), so it stayed too narrow a picture of "your win rate." This list is kept for the other three features above, which are about picking/building a team's shape (archetype, coverage) rather than displaying a win-rate figure, and changing what they score against would silently change already-explained behavior nobody asked to change. Milestone 28: also layered with any real, cross-user "frequently faced and genuinely scary" species from meta_usage_stats (see wcAugmentThreatsWithMetaUsage in strategy.js and metaUsageLookup below) — silently a no-op until enough games have been logged site-wide. */
+/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. (Milestone 20 grew a separate, literally-every-Pokémon list for the old Matchup Score section's own win/loss display, since this curated 16 was found too skewed toward Mega forms for that purpose — that whole section, and the list built for it, were retired outright once Simulated Win Rate shipped; this curated list lives on for the picking/building features above, which are about a team's shape, not a win-rate figure.) Milestone 28: also layered with any real, cross-user "frequently faced and genuinely scary" species from meta_usage_stats (see wcAugmentThreatsWithMetaUsage in strategy.js and metaUsageLookup below), then with data/meta-baseline.json's curated Worlds-grounded reference field (see wcAugmentThreatsWithMetaBaseline in strategy.js and metaBaselineData below) — both silently a no-op until real data/curated entries are actually there to add. */
 function getThreatsWithTypes() {
   const curated = data.threats.map((t) => {
     const p = data.pokemon.find((x) => x.name === t.name);
@@ -331,12 +368,8 @@ function getThreatsWithTypes() {
     const ability = wcAbilityOf(data.abilities, t.name);
     return { ...t, types: p ? p.types : [], baseStats, ability };
   });
-  return wcAugmentThreatsWithMetaUsage(curated, metaUsageLookup, pokemonByName);
-}
-
-/** Milestone 20: literally every Pokémon in the roster (all base forms and Mega forms alike, data/pokemon.json) as a threats list — what Matchup Score's own default "Projected Win/Loss Ratio", score ring, Toughest matchups, and full matrix now compare your team against, replacing the old 16-entry curated list (still used elsewhere -- see getThreatsWithTypes() above). Every entry here has confirmed base stats (data/base-stats.json covers the full roster), so nothing in this list hits the matrix's "no base-stat data yet" fallback. */
-function getFullRosterThreatsWithTypes() {
-  return data.pokemon.map((p) => ({ name: p.name, types: p.types, role: "" }));
+  const withRealUsage = wcAugmentThreatsWithMetaUsage(curated, metaUsageLookup, pokemonByName);
+  return wcAugmentThreatsWithMetaBaseline(withRealUsage, metaBaselineData, WINCON_BUILDER_FORMAT, pokemonByName);
 }
 
 // ---------------------------------------------------------------------------
@@ -374,6 +407,15 @@ function loadActiveIntoWorkingState() {
   builds = active ? JSON.parse(JSON.stringify(active.builds)) : {};
   notes = active && active.notes ? active.notes : "";
   sheetMode = wcGetSheetMode(active);
+  // Simulated Win Rate: a freshly-loaded team (switching tabs, a new/moved
+  // team, etc.) is a different build entirely -- forgetting any prior
+  // result here (rather than just invalidateSimulatedWinRate()'s lighter
+  // "mark stale" treatment) means a newly-loaded already-complete team
+  // still gets its own honest auto-run instead of showing another team's
+  // leftover numbers with a stale note slapped on them.
+  simWinRateResult = null;
+  simWinRateNeedsRerun = false;
+  simWinRateWasComplete = false;
 }
 
 /** Writes the in-memory chosen/builds/notes/sheetMode back onto the active team object (chosen/builds/notes aren't persisted to localStorage until saveDraft() — sheetMode also saves immediately on its own toggle, see setSheetMode()). */
@@ -392,8 +434,8 @@ function renderTeamNotes() {
 }
 
 // ---------------------------------------------------------------------------
-// Win/loss stat pills — used by the Matchup Score section's "Projected
-// Win/Loss Ratio" (see renderRival()) on this page. Milestone 28: the
+// Win/loss stat pills — used by Your Rival's own "Projected Win/Loss
+// Ratio" (see renderRival()) on this page. Milestone 28: the
 // results tracker's own "actual" win/loss readout that used to share
 // this moved to battle-tracker.js, which keeps its own small copy of
 // these same pure helpers (same duplicated-small-helper pattern as
@@ -887,6 +929,11 @@ async function wcSyncTeamStateForAuth() {
   // entirely to the existing curated heuristics -- the same behavior as
   // before this milestone existed.
   metaUsageLookup = wcTeamDataSignedIn ? await wcFetchMetaUsageStats(WINCON_BUILDER_FORMAT) : {};
+  // Simulated Win Rate: combo_synergy_stats is gated behind sign-in the
+  // same way meta_usage_stats is (see wcFetchComboSynergyStats in
+  // teams.js) -- refreshed on the exact same schedule/event as
+  // metaUsageLookup just above, for the same reason.
+  comboSynergyLookup = wcTeamDataSignedIn ? await wcFetchComboSynergyStats(WINCON_BUILDER_FORMAT) : {};
   if (wcTeamDataSignedIn) {
     activeId = teamState.activeId;
     // Checked BEFORE ensureActiveTeam() below (which can itself create a
@@ -2224,7 +2271,7 @@ function generateDreamTeam() {
     excludedNames,
     notesIncludedNames,
     droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup);
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT);
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
@@ -2470,6 +2517,22 @@ function invalidateRival() {
 function invalidateComputedNotes() {
   invalidateStrategyNote();
   invalidateRival();
+  invalidateSimulatedWinRate();
+}
+
+/**
+ * Simulated Win Rate: called (via invalidateComputedNotes()) on every real
+ * edit to the working team. Doesn't clear the last computed result outright
+ * -- unlike Rival/Strategy, which fully forget theirs and require a fresh
+ * manual click either way -- since the whole point of "auto-runs once on
+ * the incomplete->complete transition, a manual button covers later edits"
+ * (see refreshSimulatedWinRate()) is that the previous numbers stay on
+ * screen, just marked as no longer reflecting the current build, until
+ * Re-run simulation is clicked (or the team goes incomplete and back to
+ * complete again, which IS a fresh transition and re-triggers on its own).
+ */
+function invalidateSimulatedWinRate() {
+  if (simWinRateResult) simWinRateNeedsRerun = true;
 }
 
 function autoBuildStrategy() {
@@ -2497,7 +2560,7 @@ function autoBuildStrategy() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const result = wcAnalyzeTeamStrategy(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities);
+  const result = wcAnalyzeTeamStrategy(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   pendingStrategy = result;
   autogenHint.textContent = "";
   renderStrategyNote(result);
@@ -2750,70 +2813,172 @@ function refreshDerivedSections() {
   noTeamEl.hidden = hasTeam;
   if (analysisLockedEl) analysisLockedEl.hidden = !(hasTeam && !signedIn);
   const showAnalysis = hasTeam && signedIn;
-  scoreRivalHeaderRowEl.hidden = !showAnalysis;
-  scoreWinlossSectionEl.hidden = !showAnalysis;
-  scoreMatrixSectionEl.hidden = !showAnalysis;
+  rivalHeaderRowEl.hidden = !showAnalysis;
   coverageSectionEl.hidden = !showAnalysis;
   rivalSectionEl.hidden = !showAnalysis;
-  if (!showAnalysis) return;
+  if (simulatedWinrateSectionEl) simulatedWinrateSectionEl.hidden = !showAnalysis;
+  if (!showAnalysis) {
+    simWinRateWasComplete = false;
+    return;
+  }
 
-  const result = scoreAgainstThreats(getFullRosterThreatsWithTypes());
-  renderScoreHero(result.score, result.favorableCount, result.toughCount, result.perThreat.length);
-  renderToughList(document.getElementById("tough-list"), result.perThreat.filter((t) => t.best.result.verdict === "unfavorable"));
-  renderMatrix(result.roster, result.perThreat);
   renderTypeCoverage();
+  refreshSimulatedWinRate();
 }
 
-function renderScoreHero(score, favorableCount, toughCount, total) {
-  document.getElementById("score-number").textContent = score;
-  const ring = document.getElementById("score-ring");
-  ring.style.setProperty("--score", score);
-  document.getElementById("score-summary").textContent =
-    `Favorable answers to ${favorableCount} of ${total} Pokémon in the full data set, ` +
-    `no clear answer to ${toughCount} of them. This is a matchup score across the whole roster — not a measured win rate.` +
-    (sheetMode === "open" ? " Scored under your Open Team Sheet — move-dependent edges are already discounted." : "");
+// ---------------------------------------------------------------------------
+// Simulated Win Rate -- the real mechanical battle simulator (Web Worker,
+// see battle-sim-client.js/battle-sim-worker.js) that replaced the old
+// Matchup Score ring/win-loss pill/full matrix above. Gated strictly on
+// isTeamComplete() (every field on all 6 filled in), auto-run once on the
+// incomplete->complete transition, with a manual "Re-run simulation"
+// covering every edit after that -- see the module-level simWinRate*
+// variables' own doc comment near pendingRival for the full state model.
+// ---------------------------------------------------------------------------
 
-  renderScoreWinLoss(score, toughCount, total);
+/** Shows/hides the section and either the incomplete hint, the last computed result, or (on a fresh incomplete->complete transition) kicks off a new simulation. Called from refreshDerivedSections() every time the team re-renders. */
+function refreshSimulatedWinRate() {
+  if (!simulatedWinrateSectionEl) return;
+
+  const complete = isTeamComplete();
+  if (!complete) {
+    simWinRateWasComplete = false;
+    simwinrateHintEl.hidden = false;
+    simwinrateHintEl.textContent =
+      "Complete every field for all 6 Pokémon first — Nature, item, all 4 moves, all 66 Stat Points, and no duplicate items — to unlock the Simulated Win Rate.";
+    simwinrateLoadingEl.hidden = true;
+    simwinrateScenariosEl.hidden = true;
+    simwinrateScenariosEl.innerHTML = "";
+    simwinrateRerunBtn.hidden = true;
+    simwinrateMethodologyEl.hidden = true;
+    return;
+  }
+
+  const justCompleted = !simWinRateWasComplete;
+  simWinRateWasComplete = true;
+
+  if (simWinRateResult) {
+    renderSimulatedWinRateResult(simWinRateResult);
+    return;
+  }
+
+  if (justCompleted || !simWinRateInFlight) runSimulatedWinRate();
+}
+
+/** Gathers everything the Worker needs from this page's own data/state -- see wcSimulateTeamWinRate's own doc comment in battle-sim-lineup.js for the exact shape. */
+function buildSimulatedWinRatePayload() {
+  return {
+    chosenSix: chosen,
+    builds,
+    format: WINCON_BUILDER_FORMAT,
+    sheetMode,
+    pokemonList: data.pokemon,
+    baseStatsData: data.baseStats,
+    abilitiesData: data.abilities,
+    movesData: data.moves,
+    moveEffects: moveEffectsData,
+    abilityEffects: abilityEffectsData,
+    itemEffects: itemEffectsData,
+    typeChart: data.typeChart,
+    natures: data.natures,
+    metaBaseline: metaBaselineData,
+    comboLookup: comboSynergyLookup,
+  };
+}
+
+/** Actually runs (or re-runs) the simulation via the Worker. Shared by the auto-run-on-transition path and the manual "Re-run simulation" button. */
+async function runSimulatedWinRate() {
+  if (simWinRateInFlight) return;
+  simWinRateInFlight = true;
+  simwinrateHintEl.hidden = true;
+  simwinrateScenariosEl.hidden = true;
+  simwinrateRerunBtn.hidden = true;
+  simwinrateMethodologyEl.hidden = true;
+  simwinrateLoadingEl.hidden = false;
+
+  try {
+    const result = await wcRunSimAsync("simulateWinRate", buildSimulatedWinRatePayload());
+    simWinRateResult = result;
+    simWinRateNeedsRerun = false;
+    renderSimulatedWinRateResult(result);
+  } catch (err) {
+    simwinrateHintEl.hidden = false;
+    simwinrateHintEl.textContent =
+      "The simulation didn't finish — this can happen on an older/slower device. Try Re-run simulation, or reload the page if it keeps failing.";
+    simwinrateRerunBtn.hidden = false;
+  } finally {
+    simWinRateInFlight = false;
+    simwinrateLoadingEl.hidden = true;
+  }
+}
+
+function renderSimulatedWinRateResult(result) {
+  simwinrateHintEl.hidden = true;
+  simwinrateLoadingEl.hidden = true;
+  simwinrateScenariosEl.hidden = false;
+  simwinrateScenariosEl.innerHTML = "";
+  simwinrateRerunBtn.hidden = false;
+  simwinrateRerunBtn.textContent = simWinRateNeedsRerun ? "Re-run simulation (your team has changed)" : "Re-run simulation";
+  simwinrateMethodologyEl.hidden = false;
+
+  const lineupNote = document.createElement("p");
+  lineupNote.className = "hint simwinrate-lineup-note";
+  lineupNote.textContent =
+    `WinCon's own best bring-${result.lineup.length}-of-6 lineup for this team: ${result.lineup.join(", ")}.` +
+    (sheetMode === "open" ? " Scored under your Open Team Sheet — the opponent AI gets full information from turn 1." : "");
+  simwinrateScenariosEl.appendChild(lineupNote);
+
+  result.scenarios.forEach((scenario) => {
+    simwinrateScenariosEl.appendChild(renderSimwinrateCard(scenario));
+  });
+}
+
+function renderSimwinrateCard(scenario) {
+  const card = document.createElement("div");
+  card.className = "simwinrate-card";
+
+  const pct = Math.round(scenario.winRate * 100);
+  const hero = document.createElement("div");
+  hero.className = "score-hero";
+  const ring = document.createElement("div");
+  ring.className = "score-ring";
+  ring.style.setProperty("--score", pct);
+  const num = document.createElement("span");
+  num.textContent = `${pct}%`;
+  ring.appendChild(num);
+  const meta = document.createElement("div");
+  meta.className = "score-meta";
+  const heading = document.createElement("h3");
+  heading.className = "section-title";
+  heading.textContent = scenario.megaName ? `Mega Evolving ${scenario.megaName}` : "No Mega Evolution";
+  const summary = document.createElement("p");
+  summary.className = "hint";
+  summary.textContent = `Won ${scenario.wins} of ${scenario.totalRuns} simulated battles (${scenario.draws} draws) against the reference field.`;
+  meta.append(heading, summary);
+  hero.append(ring, meta);
+  card.appendChild(hero);
+
+  const toughest = [...(scenario.perOpponent || [])].sort((a, b) => a.winRate - b.winRate).slice(0, 3);
+  if (toughest.length > 0) {
+    const toughPara = document.createElement("p");
+    const strong = document.createElement("strong");
+    strong.textContent = "Toughest reference matchups: ";
+    toughPara.appendChild(strong);
+    toughPara.appendChild(
+      document.createTextNode(toughest.map((t) => `${t.label} (${Math.round(t.winRate * 100)}% win rate)`).join(", "))
+    );
+    card.appendChild(toughPara);
+  }
+
+  return card;
 }
 
 /**
- * The same "Projected Win/Loss Ratio" pill treatment as Your Rival's block
- * (see renderRival()), but against every Pokémon in the full roster
- * (Milestone 20 — see getFullRosterThreatsWithTypes()) instead of one
- * synthesized rival: win rate = the score itself (the favorable share),
- * loss rate = that same list's unfavorable share. The two don't have to
- * sum to 100 -- an "even" verdict is neither favorable nor unfavorable --
- * so this reuses the percent-based ratio formatter, same as Your Rival.
+ * Shared by Your Rival's own "Toughest matchups against them" list
+ * (renderRival()) -- kept here since it's just a small pure DOM helper,
+ * not tied to any one section any more now that the old full-roster
+ * Matchup Score list that used to also call this is gone.
  */
-function renderScoreWinLoss(score, toughCount, total) {
-  const mount = document.getElementById("score-winloss-mount");
-  if (!mount) return;
-  mount.innerHTML = "";
-  if (total === 0) return;
-
-  const winPct = score;
-  const lossPct = Math.round((toughCount / total) * 100);
-
-  const block = document.createElement("div");
-  block.className = "winloss-block";
-  const heading = document.createElement("h3");
-  heading.className = "section-title";
-  heading.textContent = "Projected Win/Loss Ratio";
-  const hint = document.createElement("p");
-  hint.className = "hint";
-  hint.textContent =
-    `From your Matchup Score against all ${total} Pokémon in the data set — a heuristic estimate, not a simulated battle or a measured win rate.`;
-  const row = document.createElement("div");
-  row.className = "winloss-row";
-  row.append(
-    wcBuildWinLossStat("Your win rate", `${winPct}%`, winPct),
-    wcBuildWinLossStat("Your loss rate", `${lossPct}%`, 100 - lossPct),
-    wcBuildWinLossStat("Win ratio", wcFormatRatioFromPercents(winPct, lossPct), winPct)
-  );
-  block.append(heading, hint, row);
-  mount.appendChild(block);
-}
-
 function renderToughList(container, toughEntries) {
   container.innerHTML = "";
   if (toughEntries.length === 0) {
@@ -2837,47 +3002,6 @@ function renderToughList(container, toughEntries) {
     bestNote.textContent = `Your best answer: ${best.pokemon.name} (still unfavorable)`;
     card.append(name, role, bestNote);
     container.appendChild(card);
-  });
-}
-
-function verdictSymbol(verdict) {
-  if (verdict === "favorable") return "+";
-  if (verdict === "unfavorable") return "−";
-  return "·";
-}
-
-function renderMatrix(roster, perThreat) {
-  const table = document.getElementById("matrix");
-  table.innerHTML = "";
-
-  const summaryEl = document.getElementById("score-matrix-summary");
-  if (summaryEl) summaryEl.textContent = `Show the full matchup matrix (${perThreat.length} Pokémon)`;
-
-  const headRow = document.createElement("tr");
-  headRow.appendChild(document.createElement("th"));
-  roster.forEach(({ pokemon }) => {
-    const th = document.createElement("th");
-    th.textContent = pokemon.name;
-    headRow.appendChild(th);
-  });
-  table.appendChild(headRow);
-
-  perThreat.forEach(({ threat, results }) => {
-    const row = document.createElement("tr");
-    const label = document.createElement("th");
-    label.className = "row-label";
-    label.textContent = threat.name;
-    row.appendChild(label);
-    results.forEach(({ result }) => {
-      const cell = document.createElement("td");
-      cell.className = `verdict-${result.verdict}`;
-      cell.textContent = verdictSymbol(result.verdict);
-      cell.title = result.statsKnown
-        ? `offense ${result.offense}×, defense ${result.defense}×`
-        : "no base-stat data for this Pokémon yet — offense/defense only";
-      row.appendChild(cell);
-    });
-    table.appendChild(row);
   });
 }
 
@@ -3084,7 +3208,7 @@ function findYourRival() {
   // 8) — run here in reverse, with the pool being the WHOLE roster and
   // the "threats" being your own team, so it picks a 6 that specifically
   // answers your typing/stats well instead of a generic reference list.
-  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup);
+  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT);
   const rivalMembers = rivalNames.map((name) => pool.find((m) => m.name === name));
 
   pendingRival = { rivalMembers, rivalBuilds: {}, reasoning, rivalSuccessRate: 0, myResult: null, customized: false };

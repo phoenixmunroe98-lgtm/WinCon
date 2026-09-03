@@ -69,11 +69,13 @@
     <section id="tracker-intro" class="tracker-block">
       <h2 class="section-title">Battle Tracker</h2>
       <p class="hint">
-        Log each real game's result for any of your saved teams — win or loss, an optional note (e.g. "vs Trick
-        Room"), and whatever you remember of the opponent's team. Every logged result also adds to WinCon's shared,
-        anonymized usage stats across every player — over time, that real data supplements Generate Dream Team,
-        Auto-build team, and Auto-build strategy on the Builder pages, alongside the existing curated matchup data.
-        See the note at the bottom of this page for how sparse that will be at first.
+        Log each real game's result for any of your saved teams — win or loss, which of your six you actually
+        brought that game, an optional note (e.g. "vs Trick Room"), and whatever you remember of the opponent's
+        team. Every logged result also adds to WinCon's shared, anonymized usage stats across every player — over
+        time, that real data supplements Generate Dream Team, Auto-build team, and Auto-build strategy on the
+        Builder pages, alongside the existing curated matchup data and the Simulated Win Rate reference field
+        further up this page's own Team vs Team matchup table. See the note at the bottom of this page for how
+        sparse that will be at first.
       </p>
     </section>
 
@@ -97,6 +99,42 @@
         <div id="combined-summary" class="tracker-summary"></div>
       </section>
 
+      <!-- Simulated Win Rate's Battle Tracker counterpart: two of your own
+           saved teams, same format, simulated head-to-head with the real
+           mechanical battle engine (battle-sim-worker.js) -- each side's
+           own best bring-N lineup against the OTHER team specifically,
+           not a general reference field. Independent of the single
+           "pick a team" log/history flow below -- see
+           refreshMatchupTeamOptions()/runMatchup() in battle-tracker.js. -->
+      <section id="matchup-section" class="tracker-block">
+        <h2 class="section-title">Team vs Team matchup</h2>
+        <p class="hint">
+          Pick two of your saved teams from the same format and simulate them head-to-head — the same real
+          mechanical battle simulator behind the Builder pages' Simulated Win Rate, run with each side's own best
+          lineup against the other team specifically, rather than a general reference field.
+        </p>
+        <div id="matchup-format-toggle" class="format-toggle" role="group" aria-label="Matchup format">
+          <button type="button" class="format-option" data-format="doubles">Doubles</button>
+          <button type="button" class="format-option" data-format="singles">Singles</button>
+        </div>
+        <div class="matchup-team-pickers">
+          <label class="field">
+            <span class="field-label">Team A</span>
+            <select id="matchup-team-a"></select>
+          </label>
+          <label class="field">
+            <span class="field-label">Team B</span>
+            <select id="matchup-team-b"></select>
+          </label>
+          <button type="button" id="matchup-run-btn" class="btn-primary">Run Matchup</button>
+        </div>
+        <p id="matchup-hint" class="hint"></p>
+        <p id="matchup-loading" class="hint" hidden>
+          Simulating thousands of battles between these two lineups… this can take a few seconds.
+        </p>
+        <div id="matchup-result" hidden></div>
+      </section>
+
       <section id="team-select-section" class="tracker-block">
         <h2 class="section-title">Pick a team</h2>
         <div id="tracker-team-tabs" class="team-tabs"></div>
@@ -110,10 +148,24 @@
 
       <section id="log-form-section" class="tracker-block">
         <h2 class="section-title">Log a result</h2>
+        <!-- Milestone 33 (Simulated Win Rate): a real game only ever
+             actually battles with the bring-4 (Doubles) / bring-3
+             (Singles) team-preview lineup, not all 6 -- crediting a
+             result to the 2-3 that sat on the bench the whole game was a
+             real gap in the per-species learning loop (see
+             wc_recompute_meta_usage_for_species in
+             supabase/migrations/0006_lineup_scope_and_combo_synergy.sql).
+             This picker is now required before Log a win/loss unlocks --
+             see renderLineupPicker()/updateLogButtonsEnabled() in
+             battle-tracker.js. -->
+        <div id="tracker-lineup-picker" class="tracker-lineup-picker">
+          <p id="tracker-lineup-hint" class="hint"></p>
+          <div id="tracker-lineup-grid" class="picker-grid"></div>
+        </div>
         <div class="tracker-log-form">
           <input id="tracker-note-input" type="text" maxlength="250" placeholder="Optional note (e.g. vs Trick Room)…" />
-          <button id="tracker-log-win-btn" type="button" class="btn-secondary tracker-win-btn">Log a win</button>
-          <button id="tracker-log-loss-btn" type="button" class="btn-secondary tracker-loss-btn">Log a loss</button>
+          <button id="tracker-log-win-btn" type="button" class="btn-secondary tracker-win-btn" disabled>Log a win</button>
+          <button id="tracker-log-loss-btn" type="button" class="btn-secondary tracker-loss-btn" disabled>Log a loss</button>
         </div>
         <details id="tracker-opponent-details" class="tracker-opponent-details">
           <summary>+ Add opponent's team (optional)</summary>
@@ -153,6 +205,12 @@
   <script src="auth.js"></script>
   <script src="theme.js"></script>
   <script src="teams.js"></script>
+  <!-- Simulated Win Rate: only the thin client is loaded on the page --
+       the actual simulation engine runs off-thread inside
+       battle-sim-worker.js's own importScripts() -- see
+       battle-sim-client.js's header comment and doubles-builder.html's
+       copy of this same note. -->
+  <script src="battle-sim-client.js"></script>
   <script src="battle-tracker.js"></script>
   <!-- Milestone 23: Vercel Web Analytics -- see index.html's copy of this
        comment for what it does and why it's safe to leave in everywhere. -->

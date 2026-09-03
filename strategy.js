@@ -382,35 +382,40 @@ const WINCON_META_KNOWN_SETS = {
  * the mechanical archetype check below. Sourced the same way as
  * WINCON_META_KNOWN_SETS above.
  */
-const WINCON_META_CORES = [
-  {
-    pokemon: ["Kingambit", "Whimsicott", "Basculegion", "Garchomp"],
-    note: "Whimsicott's Tailwind and Basculegion's speed clear the way for Garchomp and Kingambit to attack freely — one of the most repeated cores across recent top-performing tournament teams.",
-  },
-  {
-    pokemon: ["Mega Charizard Y", "Garchomp"],
-    note: "one of the single most common two-Pokémon pairings in the current meta — Charizard's sun and Garchomp's Ground/Dragon coverage answer different halves of the field.",
-  },
-  {
-    pokemon: ["Mega Charizard Y", "Mega Floette"],
-    note: "a Fire/Fairy pairing seen on several recent winning teams — Floette's Fairy Aura and Charizard's sun each boost the other's coverage moves without stepping on each other's turf.",
-  },
-];
-
-/** How many of `members` appear in each known meta core, returns the best-overlapping core (2+ shared members) with its note, or null if nothing matches well enough to be worth mentioning. */
-function wcMetaSynergyNote(members) {
+/**
+ * Simulated Win Rate feature: retired the old hand-typed WINCON_META_CORES
+ * (3 static entries, display-only, never database-backed or queryable by
+ * combination) in favor of data/meta-baseline.json — a strictly larger,
+ * sourced dataset (real Worlds 2026 top-8 rosters plus WinCon-built
+ * archetype recombinations of the same Worlds-caliber Pokémon — see that
+ * file's own _readme) doing the same "matches a real synergy" display job,
+ * now ALSO usable for real scoring (wcMetaBaselineArchetypeBonus/
+ * wcAugmentThreatsWithMetaBaseline below), which the old constant never was.
+ *
+ * How many of `members` appear in any one data/meta-baseline.json reference
+ * team for this format, returns the best-overlapping team (2+ shared
+ * members) with a note, or null if nothing matches well enough to be worth
+ * mentioning. Same shape ({ matchedPokemon, note }) the old
+ * wcMetaSynergyNote returned, so wcAnalyzeTeamStrategy's own `metaSynergy`
+ * field needs no consumer-side changes.
+ */
+function wcMetaBaselineSynergyNote(members, metaBaseline, format) {
+  const referenceTeams = (metaBaseline && metaBaseline[format]) || [];
+  if (referenceTeams.length === 0) return null;
   const names = new Set(members.map((m) => m.name));
   let best = null;
-  WINCON_META_CORES.forEach((core) => {
-    const matched = core.pokemon.filter((p) => names.has(p));
+  referenceTeams.forEach((team) => {
+    const teamNames = (team.members || []).map((m) => m.name);
+    const matched = teamNames.filter((p) => names.has(p));
     if (matched.length >= 2 && (!best || matched.length > best.matched.length)) {
-      best = { matched, core };
+      best = { matched, team };
     }
   });
   if (!best) return null;
+  const sourceLabel = best.team.source === "worlds2026-top8" ? "a real Worlds 2026 top-8 roster" : "a known competitive archetype";
   return {
     matchedPokemon: best.matched,
-    note: `${best.matched.join(" + ")} on this team ${best.matched.length > 1 ? "match" : "matches"} a core seen in real Reg M-B tournament results: ${best.core.note}`,
+    note: `${best.matched.join(" + ")} on this team ${best.matched.length > 1 ? "match" : "matches"} ${sourceLabel}: ${best.team.label}.`,
   };
 }
 
@@ -908,7 +913,8 @@ function wcBuildStrategyOption(candidate, builds, movesData, threats, typeChart,
  *
  * Milestone 10: the result also carries `metaSynergy` — a note (or null)
  * on whether this team overlaps a known real-tournament core (see
- * WINCON_META_CORES) — always computed and returned alongside whichever
+ * data/meta-baseline.json via wcMetaBaselineSynergyNote) — always
+ * computed and returned alongside whichever
  * mechanical archetype wins above, since the two are independent signals
  * rather than competing for the same recommendation.
  *
@@ -926,7 +932,7 @@ function wcBuildStrategyOption(candidate, builds, movesData, threats, typeChart,
  *   recommended via a learnable Sunny Day/Rain Dance/etc. move, just not
  *   via an ability that sets it for free.
  */
-function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData) {
+function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline) {
   const fmt = wcNormalizeFormat(format);
   const canLearn = (m, moveName) => m.learnableNames.includes(moveName);
   const roleOf = (m) => wcActualRole(builds[m.slotName || m.name]);
@@ -1178,7 +1184,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
           : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
             `move would clearly help more of the team than it'd cost — no single shared strategy stands out here, so playing as six independent attackers is the safer call.`,
       amendments: [],
-      metaSynergy: wcMetaSynergyNote(members),
+      metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
       alternative: null,
     };
   }
@@ -1192,7 +1198,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
 
   return {
     ...winnerOption,
-    metaSynergy: wcMetaSynergyNote(members),
+    metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
     alternative: alternativeOption,
   };
 }
@@ -1596,6 +1602,63 @@ function wcMetaUsageReasoningNote(name, metaUsage) {
 }
 
 /**
+ * Simulated Win Rate feature: the curated-data counterpart to
+ * wcMetaUsageCandidateBonus above -- a small nudge toward a candidate
+ * that appears on 2+ data/meta-baseline.json reference teams for this
+ * format (Worlds 2026 rosters plus WinCon's own archetype
+ * recombinations of the same Worlds-caliber Pokémon), same spirit as
+ * WINCON_META_CORES used to provide for the (now-retired) metaSynergy
+ * display note, but now feeding real scoring too. Deliberately a
+ * smaller weight than WC_META_USAGE_WEIGHT -- this is curated/static
+ * data standing in for a floor of global knowledge, not real evidence
+ * from THIS site's own players, so it should never outrank a real
+ * logged-battle signal once one exists.
+ */
+const WC_META_BASELINE_WEIGHT = 1.5;
+
+function wcMetaBaselineArchetypeBonus(candidateName, metaBaseline, format) {
+  const referenceTeams = (metaBaseline && metaBaseline[format]) || [];
+  if (referenceTeams.length === 0) return 0;
+  const appearances = referenceTeams.filter((team) => (team.members || []).some((m) => m.name === candidateName)).length;
+  if (appearances === 0) return 0;
+  return Math.min(1, appearances / 3) * WC_META_BASELINE_WEIGHT;
+}
+
+/** Reasoning-list counterpart to wcMetaBaselineArchetypeBonus, same "explainable, not a black box" standard as wcMetaUsageReasoningNote. Returns "" when the candidate doesn't appear on any reference team. */
+function wcMetaBaselineReasoningNote(candidateName, metaBaseline, format) {
+  const referenceTeams = (metaBaseline && metaBaseline[format]) || [];
+  const matches = referenceTeams.filter((team) => (team.members || []).some((m) => m.name === candidateName));
+  if (matches.length === 0) return "";
+  const worldsMatch = matches.find((team) => team.source === "worlds2026-top8");
+  return worldsMatch
+    ? ` It's also part of a real Worlds 2026 top-8 roster (${worldsMatch.label}).`
+    : ` It also appears on ${matches.length} known competitive-archetype reference team${matches.length > 1 ? "s" : ""} in the current meta.`;
+}
+
+/**
+ * Combo-level counterpart to wcMetaUsageCandidateBonus/wcMetaBaselineArchetypeBonus
+ * -- Simulated Win Rate's own learning loop (see supabase/migrations/
+ * 0006_lineup_scope_and_combo_synergy.sql's combo_synergy_stats table and
+ * teams.js's wcFetchComboSynergyStats/wcComputeLineupKey). `comboLookup`
+ * is that table's read, keyed by the same sorted/pipe-joined combo key.
+ * Used by battle-sim-lineup.js's Phase 1 lineup ranking (a combo with a
+ * real, sample-size-qualified logged win rate nudges toward being the
+ * recommended bring-4/3) -- deliberately NOT wired into Dream Team's own
+ * incremental 6-picking loop, since a partial team's eventual bring-4/3
+ * isn't knowable while Dream Team is still choosing the other 2-3.
+ */
+const WC_COMBO_SYNERGY_MIN_SAMPLE = 3;
+const WC_COMBO_SYNERGY_WEIGHT = 2;
+
+function wcComboSynergyBonus(lineupNames, comboLookup) {
+  if (!comboLookup) return 0;
+  const key = [...lineupNames].filter(Boolean).sort().join("|");
+  const stat = comboLookup[key];
+  if (!stat || !(stat.timesUsed >= WC_COMBO_SYNERGY_MIN_SAMPLE) || stat.winRate == null) return 0;
+  return ((stat.winRate - 50) / 50) * WC_COMBO_SYNERGY_WEIGHT;
+}
+
+/**
  * Milestone 21: candidate scoring for team-picking, now built on marginal,
  * threat-specific coverage (wcCandidateCoverageGain) instead of a flat
  * average, plus a weather-archetype bonus (wcWeatherCounterBonus) when the
@@ -1610,6 +1673,11 @@ function wcMetaUsageReasoningNote(name, metaUsage) {
  * Your Rival's, which reuses this same scorer "in reverse" -- see
  * README.md's Milestone 14 section), not just the threat list they're
  * scored against (see wcAugmentThreatsWithMetaUsage below for that half).
+ *
+ * Simulated Win Rate feature: also folds in wcMetaBaselineArchetypeBonus
+ * when `opts.metaBaseline`/`opts.format` are given -- the curated
+ * Worlds-2026-grounded floor described on that function, additive to
+ * (and independently weighted from) the real-logged-data metaBonus above.
  */
 function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, opts) {
   const options = opts || {};
@@ -1631,7 +1699,10 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
   const dup = wcSameTypingPenalty(candidate.types, teamTypesList);
   const bst = wcBaseStatTotal(candidate.baseStats);
   const metaBonus = wcMetaUsageCandidateBonus(candidate.name, options.metaUsage);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus;
+  const metaBaselineBonus = options.metaBaseline
+    ? wcMetaBaselineArchetypeBonus(candidate.name, options.metaBaseline, options.format || "doubles")
+    : 0;
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + metaBaselineBonus;
 }
 
 /**
@@ -1664,6 +1735,43 @@ function wcAugmentThreatsWithMetaUsage(threats, metaUsage, allPokemonByName) {
     additions.push({
       name,
       role: `Real-world threat — beat opponents ${stat.winRateFaced}% of the time across ${stat.timesFaced} logged games`,
+      types: pokemon.types,
+    });
+  });
+  return additions.length ? [...threats, ...additions] : threats;
+}
+
+/**
+ * Simulated Win Rate feature: the curated-data counterpart to
+ * wcAugmentThreatsWithMetaUsage above -- adds any data/meta-baseline.json
+ * reference-team member (Worlds 2026 rosters + WinCon's own archetype
+ * recombinations) not already in the curated/real-data threat list, so
+ * Auto-build's defensive scoring has a real Worlds-grounded floor even
+ * with ZERO logged battles on this site yet -- the "ground floor... base
+ * of global information" Phoenix asked for. Called alongside (after)
+ * wcAugmentThreatsWithMetaUsage, never instead of it -- real logged data
+ * always wins when both exist, since that function runs first and this
+ * one skips any name already present.
+ */
+function wcAugmentThreatsWithMetaBaseline(threats, metaBaseline, format, allPokemonByName) {
+  const referenceTeams = (metaBaseline && metaBaseline[format]) || [];
+  if (referenceTeams.length === 0) return threats;
+  const existingNames = new Set(threats.map((t) => t.name));
+  const appearanceCount = {};
+  referenceTeams.forEach((team) => {
+    (team.members || []).forEach((m) => {
+      appearanceCount[m.name] = (appearanceCount[m.name] || 0) + 1;
+    });
+  });
+  const additions = [];
+  Object.keys(appearanceCount).forEach((name) => {
+    if (existingNames.has(name)) return;
+    if (appearanceCount[name] < 2) return; // only names repeated across 2+ reference teams, not a one-off
+    const pokemon = allPokemonByName && allPokemonByName[name];
+    if (!pokemon) return;
+    additions.push({
+      name,
+      role: `Meta-baseline threat — appears on ${appearanceCount[name]} Worlds-2026-grounded reference teams`,
       types: pokemon.types,
     });
   });
@@ -1782,8 +1890,13 @@ function wcNotesIncludedSpecies(notes, pool) {
  * lookup `threats` may already have been augmented with (see
  * wcAugmentThreatsWithMetaUsage) -- passed through into scoreOpts so
  * wcDreamTeamCandidateScore's own win-rate nudge applies too.
+ *
+ * Simulated Win Rate feature: `metaBaseline`/`format` (both optional,
+ * also trailing) are data/meta-baseline.json's parsed contents and this
+ * pool's format ("singles"/"doubles") -- passed through the same way, so
+ * wcMetaBaselineArchetypeBonus applies alongside the real-usage nudge.
  */
-function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage) {
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
@@ -1803,7 +1916,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
 
   const canScoreCoverage = Boolean(natures && movesData);
   const weatherInfo = canScoreCoverage ? wcDetectWeatherArchetype(threats, abilitiesData) : null;
-  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage };
+  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format };
 
   const remaining = [...usablePool];
   const team = [];
@@ -1818,7 +1931,9 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     reasoning.push(
       (forcedSource.get(name) === "selected"
         ? `${name} — already picked on this team, so Dream Team kept it and built the rest around it.`
-        : `${name} — included because you named it in your team notes.`) + wcMetaUsageReasoningNote(name, metaUsage)
+        : `${name} — included because you named it in your team notes.`) +
+        wcMetaUsageReasoningNote(name, metaUsage) +
+        wcMetaBaselineReasoningNote(name, metaBaseline, format || "doubles")
     );
   });
 
@@ -1887,14 +2002,18 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(
       `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.` +
-        wcMetaUsageReasoningNote(best.name, metaUsage)
+        wcMetaUsageReasoningNote(best.name, metaUsage) +
+        wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles")
     );
   }
 
   for (let i = team.length; i < size && remaining.length > 0; i++) {
     const best = bestFromRemaining();
     if (!best) break;
-    const reasonText = describePick(best, i === 0) + wcMetaUsageReasoningNote(best.name, metaUsage);
+    const reasonText =
+      describePick(best, i === 0) +
+      wcMetaUsageReasoningNote(best.name, metaUsage) +
+      wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles");
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(reasonText);

@@ -45,17 +45,21 @@
     Quick orientation on what's new here versus the old two-page setup:
       - Auto-generate/Auto-build strategy/Generate Dream Team: unchanged,
         still strategy.js, still explainable-rules-not-optimal.
-      - Matchup Score / Team type coverage / results tracker: unchanged in
-        what they measure, but now live — they re-score the team you're
-        actively editing above, instead of a separately-selected saved
-        team on another page.
+      - Team type coverage / results tracker: unchanged in what they
+        measure, but now live — they re-score the team you're actively
+        editing above, instead of a separately-selected saved team on
+        another page. (The old Matchup Score ring/matrix that used to sit
+        here was retired in favor of Simulated Win Rate — see that
+        section's own comment further down and battle-sim-lineup.js.)
       - Open/Closed Team Sheet toggle: a real VGC/competitive-play
         distinction. On the ladder nobody's seen your set before Game 1;
         in tournament play your opponent has your full sheet ahead of
         time. Open mode discounts a "favorable" verdict that depends on a
-        specific move choice (down to "even") in both Matchup Score and
-        Your Rival, and tags every filled move field Expected or Tech so
-        you can see which of your moves are actually surprises.
+        specific move choice (down to "even") in Your Rival, gives
+        Simulated Win Rate's opponent AI full information on turn 1
+        instead of just your typing, and tags every filled move field
+        Expected or Tech so you can see which of your moves are actually
+        surprises.
       - Your Rival: synthesizes a hypothetical 6-Pokémon team from the
         FULL roster (not just what you've obtained) — picked specifically
         to counter this team's typing and stats, the same greedy logic
@@ -118,9 +122,10 @@
       <p id="teams-hint" class="hint"></p>
       <p class="hint">
         Closed Sheet is the online-ladder default — nobody's seen your set before Game 1. Open Sheet models tournament
-        play, where your opponent has your full team sheet ahead of time: a "favorable" Matchup Score/Your Rival verdict
-        that only holds up because of a specific move gets discounted, and every filled move field below is tagged
-        Expected or Tech so you can see which of your moves are actually surprises worth keeping.
+        play, where your opponent has your full team sheet ahead of time: a "favorable" Your Rival verdict that only
+        holds up because of a specific move gets discounted, Simulated Win Rate's opponent AI gets full information
+        from turn 1 instead of just your typing, and every filled move field below is tagged Expected or Tech so you
+        can see which of your moves are actually surprises worth keeping.
       </p>
       <label class="field team-notes-field">
         <span class="field-label">Team notes</span>
@@ -183,17 +188,17 @@
     </section>
 
     <section id="no-team" class="callout-box" hidden>
-      <p>Pick your six above to see your Matchup Score, team type coverage, and Your Rival.</p>
+      <p>Pick your six above to see your Simulated Win Rate, team type coverage, and Your Rival.</p>
     </section>
 
-    <!-- Milestone 25: shown instead of the real Matchup Score/coverage/
+    <!-- Milestone 25: shown instead of the real Simulated Win Rate/coverage/
          Your Rival/results-tracker sections (all still hidden below) when
          a full analysis-worthy team is picked but the player isn't signed
          in yet -- see refreshDerivedSections() in builder.js. -->
     <section id="analysis-locked" class="callout-box" hidden>
       <p>
-        Sign in or sign up to see your Matchup Score, team type coverage, and Your Rival for this team — picking
-        your six stays free, this analysis is for signed-in accounts.
+        Sign in or sign up to see your Simulated Win Rate, team type coverage, and Your Rival for this team —
+        picking your six stays free, this analysis is for signed-in accounts.
       </p>
       <button type="button" id="analysis-locked-signin-btn" class="btn-primary">Sign In / Sign Up</button>
     </section>
@@ -203,79 +208,68 @@
          battle-tracker.html -- so this page only keeps the compact
          win/loss percentage above (#match-record-note). -->
 
-    <section id="score-rival-header-row" class="score-rival-header-row" hidden>
-      <div class="score-rival-col">
-        <div class="score-hero">
-          <div class="score-ring" id="score-ring">
-            <span id="score-number">0</span>
-          </div>
-          <div class="score-meta">
-            <h2 class="section-title">Matchup Score</h2>
-            <p id="score-summary" class="hint"></p>
-          </div>
+    <!-- Simulated Win Rate: replaces the old Matchup Score ring + win/loss
+         pill + full matrix (all retired -- see wcScoreMatchup's remaining
+         uses below, now scoped to Your Rival only) with a real mechanical
+         battle simulator -- turn order, damage formula, ability/item
+         effects, stat stages -- run in a Web Worker (battle-sim-worker.js)
+         so it never blocks this page. Strictly gated on isTeamComplete()
+         (every field on all 6 filled in, not just "6 picked"), since the
+         engine needs a real Nature/item/moveset/Stat-Point spread to build
+         a battler from. One simulation auto-runs the moment your team
+         crosses from incomplete to complete; further edits mark the shown
+         numbers out of date rather than silently re-running (Monte Carlo
+         is a few hundred simulated battles per Mega scenario, not
+         instant) -- "Re-run simulation" covers those. See
+         wcRunSimulatedWinRate()/renderSimulatedWinRateResult() in
+         builder.js and the plan behind battle-sim-lineup.js. -->
+    <section id="simulated-winrate-section" hidden>
+      <h2 class="section-title">Simulated Win Rate</h2>
+      <p id="simwinrate-hint" class="hint"></p>
+      <p id="simwinrate-loading" class="hint" hidden>
+        Simulating hundreds of battles against the Worlds-grounded reference field… this can take a few seconds.
+      </p>
+      <div id="simwinrate-scenarios" class="simwinrate-scenarios" hidden></div>
+      <button type="button" id="simwinrate-rerun-btn" class="btn-secondary" hidden>Re-run simulation</button>
+      <p class="hint methodology" id="simwinrate-methodology" hidden>
+        <strong>How this is simulated:</strong> WinCon automatically picks your best bring-3-of-6 lineup — Singles
+        has no official tournament ruleset, but 3 is the real number the ladder uses — then plays out hundreds of
+        full mechanical battles per opponent: real turn order (priority, then Speed, then a coin-flip tie), the
+        standard damage formula with STAB, type effectiveness, critical hits and a random damage roll, stat-stage
+        boosts and drops, and the curated ability/item effects and move secondary effects WinCon has mechanical data
+        for — against a reference field of known competitive Singles archetypes, since no official Singles
+        tournament exists to ground it in the way Doubles has Worlds (see data/meta-baseline.json). In-battle move
+        choices are a competent greedy AI, not perfect play, and only the Pokémon/abilities/items/moves WinCon has
+        curated mechanical data for get their special effects modeled — everything else still battles on its base
+        stats, typing, and raw move power, so treat this as a strong estimate, not a lab-perfect one. If your team
+        has one or two Mega-Evolution-eligible members, each is simulated as its own separate scenario below, since
+        only one Mega can actually be active in a real battle.
+      </p>
+    </section>
+
+    <section id="rival-header-row" hidden>
+      <div class="slots-header">
+        <div>
+          <h2 class="section-title">Your Rival</h2>
+          <p class="hint">
+            Synthesized from the full Champions roster — not just what you've obtained — specifically to give your
+            current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
+            reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
+            typing and stats. Unlike Simulated Win Rate above, this stays a fast explainable heuristic (Matchup
+            Score's own type/Speed comparison), not a full battle simulation — see its own note below.
+          </p>
         </div>
-      </div>
-      <div class="score-rival-col">
-        <div class="slots-header">
-          <div>
-            <h2 class="section-title">Your Rival</h2>
-            <p class="hint">
-              Synthesized from the full Champions roster — not just what you've obtained — specifically to give your
-              current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
-              reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
-              typing and stats.
-            </p>
-          </div>
-          <button id="rival-btn" class="btn-primary">Find Your Rival</button>
-        </div>
+        <button id="rival-btn" class="btn-primary">Find Your Rival</button>
       </div>
     </section>
 
     <!-- Your Rival's own result (generated team + its own Projected Win/Loss
-         Ratio against you) renders directly under the header row above --
-         right below the "Find Your Rival" button that fills it in -- with
-         Matchup Score's own win/loss block right underneath that (see
-         #score-winloss-section below), and the heavier per-threat detail
-         (the full matrix, methodology note, and type coverage) pushed
-         further down the page. -->
+         Ratio against you, plus its "Toughest matchups against them" list)
+         renders directly under the header row above -- right below the
+         "Find Your Rival" button that fills it in. -->
     <section id="rival-section" hidden>
       <div id="rival-note" class="callout-box" hidden></div>
       <div id="rival-result" hidden></div>
-    </section>
-
-    <section id="score-winloss-section" hidden>
-      <div id="score-winloss-mount"></div>
-
-      <h3 class="section-title">Toughest matchups</h3>
-      <p class="hint">Threats where none of your six currently has a clearly favorable answer.</p>
-      <div id="tough-list" class="tough-list"></div>
-    </section>
-
-    <section id="score-matrix-section" hidden>
-      <h3 class="section-title">Every threat, member by member</h3>
-      <p class="hint">Every Pokémon in the full data set, one row each — collapsed by default since it's a long list.</p>
-      <!-- Milestone 20: this table now has a row for every Pokémon in the
-           data set (up from a fixed 16), so it's collapsed behind a
-           details/summary block by default -- same pattern as "Show full
-           18-type breakdown" in Team type coverage below. -->
-      <details id="score-matrix-details">
-        <summary id="score-matrix-summary">Show the full matchup matrix</summary>
-        <div class="table-scroll">
-          <table id="matrix" class="matrix"></table>
-        </div>
-
-        <p class="hint methodology">
-          <strong>How this is scored:</strong> for each Pokémon in the data set, every member of your team is
-          checked both ways — how hard the threat's likely STAB hits them (type effectiveness), how hard their own
-          moves (or, if a slot's moves aren't filled in yet, their own types) hit back, and a rough Speed comparison
-          using their Stat Points and Nature. Your team's answer to a threat is whichever of your six comes out
-          best. This is not a simulated battle and not a measured win rate — it's compared against every Pokémon in
-          the data set, not a hand-picked subset, and the Stat Point → stat-value math is the standard formula with
-          SP treated as roughly EV/8 (cross-checked against independent Pokémon Champions mechanics guides — see
-          README's Milestone 29 section — though still not sourced from an official Game Freak/Pokémon Company
-          document).
-        </p>
-      </details>
     </section>
 
     <section id="coverage-section" hidden>
@@ -307,8 +301,9 @@
     <p>
       Move/item/Nature data from the community
       <a href="https://github.com/otterlyclueless/pokemon-champions-data" target="_blank" rel="noopener">Pokémon Champions Data</a>
-      project (CC BY 4.0). Matchup Score and Your Rival are both explainable heuristics, not simulated battles or a
-      measured win rate — see the methodology note above.
+      project (CC BY 4.0). Simulated Win Rate runs a real mechanical battle simulation — see its own methodology
+      note above. Your Rival is a separate, much faster explainable heuristic, not a simulated battle or a measured
+      win rate — see its own note above.
     </p>
   </footer>
 
@@ -367,6 +362,13 @@
   <script src="stats.js"></script>
   <script src="type-utils.js"></script>
   <script src="strategy.js"></script>
+  <!-- Simulated Win Rate: only the thin client is loaded on the page --
+       the actual simulation engine (battle-stages.js, battle-damage.js,
+       battle-turn-order.js, battle-sim-baseline.js, battle-sim-engine.js,
+       battle-sim-ai.js, battle-sim-lineup.js) runs off-thread and is
+       pulled in by battle-sim-worker.js's own importScripts() instead --
+       see battle-sim-client.js's header comment. -->
+  <script src="battle-sim-client.js"></script>
   <script src="builder.js"></script>
   <!-- Milestone 23: Vercel Web Analytics -- see index.html's copy of this
        comment for what it does and why it's safe to leave in everywhere. -->

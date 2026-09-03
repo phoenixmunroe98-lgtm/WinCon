@@ -1,0 +1,456 @@
+{
+  "Supreme Overlord": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "condition": "perFaintedAlly",
+    "multPerAlly": 0.1,
+    "maxMult": 1.3
+  },
+  "Rough Skin": {
+    "trigger": "onContact",
+    "effect": "damageAttacker",
+    "fraction": 0.125
+  },
+  "Fairy Aura": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "type": "Fairy",
+    "mult": 1.33,
+    "appliesToBothSides": true
+  },
+  "Multiscale": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "condition": "fullHp",
+    "mult": 0.5
+  },
+  "Unburden": {
+    "trigger": "onItemLost",
+    "effect": "statMult",
+    "stat": "spe",
+    "mult": 2
+  },
+  "Prankster": {
+    "trigger": "passive",
+    "effect": "priorityBoostFirstTurn",
+    "appliesTo": "statusMoves"
+  },
+  "Levitate": {
+    "trigger": "passive",
+    "effect": "typeImmunity",
+    "type": "Ground"
+  },
+  "Sturdy": {
+    "trigger": "passive",
+    "effect": "surviveOneHitAtFullHp"
+  },
+  "Regenerator": {
+    "trigger": "onSwitchOut",
+    "effect": "healFraction",
+    "fraction": 0.33
+  },
+  "Speed Boost": {
+    "trigger": "passive",
+    "effect": "priorityBoostFirstTurn",
+    "appliesTo": "ownSpeedStat",
+    "timing": "endOfTurn",
+    "stages": 1
+  },
+  "Guts": {
+    "trigger": "passive",
+    "effect": "statMultIfStatused",
+    "stat": "atk",
+    "mult": 1.5,
+    "alsoIgnoresBurnDrop": true
+  },
+  "Huge Power": {
+    "trigger": "passive",
+    "effect": "statMult",
+    "stat": "atk",
+    "mult": 2
+  },
+  "Pure Power": {
+    "trigger": "passive",
+    "effect": "statMult",
+    "stat": "atk",
+    "mult": 2
+  },
+  "Technician": {
+    "trigger": "passive",
+    "effect": "damageDealtMultIfLowPower",
+    "powerThreshold": 60,
+    "mult": 1.5
+  },
+  "Adaptability": {
+    "trigger": "passive",
+    "effect": "stabMult",
+    "mult": 2
+  },
+  "Sheer Force": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "mult": 1.3,
+    "condition": "moveHasSecondaryEffect",
+    "removesSecondaryEffect": true
+  },
+  "Tough Claws": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "mult": 1.3,
+    "condition": "contactMove"
+  },
+  "Iron Fist": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "mult": 1.2,
+    "condition": "punchingMove"
+  },
+  "Water Absorb": {
+    "trigger": "passive",
+    "effect": "typeAbsorbHeal",
+    "type": "Water",
+    "healFraction": 0.25
+  },
+  "Volt Absorb": {
+    "trigger": "passive",
+    "effect": "typeAbsorbHeal",
+    "type": "Electric",
+    "healFraction": 0.25
+  },
+  "Flash Fire": {
+    "trigger": "passive",
+    "effect": "typeImmunity",
+    "type": "Fire",
+    "andAlso": {
+      "effect": "damageDealtMult",
+      "type": "Fire",
+      "mult": 1.5,
+      "condition": "activatedByFireHit"
+    }
+  },
+  "Lightning Rod": {
+    "trigger": "passive",
+    "effect": "redirectMoves",
+    "type": "Electric",
+    "andAlso": {
+      "effect": "statChange",
+      "stat": "spa",
+      "stages": 1
+    }
+  },
+  "Sap Sipper": {
+    "trigger": "passive",
+    "effect": "typeImmunity",
+    "type": "Grass",
+    "andAlso": {
+      "effect": "statChange",
+      "stat": "atk",
+      "stages": 1
+    }
+  },
+  "Unaware": {
+    "trigger": "passive",
+    "effect": "ignoreStatChanges",
+    "appliesTo": "both"
+  },
+  "Contrary": {
+    "trigger": "passive",
+    "effect": "reverseStatChanges"
+  },
+  "Moxie": {
+    "trigger": "onKnockOut",
+    "effect": "statChange",
+    "target": "self",
+    "stat": "atk",
+    "stages": 1
+  },
+  "Analytic": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "mult": 1.3,
+    "condition": "movesLast"
+  },
+  "Intimidate": {
+    "trigger": "onSwitchIn",
+    "effect": "statChange",
+    "target": "all-adjacent-foes",
+    "stat": "atk",
+    "stages": -1
+  },
+  "Clear Body": {
+    "trigger": "passive",
+    "effect": "preventStatDrop",
+    "appliesTo": "self"
+  },
+  "White Smoke": {
+    "trigger": "passive",
+    "effect": "preventStatDrop",
+    "appliesTo": "self"
+  },
+  "Mold Breaker": {
+    "trigger": "passive",
+    "effect": "ignoreAbility"
+  },
+  "Weak Armor": {
+    "trigger": "onHitByPhysical",
+    "effect": "statChange",
+    "target": "self",
+    "stat": "def",
+    "stages": -1,
+    "andAlso": {
+      "stat": "spe",
+      "stages": 2
+    }
+  },
+  "Magic Guard": {
+    "trigger": "passive",
+    "effect": "preventIndirectDamage"
+  },
+  "Poison Heal": {
+    "trigger": "passive",
+    "effect": "healFraction",
+    "fraction": 0.125,
+    "condition": "poisoned",
+    "replacesPoisonDamage": true
+  },
+  "Solid Rock": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "condition": "superEffective",
+    "mult": 0.75
+  },
+  "Filter": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "condition": "superEffective",
+    "mult": 0.75
+  },
+  "Sniper": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "mult": 1.5,
+    "condition": "criticalHit"
+  },
+  "Disguise": {
+    "trigger": "passive",
+    "effect": "surviveOneHitAtFullHp",
+    "appliesRegardlessOfHp": true,
+    "oneUsePerBattle": true
+  },
+  "Electric Surge": {
+    "trigger": "onSwitchIn",
+    "effect": "setTerrain",
+    "terrain": "Electric"
+  },
+  "Surge Surfer": {
+    "trigger": "passive",
+    "effect": "statMult",
+    "stat": "spe",
+    "mult": 2,
+    "condition": "electricTerrainActive"
+  },
+  "Natural Cure": {
+    "trigger": "onSwitchOut",
+    "effect": "cureStatus"
+  },
+  "Trace": {
+    "trigger": "onSwitchIn",
+    "effect": "copyAbility",
+    "target": "adjacent-foe"
+  },
+  "Imposter": {
+    "trigger": "onSwitchIn",
+    "effect": "transformIntoFoe"
+  },
+  "Magic Bounce": {
+    "trigger": "passive",
+    "effect": "reflectStatusMoves"
+  },
+  "Shadow Tag": {
+    "trigger": "passive",
+    "effect": "trapOpponents"
+  },
+  "Parental Bond": {
+    "trigger": "passive",
+    "effect": "extraHit",
+    "hits": 2,
+    "secondHitMult": 0.25
+  },
+  "Skill Link": {
+    "trigger": "passive",
+    "effect": "guaranteesMaxMultiHits"
+  },
+  "Scrappy": {
+    "trigger": "passive",
+    "effect": "bypassTypeImmunity",
+    "types": [
+      "Normal",
+      "Fighting"
+    ],
+    "vsType": "Ghost"
+  },
+  "Water Bubble": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "type": "Water",
+    "mult": 2,
+    "andAlso": {
+      "effect": "damageTakenMult",
+      "type": "Fire",
+      "mult": 0.5
+    }
+  },
+  "Thick Fat": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "types": [
+      "Fire",
+      "Ice"
+    ],
+    "mult": 0.5
+  },
+  "Fur Coat": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "condition": "physicalMove",
+    "mult": 0.5
+  },
+  "Purifying Salt": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "type": "Ghost",
+    "mult": 0.5,
+    "andAlso": {
+      "effect": "statusImmunity"
+    }
+  },
+  "Shell Armor": {
+    "trigger": "passive",
+    "effect": "preventCriticalHits"
+  },
+  "Battle Armor": {
+    "trigger": "passive",
+    "effect": "preventCriticalHits"
+  },
+  "Static": {
+    "trigger": "onContact",
+    "effect": "statusInflictChance",
+    "status": "paralysis",
+    "chance": 0.3,
+    "target": "attacker"
+  },
+  "Flame Body": {
+    "trigger": "onContact",
+    "effect": "statusInflictChance",
+    "status": "burn",
+    "chance": 0.3,
+    "target": "attacker"
+  },
+  "Effect Spore": {
+    "trigger": "onContact",
+    "effect": "statusInflictChance",
+    "status": "random-poison-paralysis-sleep",
+    "chance": 0.3,
+    "target": "attacker"
+  },
+  "Poison Point": {
+    "trigger": "onContact",
+    "effect": "statusInflictChance",
+    "status": "poison",
+    "chance": 0.3,
+    "target": "attacker"
+  },
+  "Poison Touch": {
+    "trigger": "onContact",
+    "effect": "statusInflictChance",
+    "status": "poison",
+    "chance": 0.3,
+    "target": "defender"
+  },
+  "Gooey": {
+    "trigger": "onContact",
+    "effect": "statChange",
+    "target": "attacker",
+    "stat": "spe",
+    "stages": -1
+  },
+  "Blaze": {
+    "trigger": "onLowHp",
+    "effect": "damageDealtMultForType",
+    "type": "Fire",
+    "mult": 1.5
+  },
+  "Overgrow": {
+    "trigger": "onLowHp",
+    "effect": "damageDealtMultForType",
+    "type": "Grass",
+    "mult": 1.5
+  },
+  "Torrent": {
+    "trigger": "onLowHp",
+    "effect": "damageDealtMultForType",
+    "type": "Water",
+    "mult": 1.5
+  },
+  "Swarm": {
+    "trigger": "onLowHp",
+    "effect": "damageDealtMultForType",
+    "type": "Bug",
+    "mult": 1.5
+  },
+  "Berserk": {
+    "trigger": "onLowHp",
+    "effect": "statChange",
+    "target": "self",
+    "stat": "spa",
+    "stages": 1,
+    "condition": "hpCrossedBelowHalfFromHit"
+  },
+  "Marvel Scale": {
+    "trigger": "passive",
+    "effect": "statMultIfStatused",
+    "stat": "def",
+    "mult": 1.5
+  },
+  "Quick Feet": {
+    "trigger": "passive",
+    "effect": "statMultIfStatused",
+    "stat": "spe",
+    "mult": 1.5,
+    "ignoresParalysisDrop": true
+  },
+  "Reckless": {
+    "trigger": "passive",
+    "effect": "damageDealtMult",
+    "mult": 1.2,
+    "condition": "recoilMove"
+  },
+  "Rock Head": {
+    "trigger": "passive",
+    "effect": "preventRecoilDamage"
+  },
+  "Hustle": {
+    "trigger": "passive",
+    "effect": "statMult",
+    "stat": "atk",
+    "mult": 1.5,
+    "andAlso": {
+      "effect": "accuracyMult",
+      "condition": "physicalMove",
+      "mult": 0.8
+    }
+  },
+  "Good as Gold": {
+    "trigger": "passive",
+    "effect": "statusMoveImmunity"
+  },
+  "Infiltrator": {
+    "trigger": "passive",
+    "effect": "bypassScreensAndSubstitute"
+  },
+  "Pickpocket": {
+    "trigger": "onContact",
+    "effect": "stealAttackerItem",
+    "target": "attacker"
+  }
+}

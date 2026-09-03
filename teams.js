@@ -55,6 +55,29 @@ function wcGetTeamFormat(team) {
   return team && team.format === "singles" ? "singles" : "doubles";
 }
 
+/** Every saved team for a given format, in whatever order the account/local state already has them — used by the Battle Tracker's Team vs Team matchup picker (battle-tracker.js), which is the first place that ever needed a per-format team LIST rather than one active team. */
+function wcListTeamsByFormat(state, format) {
+  const teams = (state && Array.isArray(state.teams) && state.teams) || [];
+  return teams.filter((t) => wcGetTeamFormat(t) === format);
+}
+
+/**
+ * The real "bring N of 6" team-preview count for a format (Simulated Win
+ * Rate feature): Doubles brings 6, selects 4 — the actual tournament/
+ * Worlds format. Singles brings 6, selects 3 — Singles has no official
+ * tournament ruleset (it's ladder-only), but 3 is the real number there.
+ * See the Simulated Win Rate plan's "Bring-N rule" for the research this
+ * is based on.
+ */
+function wcRequiredBringCount(format) {
+  return format === "singles" ? 3 : 4;
+}
+
+/** Sorted, pipe-joined combo key for a lineup — matches the SQL backfill in supabase/migrations/0006_lineup_scope_and_combo_synergy.sql exactly, so a client-computed key and a server-backfilled one for the same lineup always agree. */
+function wcComputeLineupKey(lineupNames) {
+  return [...(lineupNames || [])].filter(Boolean).sort().join("|");
+}
+
 /**
  * Milestone 14: Open Team Sheet vs. Closed Team Sheet — a real VGC/
  * competitive-play distinction (see README.md's Milestone 14 section).
@@ -111,20 +134,31 @@ const WC_MATCH_NOTE_MAX_LEN = 250;
  * this game is logged and the cross-user aggregate needs what was
  * actually played, not whatever the team looks like later. Returns the
  * new entry so a caller (battle-tracker.js) can reference its id.
+ *
+ * Simulated Win Rate feature: `lineupUsed` is the real 4 (Doubles) / 3
+ * (Singles) Pokémon actually brought to this battle — required, unlike
+ * `opponent` which stays optional. battle-tracker.js's log form is what
+ * enforces the right count before ever calling this (via
+ * wcRequiredBringCount); this function trims/dedupes defensively but
+ * does not itself block on a short list, since a caller who skips that
+ * check is a bug in the caller, not something to silently paper over
+ * here by guessing which 4 to credit.
  */
-function wcRecordMatchResult(team, result, note, opponent) {
+function wcRecordMatchResult(team, result, note, opponent, lineupUsed) {
   if (!team) return null;
   if (!Array.isArray(team.matchLog)) team.matchLog = [];
   const cleanOpponent = Array.isArray(opponent) ? opponent.map((n) => (n || "").trim()).filter(Boolean) : [];
+  const cleanLineup = Array.isArray(lineupUsed) ? lineupUsed.map((n) => (n || "").trim()).filter(Boolean) : [];
   const entry = {
     id: wcNewTeamId(),
     result: result === "loss" ? "loss" : "win",
     note: (note || "").trim().slice(0, WC_MATCH_NOTE_MAX_LEN),
     opponent: cleanOpponent,
+    lineupUsed: cleanLineup,
     loggedAt: new Date().toISOString(),
   };
   team.matchLog.push(entry);
-  wcPushMatchResultToCloud(entry, team.id, wcGetTeamFormat(team), [...(team.chosen || [])]).catch(() => {});
+  wcPushMatchResultToCloud(entry, team.id, wcGetTeamFormat(team), [...(team.chosen || [])], cleanLineup).catch(() => {});
   return entry;
 }
 
@@ -453,7 +487,7 @@ async function wcPushTeamsToCloudIfSignedIn(state) {
 // or fail a log/delete that already succeeded locally.
 // ---------------------------------------------------------------------------
 
-async function wcPushMatchResultToCloud(entry, teamId, format, teamSnapshot) {
+async function wcPushMatchResultToCloud(entry, teamId, format, teamSnapshot, lineupUsed) {
   if (typeof window === "undefined" || !window.wcSupabase) return;
   const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
   if (!userId) return;
@@ -467,6 +501,8 @@ async function wcPushMatchResultToCloud(entry, teamId, format, teamSnapshot) {
       opponent: entry.opponent,
       format,
       team_snapshot: teamSnapshot,
+      lineup_used: lineupUsed || [],
+      lineup_key: wcComputeLineupKey(lineupUsed),
       logged_at: entry.loggedAt,
     });
     if (error) console.warn("WinCon: this result saved to your team, but couldn't sync to the shared stats", error.message);
@@ -518,6 +554,36 @@ async function wcFetchMetaUsageStats(format) {
         winRateUsed: row.win_rate_used,
         winRateFaced: row.win_rate_faced,
       };
+    });
+    return lookup;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Simulated Win Rate feature: the combo-level sibling of
+ * wcFetchMetaUsageStats above, reading the new combo_synergy_stats table
+ * (supabase/migrations/0006_lineup_scope_and_combo_synergy.sql). Keyed
+ * by combo_key (see wcComputeLineupKey) rather than a single species —
+ * consumed by strategy.js's wcComboSynergyBonus, both as a lineup-
+ * ranking nudge (battle-sim-lineup.js) and as an Auto-build signal.
+ * Same defensive shape as every other cloud read in this file: any
+ * failure just returns an empty lookup rather than blocking anything.
+ */
+async function wcFetchComboSynergyStats(format) {
+  if (typeof window === "undefined" || !window.wcSupabase) return {};
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase.from("combo_synergy_stats").select("combo_key, times_used, win_rate").eq("format", format),
+      5000
+    );
+    if (!selectResult) return {};
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return {};
+    const lookup = {};
+    rows.forEach((row) => {
+      lookup[row.combo_key] = { timesUsed: row.times_used || 0, winRate: row.win_rate };
     });
     return lookup;
   } catch {
