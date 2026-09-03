@@ -360,6 +360,24 @@
     "form": "Regional"
   },
   {
+    "name": "Paldean Tauros (Blaze Breed)",
+    "dexNumber": 128,
+    "types": [
+      "Fighting",
+      "Fire"
+    ],
+    "form": "Regional"
+  },
+  {
+    "name": "Paldean Tauros (Aqua Breed)",
+    "dexNumber": 128,
+    "types": [
+      "Fighting",
+      "Water"
+    ],
+    "form": "Regional"
+  },
+  {
     "name": "Gyarados",
     "dexNumber": 130,
     "types": [

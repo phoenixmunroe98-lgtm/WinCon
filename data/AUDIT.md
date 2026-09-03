@@ -1,3 +1,48 @@
+# Roster re-audit — 3 Sep 2026
+
+A user reported "Aggron" as missing from the roster. It wasn't — Aggron and
+Mega Aggron were both already fully present with complete base stats,
+learnset, ability, and ability-options data (added in the 26 Aug audit
+below). But the report was reason enough to re-verify the whole roster
+independently rather than just checking the one name, since a user finding
+*a* gap is a signal the audit process itself might be missing something.
+
+Re-cross-referenced all 221 base-form + 75 Mega-form entries against
+Bulbapedia's list and Serebii's Pokédex/type-index pages. Every typing on
+every entry matched exactly — zero mismatches, zero bogus entries, zero
+missing Mega forms. The one real gap found: **two Paldean Tauros breed
+variants were missing.** Champions treats all three Paldean Tauros
+breeds — Combat (Fighting, already in the roster, unlabeled for
+historical/compatibility reasons — see below), **Blaze** (Fighting/Fire),
+and **Aqua** (Fighting/Water) — as separately legal, separately obtainable
+Pokémon, and only the Combat breed had ever been added.
+
+Added **Paldean Tauros (Blaze Breed)** and **Paldean Tauros (Aqua Breed)**
+to `pokemon.json`, `base-stats.json`, `learnsets.json`, `abilities.json`,
+and `ability-options.json` — base stats, ability, and ability options are
+identical to the existing Combat breed entry (confirmed via two independent
+Pokémon Champions–specific pages, Game8's Blaze Breed and Aqua Breed
+guides, which both reported the same HP75/Atk110/Def105/SpA30/SpD70/Spe100
+and the same Intimidate/Anger Point/Cud Chew ability set). Learnset is also
+shared with the Combat breed's existing 72-move entry — the source games
+let all three breeds learn all three signature moves (Close Combat/Flare
+Blitz/Wave Crash) via TM regardless of breed, and the existing Combat
+breed entry already included all three, confirming the dataset was already
+modeling the shared movepool rather than a breed-restricted one.
+
+**Left the existing "Paldean Tauros" entry's name unchanged** (didn't
+rename it to "(Combat Breed)" for symmetry) — renaming it would silently
+break any saved team or obtained-Pokémon-list entry that already
+references the old name string. Cosmetic consistency wasn't worth risking
+someone's existing data.
+
+**Not added:** sprite images for the two new breeds. No breed-specific
+sprite art was available to source confidently, and reusing the existing
+(Combat breed color scheme) sprite for Blaze/Aqua would show visibly wrong
+colors — worse than no image. Both breeds render fine without one (same
+graceful fallback every other spriteless entry already uses); this is a
+known, deliberate gap, not an oversight.
+
 # Roster data audit — 26 Aug 2026
 
 The original `pokemon.json` (258 entries) came from the open community dataset

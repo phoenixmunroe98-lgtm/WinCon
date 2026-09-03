@@ -1721,6 +1721,34 @@
       "name": "Cud Chew"
     }
   ],
+  "Paldean Tauros (Blaze Breed)": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Anger Point"
+    },
+    {
+      "isHidden": true,
+      "name": "Cud Chew"
+    }
+  ],
+  "Paldean Tauros (Aqua Breed)": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Anger Point"
+    },
+    {
+      "isHidden": true,
+      "name": "Cud Chew"
+    }
+  ],
   "Pangoro": [
     {
       "isHidden": false,

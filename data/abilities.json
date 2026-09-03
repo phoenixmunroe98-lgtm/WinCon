@@ -903,6 +903,14 @@
     "ability": "Intimidate",
     "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
   },
+  "Paldean Tauros (Blaze Breed)": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
+  },
+  "Paldean Tauros (Aqua Breed)": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
+  },
   "Pangoro": {
     "ability": "Iron Fist",
     "description": "Boosts the power of punching moves (like Drain Punch and Bullet Punch) by 20%."
