@@ -1612,6 +1612,14 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 .verdict-unfavorable { color: #C0463B; }
 .verdict-even { color: var(--ink-muted); }
 
+/* ---------- Speed tiers (comparison-driven addition, see renderSpeedTiers() in builder.js) ---------- */
+
+.speed-tiers-table td:first-child {
+  font-family: inherit;
+  font-weight: 500;
+  text-align: left;
+}
+
 .methodology {
   border-top: 1px solid var(--border);
   padding-top: 14px;

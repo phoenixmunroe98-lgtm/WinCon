@@ -295,6 +295,43 @@
         </div>
       </details>
     </section>
+
+    <!-- Comparison-driven addition: pokemon-zone.com's Team Builder flags
+         named real-meta Pokémon that threaten your built team, using plain
+         type match-ups (not a simulation) -- a fast, free warning sign you
+         can read before Simulated Win Rate's much heavier Monte Carlo run
+         even starts. WinCon already had the exact data this needs on hand
+         (getThreatsWithTypes() in builder.js, which merges
+         data/starter-threats.json with real logged-battle threats and
+         data/meta-baseline.json's Worlds-2026-grounded rosters), so this is
+         a new display, not new data. See renderTeamThreats() in builder.js. -->
+    <section id="team-threats-section" hidden>
+      <h3 class="section-title">Threats to this team</h3>
+      <p class="hint">
+        Named Pokémon from WinCon's Worlds-2026-grounded reference data — plus anything you've actually faced
+        often enough in your own logged battles — that hit a real chunk of your six hard. Type match-ups only,
+        using each threat's own typing: a fast gut check, not a simulated battle. For an actual predicted win
+        rate, see Simulated Win Rate above.
+      </p>
+      <ul id="team-threats-list" class="coverage-list"></ul>
+    </section>
+
+    <!-- Comparison-driven addition: pokemon-zone.com's Team Builder has a
+         "Speed" tab listing every team member's Speed, sorted, with a
+         Tailwind (x2) variant alongside. Tailwind matters most in Doubles,
+         but Singles teams can run it too, so this stays on both pages --
+         cheap to add either way, since the stat math (wcCalcStat, stats.js)
+         already exists. See renderSpeedTiers() in builder.js. -->
+    <section id="speed-tiers-section" hidden>
+      <h3 class="section-title">Speed tiers</h3>
+      <p class="hint">
+        Your six, fastest to slowest, plus what each reaches under Tailwind (×2) — a quick reference for turn
+        order before you dig into the full simulation above.
+      </p>
+      <div class="table-scroll">
+        <table id="speed-tiers-table" class="matrix speed-tiers-table"></table>
+      </div>
+    </section>
   </main>
 
   <footer class="foot-note">

@@ -188,6 +188,9 @@ const simwinrateMethodologyEl = document.getElementById("simwinrate-methodology"
 /** Milestone 18 named this "score-rival-header-row" back when Matchup Score's own ring sat here too; Simulated Win Rate replacing that section made it just Your Rival's compact intro/button, so the id was simplified to match -- see #rival-header-row in singles-builder.html/doubles-builder.html. */
 const rivalHeaderRowEl = document.getElementById("rival-header-row");
 const coverageSectionEl = document.getElementById("coverage-section");
+/** Comparison-driven additions (see renderTeamThreats()/renderSpeedTiers() below): pokemon-zone.com's Team Builder equivalents of these are its "Threats" and "Speed" tabs. Gated the same way as coverageSectionEl in refreshDerivedSections() -- visible once a team's been started and the player is signed in, no need to wait for a complete team. */
+const teamThreatsSectionEl = document.getElementById("team-threats-section");
+const speedTiersSectionEl = document.getElementById("speed-tiers-section");
 const noTeamEl = document.getElementById("no-team");
 
 const rivalSectionEl = document.getElementById("rival-section");
@@ -2815,6 +2818,8 @@ function refreshDerivedSections() {
   const showAnalysis = hasTeam && signedIn;
   rivalHeaderRowEl.hidden = !showAnalysis;
   coverageSectionEl.hidden = !showAnalysis;
+  if (teamThreatsSectionEl) teamThreatsSectionEl.hidden = !showAnalysis;
+  if (speedTiersSectionEl) speedTiersSectionEl.hidden = !showAnalysis;
   rivalSectionEl.hidden = !showAnalysis;
   if (simulatedWinrateSectionEl) simulatedWinrateSectionEl.hidden = !showAnalysis;
   if (!showAnalysis) {
@@ -2823,6 +2828,8 @@ function refreshDerivedSections() {
   }
 
   renderTypeCoverage();
+  renderTeamThreats();
+  renderSpeedTiers();
   refreshSimulatedWinRate();
 }
 
@@ -3111,6 +3118,135 @@ function renderCoverageTable(members, perType) {
       cell.textContent = formatMult(mult);
       row.appendChild(cell);
     });
+    table.appendChild(row);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Comparison-driven additions (Sep 2026): after comparing WinCon's Builder
+// against pokemon-zone.com's Pokémon Champions Team Builder, two of its
+// small, self-contained widgets were genuinely good ideas WinCon didn't
+// have yet -- neither needed new data or a new heuristic, just a new way
+// to look at data WinCon already computes elsewhere (getThreatsWithTypes()
+// for the threats list, wcCalcStat for stats). Both render every time
+// refreshDerivedSections() does, right alongside Team type coverage above.
+// ---------------------------------------------------------------------------
+
+/** How many named threats renderTeamThreats() shows at most -- same idea as COVERAGE_TOP_N above, just applied to the threats list instead of the 18-type chart. */
+const TEAM_THREATS_TOP_N = 8;
+
+/**
+ * pokemon-zone.com's "Threats" tab, adapted: for every named Pokémon in
+ * WinCon's own threats list (getThreatsWithTypes() -- the curated roster in
+ * data/starter-threats.json, plus anything real logged battles show is
+ * genuinely dangerous, plus data/meta-baseline.json's Worlds-2026-grounded
+ * rosters), count how many of the CURRENT six are weak to that threat's own
+ * typing, and show the ones that hit the most of your team hardest first.
+ * Deliberately just a type chart lookup (wcBestEffectiveness, same helper
+ * Team type coverage above uses) -- not a simulated battle, and not trying
+ * to be one. Simulated Win Rate below is the actual predicted-win-rate
+ * feature; this is meant to be read in the second it takes to render, as a
+ * first-pass warning sign before that heavier simulation even runs.
+ */
+function renderTeamThreats() {
+  const container = document.getElementById("team-threats-list");
+  if (!container) return;
+  const members = chosen.map((name) => effectivePokemonFor(name, builds[name] || {})).filter(Boolean);
+  container.innerHTML = "";
+  if (members.length === 0) return;
+
+  const threats = getThreatsWithTypes();
+  const scored = threats
+    .map((threat) => {
+      if (!threat.types || threat.types.length === 0) return null;
+      const weakMembers = members.filter((m) => wcBestEffectiveness(data.typeChart, threat.types, m.types) > 1);
+      return weakMembers.length > 0 ? { threat, weakMembers } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.weakMembers.length - a.weakMembers.length)
+    .slice(0, TEAM_THREATS_TOP_N);
+
+  if (scored.length === 0) {
+    const li = document.createElement("li");
+    li.className = "coverage-item";
+    li.textContent = "Nothing in WinCon's Worlds-grounded reference list stands out against this team right now.";
+    container.appendChild(li);
+    return;
+  }
+
+  scored.forEach(({ threat, weakMembers }) => {
+    const li = document.createElement("li");
+    li.className = "coverage-item";
+    const nameEl = document.createElement("strong");
+    nameEl.textContent = threat.name;
+    li.appendChild(nameEl);
+    li.appendChild(document.createTextNode(" "));
+    (threat.types || []).forEach((t) => {
+      const tag = document.createElement("span");
+      tag.className = `type-tag type-${t.toLowerCase()}`;
+      tag.textContent = t;
+      li.appendChild(tag);
+    });
+    li.appendChild(document.createTextNode(`${weakMembers.length} of ${members.length} of your team are weak to this`));
+    const detail = document.createElement("span");
+    detail.className = "coverage-detail";
+    detail.textContent = weakMembers.map((m) => m.name).join(", ");
+    li.appendChild(detail);
+    container.appendChild(li);
+  });
+}
+
+/**
+ * pokemon-zone.com's "Speed" tab, adapted: every current team member's
+ * final Speed stat (Mega-aware, via effectivePokemonFor -- same as Team
+ * type coverage above), plus what that same Speed becomes under Tailwind
+ * (a flat x2 while it's up, on either format's field), all merged into one
+ * list sorted fastest to slowest. Reading position in this list against a
+ * known benchmark (a common Choice Scarf number, a rival's likely Speed) is
+ * the whole point -- it's why the Tailwind row sits inline with the plain
+ * rows rather than in a separate column. Purely a stat-math display, same
+ * wcCalcStat formula (stats.js) every other final-stat number on this page
+ * already uses -- no battle simulation involved.
+ */
+function renderSpeedTiers() {
+  const table = document.getElementById("speed-tiers-table");
+  if (!table) return;
+  table.innerHTML = "";
+
+  const members = chosen
+    .map((name) => {
+      const build = builds[name] || {};
+      const pokemon = effectivePokemonFor(name, build);
+      const baseStats = pokemon && data.baseStats.find((b) => b.name === pokemon.name);
+      if (!pokemon || !baseStats || !build.sp) return null;
+      const speed = wcCalcStat(baseStats.spe, "speed", build.sp.speed || 0, build.nature, data.natures);
+      return { name: pokemon.name, speed };
+    })
+    .filter(Boolean);
+  if (members.length === 0) return;
+
+  const entries = [];
+  members.forEach((m) => {
+    entries.push({ label: m.name, speed: m.speed });
+    entries.push({ label: `${m.name} + Tailwind (×2)`, speed: m.speed * 2 });
+  });
+  entries.sort((a, b) => b.speed - a.speed);
+
+  const headRow = document.createElement("tr");
+  ["Pokémon", "Speed"].forEach((heading) => {
+    const th = document.createElement("th");
+    th.textContent = heading;
+    headRow.appendChild(th);
+  });
+  table.appendChild(headRow);
+
+  entries.forEach((entry) => {
+    const row = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    nameCell.textContent = entry.label;
+    const speedCell = document.createElement("td");
+    speedCell.textContent = String(entry.speed);
+    row.append(nameCell, speedCell);
     table.appendChild(row);
   });
 }
