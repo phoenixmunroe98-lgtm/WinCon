@@ -118,6 +118,18 @@ const renameTeamBtn = document.getElementById("rename-team-btn");
 const newTeamBtn = document.getElementById("new-team-btn");
 const deleteTeamBtn = document.getElementById("delete-team-btn");
 const moveFormatBtn = document.getElementById("move-format-btn");
+const exportTeamBtn = document.getElementById("export-team-btn");
+const importTeamBtn = document.getElementById("import-team-btn");
+const exportModal = document.getElementById("export-modal");
+const exportModalText = document.getElementById("export-modal-text");
+const exportModalCopyBtn = document.getElementById("export-modal-copy-btn");
+const exportModalCloseBtn = document.getElementById("export-modal-close-btn");
+const importModal = document.getElementById("import-modal");
+const importModalText = document.getElementById("import-modal-text");
+const importModalPreview = document.getElementById("import-modal-preview");
+const importModalParseBtn = document.getElementById("import-modal-parse-btn");
+const importModalApplyBtn = document.getElementById("import-modal-apply-btn");
+const importModalCloseBtn = document.getElementById("import-modal-close-btn");
 const teamsHint = document.getElementById("teams-hint");
 const sheetToggleEl = document.getElementById("sheet-toggle");
 const teamNotesInput = document.getElementById("team-notes-input");
@@ -206,6 +218,13 @@ async function init() {
   newTeamBtn.addEventListener("click", addTeam);
   deleteTeamBtn.addEventListener("click", deleteActiveTeam);
   moveFormatBtn.addEventListener("click", moveActiveTeamToOtherFormat);
+  exportTeamBtn.addEventListener("click", openExportModal);
+  exportModalCopyBtn.addEventListener("click", copyExportModalText);
+  exportModalCloseBtn.addEventListener("click", closeExportModal);
+  importTeamBtn.addEventListener("click", openImportModal);
+  importModalParseBtn.addEventListener("click", previewImportModalText);
+  importModalApplyBtn.addEventListener("click", applyImportModalText);
+  importModalCloseBtn.addEventListener("click", closeImportModal);
   autobuildBtn.addEventListener("click", autoBuildTeam);
   autostrategyBtn.addEventListener("click", autoBuildStrategy);
   dreamTeamBtn.addEventListener("click", generateDreamTeam);
@@ -638,6 +657,170 @@ function moveActiveTeamToOtherFormat() {
   saveStatus.textContent = `Moved "${teamName}" to the ${otherLabel} builder — find it there now.`;
 }
 
+// ---------------------------------------------------------------------------
+// Export/Import modals (Milestone 29) — see wcExportTeamText/
+// wcParseShowdownTeam above for the actual text<->build translation.
+// ---------------------------------------------------------------------------
+
+function openExportModal() {
+  exportModalText.value = wcExportTeamText(chosen, builds);
+  exportModal.hidden = false;
+  exportModalText.focus();
+  exportModalText.select();
+}
+
+function closeExportModal() {
+  exportModal.hidden = true;
+}
+
+function copyExportModalText() {
+  exportModalText.focus();
+  exportModalText.select();
+  const restoreLabel = "Copy to clipboard";
+  const showResult = (label) => {
+    exportModalCopyBtn.textContent = label;
+    setTimeout(() => {
+      exportModalCopyBtn.textContent = restoreLabel;
+    }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard
+      .writeText(exportModalText.value)
+      .then(() => showResult("Copied!"))
+      .catch(() => showResult("Couldn't copy — select the text above and copy it yourself."));
+    return;
+  }
+  // Clipboard API unavailable (older browser, or a permissions-restricted
+  // context) — the text above is already selected by the focus()/select()
+  // calls above, so falling back to the older execCommand still gets most
+  // browsers there, and worst case the user can just Cmd/Ctrl+C it.
+  try {
+    showResult(document.execCommand("copy") ? "Copied!" : "Select the text above and copy it yourself.");
+  } catch {
+    showResult("Select the text above and copy it yourself.");
+  }
+}
+
+/** The last wcParseShowdownTeam() result shown in the Import modal's preview, or null before Preview has been clicked (or after the text has changed since) — Replace team applies exactly this, never a fresh re-parse, so what's on screen is always what gets applied. */
+let importParseResult = null;
+
+function openImportModal() {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "import a team")) return;
+  importModalText.value = "";
+  importModalPreview.hidden = true;
+  importModalPreview.innerHTML = "";
+  importModalApplyBtn.disabled = true;
+  importParseResult = null;
+  importModal.hidden = false;
+  importModalText.focus();
+}
+
+function closeImportModal() {
+  importModal.hidden = true;
+}
+
+function previewImportModalText() {
+  const result = wcParseShowdownTeam(importModalText.value);
+  importParseResult = result;
+  importModalPreview.hidden = false;
+  importModalPreview.innerHTML = "";
+
+  if (result.mons.length === 0) {
+    const p = document.createElement("p");
+    p.textContent = "Nothing recognizable was found to import — check the pasted text and try again.";
+    importModalPreview.appendChild(p);
+    importModalApplyBtn.disabled = true;
+    return;
+  }
+
+  const summary = document.createElement("p");
+  summary.textContent = `Ready to import ${result.mons.length} Pokémon${result.mons.length === 1 ? "" : "s"}:`;
+  importModalPreview.appendChild(summary);
+
+  result.mons.forEach(({ name, build }) => {
+    const row = document.createElement("div");
+    row.className = "import-preview-mon";
+    const nameEl = document.createElement("div");
+    nameEl.className = "import-preview-mon-name";
+    nameEl.textContent = name + (build.item ? ` @ ${build.item}` : "");
+    row.appendChild(nameEl);
+    const detail = document.createElement("div");
+    const moveText = build.moves.filter(Boolean).join(", ") || "no moves recognized";
+    detail.textContent = `${build.nature ? build.nature + " Nature, " : ""}${moveText}`;
+    row.appendChild(detail);
+    importModalPreview.appendChild(row);
+  });
+
+  const issues = [...result.blockers, ...result.warnings];
+  if (issues.length) {
+    const warnHeading = document.createElement("p");
+    warnHeading.className = "import-preview-warning";
+    warnHeading.textContent = "Heads up:";
+    importModalPreview.appendChild(warnHeading);
+    issues.forEach((msg) => {
+      const p = document.createElement("p");
+      p.className = "import-preview-warning";
+      p.textContent = msg;
+      importModalPreview.appendChild(p);
+    });
+  }
+
+  importModalApplyBtn.disabled = false;
+}
+
+function applyImportModalText() {
+  if (!importParseResult || importParseResult.mons.length === 0) return;
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "import a team")) return;
+
+  const importedNames = importParseResult.mons.map((m) => m.name);
+  // A pasted set can freely include a Pokémon that isn't marked obtained
+  // yet — importing it is itself a clear declaration of intent to use it,
+  // and there's no other way to remove a not-obtained Pokémon from a
+  // slot once it's chosen (Step 1's picker only shows/toggles obtained
+  // ones), so leaving it un-obtained would strand it in the build below
+  // with no way back out. Same OBTAINED_KEY/storage contract
+  // getObtainedNames() itself reads.
+  wcMarkObtainedFromImport(importedNames);
+
+  chosen = importedNames;
+  builds = {};
+  importParseResult.mons.forEach((m) => {
+    builds[m.name] = m.build;
+  });
+
+  invalidateComputedNotes();
+  autogenHint.textContent = "";
+  renderPicker();
+  renderSlots();
+  closeImportModal();
+  saveStatus.textContent = `Imported ${chosen.length} Pokémon from pasted text — click Save team below when you're happy with it.`;
+}
+
+/** See applyImportModalText's own comment for why an import needs this at all. Mirrors getObtainedNames()'s exact storage contract (same OBTAINED_KEY, same signed-in-vs-not choice of localStorage/sessionStorage) so a name marked here is guaranteed to show up there. */
+function wcMarkObtainedFromImport(names) {
+  try {
+    const obtained = getObtainedNames();
+    let changed = false;
+    names.forEach((name) => {
+      if (!obtained.has(name)) {
+        obtained.add(name);
+        changed = true;
+      }
+    });
+    if (!changed) return;
+    const json = JSON.stringify([...obtained]);
+    if (wcTeamDataSignedIn) {
+      localStorage.setItem(OBTAINED_KEY, json);
+    } else {
+      sessionStorage.setItem(OBTAINED_KEY, json);
+    }
+  } catch {
+    // Storage full/unavailable — the import above still applies; the only
+    // loss is that these won't also show as obtained/chosen in Step 1's
+    // picker grid until marked obtained there by hand.
+  }
+}
+
 /**
  * Milestone 25: the only things a signed-out player can do on this page
  * are pick up to 6 obtained Pokémon into slots (Step 1) and see the
@@ -826,6 +1009,240 @@ function emptyBuild() {
 }
 
 // ---------------------------------------------------------------------------
+// Showdown-format Import/Export (Milestone 29)
+// ---------------------------------------------------------------------------
+//
+// Pokémon Showdown's plain-text set format is what the rest of the
+// competitive community actually shares teams in -- Discord messages,
+// PokePaste links, tournament reports, Pikalytics/Limitless pages. WinCon
+// speaks it only at this boundary: internally a build still stores Stat
+// Points (see the Milestone 29 note atop stats.js for why that's correct,
+// not an approximation that needed replacing), and wcExportTeamText/
+// wcParseShowdownTeam below are the translation layer in each direction,
+// built on wcSpToEv/wcEvToSp (stats.js).
+//
+// A pasted or exported set always names the BASE species with a Mega
+// Stone as its held item, never the Mega form's own name -- that's how
+// Showdown format has always worked (Mega Evolution happens mid-battle,
+// not at team-build time), and it's also exactly what wcEffectivePokemon
+// (megas.js) already assumes everywhere else in this file, so staying on
+// base names throughout gets Mega handling for free in both directions.
+
+/** case-insensitive Showdown stat label ("Atk", "SpA", a couple of longer spellings some other tools use) -> WinCon's own STATS key. Built once from WINCON_STAT_ORDER (stats.js) rather than hand-duplicated, so the two tables can't quietly drift apart. */
+const SHOWDOWN_STAT_LABEL_TO_KEY = (() => {
+  const map = {};
+  WINCON_STAT_ORDER.forEach((s) => {
+    map[s.showdownLabel.toLowerCase()] = s.key;
+  });
+  map["sp. atk"] = "sp_attack";
+  map["sp. def"] = "sp_defense";
+  map["special attack"] = "sp_attack";
+  map["special defense"] = "sp_defense";
+  return map;
+})();
+
+/** The ability a build actually has right now -- the same "does this build have a valid override, else fall back to the default" logic buildAbilityControl uses to decide what to show, pulled out here so Export can use exactly the same answer instead of a second guess. */
+function wcCurrentAbilityName(build, baseName) {
+  const abilityInfo = data.abilities && data.abilities[baseName];
+  if (!abilityInfo) return "";
+  const options = data.abilityOptions && data.abilityOptions[baseName];
+  const hasValidOverride = Boolean(build.ability) && options && options.some((o) => o.name === build.ability);
+  return hasValidOverride ? build.ability : abilityInfo.ability;
+}
+
+/** Turns this team's chosen Pokémon + builds into Pokémon Showdown's plain-text export format, ready to paste anywhere sets get shared. `namesList` is a team's `chosen` array (base species names) and `buildsMap` its `builds` object. */
+function wcExportTeamText(namesList, buildsMap) {
+  return namesList
+    .map((name) => {
+      const build = buildsMap[name] || emptyBuild();
+      const lines = [];
+      lines.push(build.item ? `${name} @ ${build.item}` : name);
+      const ability = wcCurrentAbilityName(build, name);
+      if (ability) lines.push(`Ability: ${ability}`);
+      lines.push(`Level: ${WINCON_LEVEL}`);
+      const evParts = WINCON_STAT_ORDER.map((s) => ({
+        label: s.showdownLabel,
+        ev: wcSpToEv(build.sp && build.sp[s.key]),
+      })).filter((p) => p.ev > 0);
+      if (evParts.length) lines.push(`EVs: ${evParts.map((p) => `${p.ev} ${p.label}`).join(" / ")}`);
+      // No IVs line: every Champions Pokémon has fixed 31s, which is also
+      // Showdown's own default when a set omits the line entirely.
+      if (build.nature) lines.push(`${build.nature} Nature`);
+      (build.moves || []).forEach((m) => {
+        if (m) lines.push(`- ${m}`);
+      });
+      return lines.join("\n");
+    })
+    .join("\n\n");
+}
+
+/**
+ * Parses Pokémon Showdown's plain-text team export format into WinCon
+ * builds. Never throws -- always returns { mons, warnings, blockers } so
+ * the Import modal can show exactly what would happen before anything's
+ * actually applied.
+ *
+ * `mons` is capped at 6 (a WinCon team's max) and only ever contains
+ * species this roster actually has, as `{ name, build }` pairs in the
+ * order they appeared. `blockers` lists whole Pokémon that couldn't be
+ * matched to anything in the roster at all (skipped, but never fatal to
+ * the rest of the paste). `warnings` covers everything smaller that still
+ * produced a usable build: an unrecognized move/nature/ability, EVs on a
+ * stat WinCon didn't recognize, non-31 IVs (Champions doesn't have a
+ * variable to set there), a Tera Type line (not legal in the current
+ * regulation -- see README's Milestone 20/28 meta-tracking notes), or a
+ * species repeated within the same paste.
+ */
+function wcParseShowdownTeam(text) {
+  const warnings = [];
+  const blockers = [];
+  const mons = [];
+  const seenNames = new Set();
+
+  const blocks = (text || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  const usedBlocks = blocks.slice(0, 6);
+  if (blocks.length > 6) {
+    warnings.push("Only the first 6 Pokémon were imported — a WinCon team can't hold more than 6.");
+  }
+
+  usedBlocks.forEach((block) => {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+    const headerLine = lines[0];
+
+    const atMatch = headerLine.match(/^(.*?)\s*@\s*(.+)$/);
+    let namePart = (atMatch ? atMatch[1] : headerLine).trim();
+    let itemName = atMatch ? atMatch[2].trim() : "";
+    namePart = namePart.replace(/\s*\((?:M|F)\)\s*$/i, "").trim();
+    const nickMatch = namePart.match(/^.*\(([^()]+)\)\s*$/);
+    const speciesGuess = (nickMatch ? nickMatch[1] : namePart).trim();
+
+    let resolvedName = null;
+    const direct = data.pokemon.find((p) => p.form === "Base" && p.name.toLowerCase() === speciesGuess.toLowerCase());
+    if (direct) {
+      resolvedName = direct.name;
+    } else {
+      const asMega = data.pokemon.find((p) => p.name.toLowerCase() === speciesGuess.toLowerCase());
+      if (asMega && wcIsMegaForm(asMega)) {
+        const base = wcBaseFormOf(data.pokemon, asMega.name);
+        if (base) {
+          resolvedName = base.name;
+          if (!itemName) itemName = WINCON_MEGA_STONES[asMega.name] || "";
+        }
+      }
+    }
+
+    if (!resolvedName) {
+      blockers.push(`"${speciesGuess}" doesn't match any Pokémon in WinCon's roster — skipped.`);
+      return;
+    }
+    if (seenNames.has(resolvedName)) {
+      warnings.push(`${resolvedName} appeared more than once in the pasted team — only the first copy was kept.`);
+      return;
+    }
+
+    const build = emptyBuild();
+    build.item = itemName;
+
+    let abilityLine = null;
+    let natureLine = null;
+    let evLine = null;
+    let ivLine = null;
+    let sawTera = false;
+    const moves = [];
+
+    lines.slice(1).forEach((line) => {
+      if (/^ability:/i.test(line)) { abilityLine = line.replace(/^ability:/i, "").trim(); return; }
+      if (/^evs:/i.test(line)) { evLine = line.replace(/^evs:/i, "").trim(); return; }
+      if (/^ivs:/i.test(line)) { ivLine = line.replace(/^ivs:/i, "").trim(); return; }
+      if (/^level:/i.test(line)) return; // Champions is always Level 50
+      if (/^shiny:/i.test(line)) return; // WinCon doesn't track Shiny
+      if (/^tera type:/i.test(line)) { sawTera = true; return; }
+      if (/^happiness:/i.test(line)) return;
+      if (/nature$/i.test(line)) { natureLine = line.replace(/nature$/i, "").trim(); return; }
+      if (/^-\s*/.test(line)) { moves.push(line.replace(/^-\s*/, "").trim()); return; }
+    });
+
+    if (abilityLine) {
+      const abilityInfo = data.abilities && data.abilities[resolvedName];
+      const options = data.abilityOptions && data.abilityOptions[resolvedName];
+      const matchOpt = options && options.find((o) => o.name.toLowerCase() === abilityLine.toLowerCase());
+      const matchesDefault = abilityInfo && abilityInfo.ability && abilityInfo.ability.toLowerCase() === abilityLine.toLowerCase();
+      if (matchOpt) {
+        build.ability = matchOpt.name;
+      } else if (matchesDefault) {
+        build.ability = abilityInfo.ability;
+      } else {
+        warnings.push(
+          `${resolvedName}: pasted ability "${abilityLine}" isn't one WinCon recognizes for it — left as ${
+            abilityInfo ? abilityInfo.ability : "default"
+          }.`
+        );
+      }
+    }
+
+    if (natureLine) {
+      const matchNature = data.natures.find((n) => n.name.toLowerCase() === natureLine.toLowerCase());
+      if (matchNature) {
+        build.nature = matchNature.name;
+      } else {
+        warnings.push(`${resolvedName}: pasted nature "${natureLine}" wasn't recognized — left unset.`);
+      }
+    }
+
+    if (evLine) {
+      evLine.split("/").forEach((part) => {
+        const m = part.trim().match(/^(\d+)\s+(.+)$/);
+        if (!m) return;
+        const key = SHOWDOWN_STAT_LABEL_TO_KEY[m[2].trim().toLowerCase()];
+        if (!key) {
+          warnings.push(`${resolvedName}: didn't recognize the EV stat "${m[2].trim()}" — skipped.`);
+          return;
+        }
+        build.sp[key] = wcEvToSp(parseInt(m[1], 10));
+      });
+    }
+
+    if (ivLine) {
+      const nonDefault = ivLine.split("/").some((part) => {
+        const m = part.trim().match(/^(\d+)\s+/);
+        return m && parseInt(m[1], 10) !== 31;
+      });
+      if (nonDefault) {
+        warnings.push(`${resolvedName}: pasted IVs weren't all 31 — Champions fixes every Pokémon's IVs at 31, so they were ignored.`);
+      }
+    }
+
+    if (sawTera) {
+      warnings.push(`${resolvedName}: pasted Tera Type was ignored — Terastallization isn't legal in the current regulation.`);
+    }
+
+    const learnset = data.learnsets[resolvedName];
+    moves.slice(0, 4).forEach((moveName, i) => {
+      const matchMove = data.moves.find((mv) => mv.name.toLowerCase() === moveName.toLowerCase());
+      if (!matchMove) {
+        warnings.push(`${resolvedName}: didn't recognize the move "${moveName}" — left blank.`);
+        return;
+      }
+      if (learnset && !learnset.includes(matchMove.name)) {
+        warnings.push(`${resolvedName}: "${matchMove.name}" isn't in its known movepool — added anyway.`);
+      }
+      build.moves[i] = matchMove.name;
+    });
+
+    seenNames.add(resolvedName);
+    mons.push({ name: resolvedName, build });
+  });
+
+  return { mons, warnings, blockers };
+}
+
+// ---------------------------------------------------------------------------
 // Open Team Sheet / Closed Team Sheet toggle (Milestone 14)
 // ---------------------------------------------------------------------------
 
@@ -996,9 +1413,14 @@ function renderSlot(baseName, build) {
     header.appendChild(megaHint);
   }
 
+  const spSection = buildStatPointAllocator(build, effective);
+
   const row1 = document.createElement("div");
   row1.className = "slot-row";
-  row1.append(labeled("Nature", buildNatureSelect(build)), buildItemField(build, effective.name, baseName));
+  row1.append(
+    labeled("Nature", buildNatureSelect(build, spSection.refreshFinalStats)),
+    buildItemField(build, effective.name, baseName)
+  );
 
   const moveGrid = document.createElement("div");
   moveGrid.className = "move-grid";
@@ -1016,9 +1438,7 @@ function renderSlot(baseName, build) {
     moveGrid.appendChild(buildMoveField(build, i, moveOptions, effective, abilityName));
   }
 
-  const spSection = buildStatPointAllocator(build);
-
-  card.append(header, row1, moveGrid, spSection);
+  card.append(header, row1, moveGrid, spSection.el);
   return card;
 }
 
@@ -1032,7 +1452,7 @@ function labeled(labelText, control) {
   return wrap;
 }
 
-function buildNatureSelect(build) {
+function buildNatureSelect(build, onNatureChange) {
   const select = document.createElement("select");
   const blank = document.createElement("option");
   blank.value = "";
@@ -1060,6 +1480,13 @@ function buildNatureSelect(build) {
       return;
     }
     build.nature = select.value;
+    // Milestone 29: Nature feeds the live final-stats readout next to the
+    // Stat Points inputs below (wcCalcStat) — unlike Item, changing Nature
+    // doesn't need a full renderSlots() (it never changes the Mega-form
+    // question that Item's own change handler exists to catch), so this
+    // just updates that one readout directly rather than rebuilding the
+    // whole card and losing focus/scroll position for no reason.
+    if (onNatureChange) onNatureChange();
     invalidateComputedNotes();
     refreshStrategyAvailability();
     refreshDerivedSections();
@@ -1475,7 +1902,15 @@ window.addEventListener("resize", () => {
   if (moveDropdownAnchor) positionMoveDropdown(moveDropdownAnchor);
 });
 
-function buildStatPointAllocator(build) {
+/**
+ * `effectivePokemon` is the slot's Mega-aware Pokémon (see wcEffectivePokemon
+ * in megas.js) — its own base stats, not the base species', are what a Mega
+ * Evolution's Stat Points actually apply to. Returns `{ el, refreshFinalStats }`
+ * rather than a bare element: buildNatureSelect (row1, built right after this)
+ * needs `refreshFinalStats` too, since Nature also feeds the live stat below
+ * but changes it in place rather than triggering a full renderSlots().
+ */
+function buildStatPointAllocator(build, effectivePokemon) {
   const wrap = document.createElement("div");
   wrap.className = "sp-allocator";
 
@@ -1491,10 +1926,32 @@ function buildStatPointAllocator(build) {
   const grid = document.createElement("div");
   grid.className = "sp-grid";
 
+  const baseStats = data.baseStats.find((b) => b.name === effectivePokemon.name);
+  const finalStatEls = {};
+
   function refreshTotal() {
     const total = STATS.reduce((sum, s) => sum + (build.sp[s.key] || 0), 0);
     totalBadge.textContent = `${total} / ${SP_TOTAL_CAP}`;
     totalBadge.classList.toggle("sp-over", total > SP_TOTAL_CAP);
+  }
+
+  /**
+   * Milestone 29: the actual level-50 stat this Stat Points + Nature
+   * combination produces right now, shown live next to the input that
+   * drives it — the exact same wcCalcStat formula (stats.js) Matchup
+   * Score itself uses, so what's on screen here is never a separate
+   * guess that could quietly disagree with it. Silently a no-op if this
+   * slot's base stats aren't known (shouldn't happen — data/base-
+   * stats.json covers the full roster — but this is display code, not
+   * worth a hard failure over).
+   */
+  function refreshFinalStats() {
+    if (!baseStats) return;
+    WINCON_STAT_ORDER.forEach((s) => {
+      const el = finalStatEls[s.key];
+      if (!el) return;
+      el.textContent = String(wcCalcStat(baseStats[s.baseStatKey], s.key, build.sp[s.key], build.nature, data.natures));
+    });
   }
 
   STATS.forEach((s) => {
@@ -1522,17 +1979,23 @@ function buildStatPointAllocator(build) {
       input.value = String(value);
       build.sp[s.key] = value;
       refreshTotal();
+      refreshFinalStats();
       invalidateComputedNotes();
       refreshStrategyAvailability();
       refreshDerivedSections();
     });
-    field.append(name, input);
+    const finalStat = document.createElement("span");
+    finalStat.className = "sp-final-stat";
+    finalStat.title = "The actual stat this many Stat Points (plus Nature) works out to at Level 50 — same math Matchup Score uses.";
+    finalStatEls[s.key] = finalStat;
+    field.append(name, input, finalStat);
     grid.appendChild(field);
   });
 
   wrap.appendChild(grid);
   refreshTotal();
-  return wrap;
+  refreshFinalStats();
+  return { el: wrap, refreshFinalStats };
 }
 
 // ---------------------------------------------------------------------------

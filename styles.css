@@ -1047,6 +1047,21 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   color: var(--ink-muted);
 }
 
+/* Milestone 29: the live "this many Stat Points + Nature = this actual stat"
+   readout next to each input — deliberately quiet (small, muted) since it's
+   a confirmation of what you just set, not something that needs its own
+   visual weight. */
+.sp-final-stat {
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.sp-final-stat::before {
+  content: "= ";
+}
+
 .sp-field input {
   font: inherit;
   font-size: 0.92rem;
@@ -1246,6 +1261,54 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 .modal-actions .btn-secondary {
   width: 100%;
   text-align: center;
+}
+
+/* Milestone 29: Export/Import need real room for a pasted team's worth of
+   text, unlike every other modal here (all short confirm dialogs) — a
+   wider box on top of .modal-box rather than a replacement for it, so it
+   still gets everything above for free. */
+.modal-box-wide {
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.export-textarea {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+}
+
+.import-preview-mon {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.import-preview-mon:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.import-preview-mon-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.import-preview-warning {
+  color: #C0463B;
 }
 
 /* ---------- Type coverage (Milestone 3c) ---------- */

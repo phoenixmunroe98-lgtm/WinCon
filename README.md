@@ -343,15 +343,23 @@ timeout in the environment this was built in rather than a real dead end
 it doesn't work, and swapping the starter list for it is the highest-value
 next change to this feature specifically.
 
-**The stat math is an approximation.** Champions replaced EVs with a
-0–66 Stat Point pool, but the community dataset's own mechanics notes say
-the exact SP-to-stat mapping is still community-unverified. This uses the
-standard Pokémon stat formula with 1 SP ≈ 8 EVs (so 32 SP ≈ 252 EVs) — a
-reasonable placeholder, not a confirmed-accurate one.
+**The stat math is a well-corroborated approximation, not an officially
+sourced one.** Champions replaced EVs and IVs entirely with its own 0–66
+Stat Point pool (32/stat cap, IVs fixed at 31 for everyone) — this was
+still described as "community-unverified" through Milestone 28. Milestone
+29's Showdown-format import/export work re-checked it against two
+independent Pokémon Champions mechanics guides, both of which describe
+exactly this system (66 total, 32/stat cap, fixed 31 IVs) and confirm 1 SP
+≈ 8 EVs (so 32 SP ≈ 252 EVs) under the hood, which is the standard
+Pokémon stat formula this always used. Corroborated by two independent
+sources now, not just one community dataset's own notes — but still
+nothing from an official Game Freak/Pokémon Company document, so kept
+here as "well-corroborated" rather than "confirmed."
 
 Neither of these makes the score useless — it still catches real type
 weaknesses and rewards actually filling in a team's moves and Nature —
-but both are worth fixing before leaning on the number too heavily.
+and the second is on considerably firmer ground now than when this was
+first written.
 
 ## Hover tooltips for Item & Move fields (Milestone 9)
 
@@ -1144,6 +1152,88 @@ migrations/0005_meta_usage_stats.sql` needs to be pasted into Supabase's
 SQL Editor and run once, the same way every earlier migration was,
 before the cross-user data actually starts flowing.
 
+## Your Rival explains its real-usage-data influence too, and a recurring weekly meta-refresh (Milestone 29)
+
+**Your Rival was already using Milestone 28's real cross-user battle data —
+it just never said so.** Both Generate Dream Team and Find Your Rival pick
+through the same function (`wcPickDreamTeam` in `strategy.js`), so the
+`meta_usage_stats` bonus Milestone 28 added already applied to a rival's
+picks, same as your own Dream Team's. The gap was purely in the
+explanation text: Dream Team's "Why these six" note never mentioned this
+signal when it mattered for a rival's pick either. `wcMetaUsageReasoningNote()`
+closes that — a rival's reasoning now says so explicitly whenever a pick's
+real logged win rate clears the same 5-game minimum sample and 50%
+threshold Milestone 28 already used, matching the "explainable, not a
+black box" rule every other scoring signal here follows.
+
+**A recurring weekly research pass now keeps `WINCON_META_KNOWN_SETS`
+current**, per your own request to have WinCon check real tournament
+results and Pokémon blogs on an ongoing basis rather than only when
+someone happens to ask. Every Monday, a scheduled session re-checks the
+curated real-world-set list (`WINCON_META_KNOWN_SETS` in `strategy.js` —
+Dream Team/Auto-build/Auto-build strategy's forced-move-and-item picks for
+a short list of high-confidence, currently-dominant Pokémon) against fresh
+Pikalytics Reg-M-B usage data, cross-checked against Pokémon Zone and
+Limitless VGC, and pushes any changes straight to the live site — this is
+the lower-stakes half of the two-tier system you asked for (the other
+half, a monthly legal-roster check, is intentionally not built yet — see
+"What's next" below for why). `data/starter-threats.json` is explicitly
+excluded from this process, per Milestone 20's own decision to keep that
+list static.
+
+The first run (2 September 2026) re-verified all nine existing entries as
+still correct, and added two newly-dominant Pokémon: **Incineroar**
+(Fake Out/Parting Shot/Flare Blitz/Throat Chop, Sitrus Berry) and
+**Sneasler** (Close Combat/Fake Out/Dire Claw/Protect, White Herb).
+
+## Showdown-format Import/Export, and confirming the Stat Points math (Milestone 30)
+
+**A WinCon team can now leave the site, and a team from anywhere else can
+come in.** Every set shared anywhere in the competitive community — a
+streamer's team, a tournament report, a Discord message, a Pikalytics or
+Limitless page, a PokePaste link — is written in Pokémon Showdown's plain
+-text format. Until now a WinCon team couldn't be exported to it or
+imported from it, so WinCon was an island relative to the rest of the
+community's tools. Both Builder pages now have **Export** (turns the
+active team into that text, in a copyable box) and **Import** (parses
+pasted text into a preview — species, item, ability, Nature, Stat Points,
+moves, plus a plain-language list of anything it couldn't match or had to
+adjust — and only replaces the active team's picks once you confirm
+"Replace team"). `wcExportTeamText`/`wcParseShowdownTeam` (`builder.js`)
+do the translation.
+
+**This intentionally did not mean replacing Stat Points with real EVs/
+IVs** — the original plan going in, before checking. Champions itself has
+no EVs or IVs; the SP system WinCon already uses (66 total, 32/stat cap,
+IVs fixed at 31) turned out to be Champions' actual training mechanic, not
+an approximation of one, confirmed against two independent Champions
+mechanics guides while researching this feature (see the updated honesty
+note in "Two honesty notes on the Matchup Score" above). So Export/Import
+translate at the boundary only — a build's real EVs/IVs on the way out,
+Stat Points on the way in (`wcSpToEv`/`wcEvToSp`, `stats.js`) — while Stat
+Points stay the one source of truth everywhere inside WinCon itself,
+matching how the game actually works.
+
+A few things worth knowing about how Import handles an imperfect paste,
+rather than either crashing or silently guessing: a species Import can't
+match to WinCon's roster is skipped (reported, not fatal to the rest of
+the paste); a Mega Pokémon's own name in the header (rather than its base
+species + Mega Stone, which is how Showdown format normally writes it) is
+still recognized and converted back to base-species-plus-stone; a pasted
+Tera Type is dropped with a note that Terastallization isn't legal in the
+current regulation; pasted IVs that aren't all 31 are dropped with a note
+that Champions doesn't have a variable there to set; and an unrecognized
+move, ability, or Nature is skipped with a note rather than blocking the
+rest of that Pokémon's import. Importing a Pokémon that isn't marked
+obtained yet automatically marks it so — without that, there'd be no way
+to remove it again afterward, since Step 1's picker only shows/toggles
+already-obtained Pokémon.
+
+**Small polish alongside this:** each build's Stat Points section now
+shows the actual Level 50 stat each input works out to, live, right next
+to it (using the exact same `wcCalcStat` formula Matchup Score itself
+reads) — previously the numbers you typed were the only feedback you got.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your
@@ -1209,3 +1299,16 @@ somewhere new:
   (`friend_requests`, `notifications`, `push_subscriptions`) but no
   client-side page has ever used them — a real, open gap, not a hidden
   feature.
+- A monthly "check the new legal roster" automation, the other half of
+  the two-tier research system alongside Milestone 29's weekly meta-
+  refresh, is deliberately not built yet: WinCon's Pokémon data
+  (`data/pokemon.json`) has no concept of "legal this regulation" at all
+  today — every one of the 296 roster entries is always available, with
+  no rotation/legality field to check a monthly change against. Building
+  that properly (a real legality/rotation system: new data fields, and
+  filtering wired into the Pokédex and both Builder pickers) is a
+  separate, non-trivial feature that needs to exist before a monthly
+  check can do anything meaningful — on hold until that's worth taking on.
+  Timing note for whenever it does happen: Regulation M-B runs through
+  September 9, 2026; Regulation M-C follows immediately after, so that's
+  the next real rotation to watch for.

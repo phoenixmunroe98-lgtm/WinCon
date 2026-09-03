@@ -122,6 +122,8 @@
         <button id="rename-team-btn" class="btn-secondary">Rename</button>
         <button id="new-team-btn" class="btn-secondary">+ New team</button>
         <button id="move-format-btn" class="btn-secondary">Move to Singles builder</button>
+        <button id="export-team-btn" class="btn-secondary">Export</button>
+        <button id="import-team-btn" class="btn-secondary">Import</button>
         <button id="delete-team-btn" class="btn-secondary btn-danger">Delete this team</button>
       </div>
       <div class="field format-field">
@@ -287,7 +289,9 @@
           using their Stat Points and Nature. Your team's answer to a threat is whichever of your six comes out
           best. This is not a simulated battle and not a measured win rate — it's compared against every Pokémon in
           the data set, not a hand-picked subset, and the Stat Point → stat-value math is the standard formula with
-          SP treated as roughly EV/8, which the community dataset itself flags as still unverified.
+          SP treated as roughly EV/8 (cross-checked against independent Pokémon Champions mechanics guides — see
+          README's Milestone 29 section — though still not sourced from an official Game Freak/Pokémon Company
+          document).
         </p>
       </details>
     </section>
@@ -331,6 +335,44 @@
       <h3 id="changes-modal-title"></h3>
       <p id="changes-modal-body"></p>
       <div id="changes-modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- Milestone 29: Export/Import in Pokémon Showdown's plain-text set
+       format -- the format the rest of the competitive community actually
+       shares teams in. See wcExportTeamText/wcParseShowdownTeam in
+       builder.js and the Milestone 29 note atop stats.js for why this
+       translates through Stat Points rather than replacing them. -->
+  <div id="export-modal" class="modal-overlay" hidden>
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+      <h3 id="export-modal-title">Export team</h3>
+      <p>
+        Standard Pokémon Showdown text format — paste this anywhere sets get shared (Discord, PokePaste,
+        tournament reports). Stat Points are written here as their equivalent EVs; Champions' fixed 31 IVs are
+        left out, since that's Showdown's own default too.
+      </p>
+      <textarea id="export-modal-text" class="export-textarea" readonly rows="14"></textarea>
+      <div class="modal-actions">
+        <button id="export-modal-copy-btn" class="btn-primary" type="button">Copy to clipboard</button>
+        <button id="export-modal-close-btn" class="btn-secondary" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="import-modal" class="modal-overlay" hidden>
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+      <h3 id="import-modal-title">Import team</h3>
+      <p>
+        Paste a team in Pokémon Showdown's text format below, then Preview. This replaces every Pokémon currently
+        picked for this team — nothing changes until you confirm.
+      </p>
+      <textarea id="import-modal-text" class="export-textarea" rows="14" placeholder="Paste a Showdown-format team here…"></textarea>
+      <div id="import-modal-preview" class="callout-box" hidden></div>
+      <div class="modal-actions">
+        <button id="import-modal-parse-btn" class="btn-secondary" type="button">Preview</button>
+        <button id="import-modal-apply-btn" class="btn-primary" type="button" disabled>Replace team</button>
+        <button id="import-modal-close-btn" class="btn-secondary" type="button">Cancel</button>
+      </div>
     </div>
   </div>
 
