@@ -607,18 +607,14 @@ body {
   gap: 10px;
 }
 
+/* WinCon's real logo mark (assets/brand/wincon-icon.svg) replaced the old
+   plain "WC" text badge here -- the image already carries its own shield
+   shape and colors, so this is just a size box now, not a colored badge. */
 .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 42px;
   height: 42px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .brand-name {
