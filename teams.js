@@ -689,7 +689,7 @@ async function wcFetchLiveMetaBuilds(format) {
   if (typeof window === "undefined" || !window.wcSupabase) return {};
   try {
     const selectResult = await wcWithTimeout(
-      window.wcSupabase.from("live_meta_builds").select("species, item, moves, times_used, win_rate").eq("format", format),
+      window.wcSupabase.from("live_meta_builds").select("species, item, moves, nature, times_used, win_rate").eq("format", format),
       5000
     );
     if (!selectResult) return {};
@@ -701,6 +701,15 @@ async function wcFetchLiveMetaBuilds(format) {
       bySpecies[row.species].push({
         item: row.item || "",
         moves: Array.isArray(row.moves) ? row.moves : [],
+        // Real Nature (Milestone: beta-tester Doubles build-quality fix) --
+        // was always captured by the Limitless pipeline (live_meta_builds.
+        // nature, see supabase/migrations/0007_live_limitless_meta.sql)
+        // but never selected here before, so it was silently discarded.
+        // Only consumed today by wcLiveMegaSetFor (strategy.js) for the
+        // Mega-auto-opt path -- null/undefined rows just mean "no real
+        // Nature logged yet", same silent-defer contract as every other
+        // optional field here.
+        nature: row.nature || null,
         timesUsed: row.times_used || 0,
         winRate: row.win_rate,
       });

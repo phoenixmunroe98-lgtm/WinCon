@@ -1563,6 +1563,89 @@ Your Rival's own synthesized opponent roster deliberately never reads your
 locked builds — Rival is a hypothetical enemy team, and your own tuned
 personal builds have no business leaking onto a simulated opponent.
 
+## Better Doubles builds: real Nature/Stat Point spreads, and teammates that build around each other
+
+A beta tester's feedback: WinCon's auto-generated Doubles builds looked
+unrealistic — their examples were Incineroar getting an Adamant offensive
+spread and Gholdengo getting a Modest Nature paired with a defensively-split
+Stat Point spread, neither of which is a real, sensible set for either
+Pokémon. They also asked for teammates to actually build around each other's
+offensive/defensive synergy, the way a real player (or a damage calculator
+like Showdown's) would.
+
+**Every curated real set now carries a real Nature and Stat Point spread,
+not just moves/item.** `WINCON_META_KNOWN_SETS` (strategy.js) previously only
+stored `moves`/`item`/`note` for its dozen standout Doubles Pokémon — Nature
+and Stat Points silently fell through to the generic heuristic below even
+for these hand-curated, real-tournament Pokémon. That's exactly the bug
+behind the tester's own Incineroar example: its moves/item were curated, but
+its Nature/Stat Points weren't, so it still got the generic offensive
+default. Every entry now also carries a real `nature` and `sp` (this app's
+existing Stat-Points-as-EV/8 abstraction — see `wcSpToEv`/`wcEvToSp` in
+stats.js), matched to that Pokémon's actual competitive role: a genuine
+sweeper (Kingambit, Garchomp, Sneasler) keeps an offense-boosting Nature with
+Stat Points split between HP and its offense stat, while a support/wall-style
+Pokémon (Incineroar, Whimsicott, Grimmsnarl) now gets a bulk-boosting Nature
+with Stat Points split between HP and its stronger defense instead.
+`wcGenerateBuild` reads these the same way it already read curated
+moves/item, falling back to a live-tournament-sourced Nature
+(`wcLiveMegaSetFor`, now also reading the `nature` column
+`live_meta_builds` always had but `wcFetchLiveMetaBuilds` never selected)
+and then the generic heuristic below, in that order — the same
+real-data-first trust order every other "meta-informed" feature in this
+project already follows.
+
+**The generic fallback heuristic (every non-curated Pokémon) no longer
+always assumes an offensive build.** `wcPickNature`/`wcPickSP` used to give
+every "bulky"-role Pokémon an offense-boosting Nature (Adamant/Modest) and
+split its Stat Points between offense and whichever defense was numerically
+weaker — regardless of whether that Pokémon's own offense was actually any
+good. That's precisely backwards for a support/wall Pokémon, and it's also
+how Nature and Stat Points could end up flatly contradicting each other (an
+offensive Nature paired with a defensively-split spread, or vice versa — the
+tester's Gholdengo example). Now the two make the exact same comparison
+first: does this Pokémon's primary offense stat actually outclass its own
+bulk (the higher of its two defenses)? If so, it stays offensive, but Stat
+Points now max HP alongside offense rather than a bare defensive stat — real
+bulky-attacker spreads nearly always do, since HP is the most universally
+efficient investment. If not, both flip to a defensive Nature (boosting
+whichever defense is naturally stronger, only ever lowering the *secondary*
+offense stat so this Pokémon can still use its own real STAB) with Stat
+Points maxing HP and that same stronger defense. Nature and Stat Points can
+no longer disagree about which kind of set this is.
+
+**Teammate synergy now reaches the actual moveset, not just Dream Team's
+species picks.** Milestone 36 taught Dream Team's species-*picking* step to
+notice a forming Trick Room/Tailwind/weather/redirection strategy and lean
+into it — but the actual moveset-*building* step (`wcPickMoves`/
+`wcScoreMove`, used by every build flow: Autofill, Auto-build team, and
+Dream Team's own build generation) had no idea a team was even being built
+around it. `wcGenerateTeamBuilds` now threads a `teamSoFar` accumulator
+(each already-built teammate's name and REAL chosen moves) into every
+subsequent member's build, reusing Milestone 36's own
+`wcDetectInProgressArchetype`/`wcArchetypeBeneficiaryScore` unchanged — the
+trick being that those functions only ever read `learnableNames` and a real
+ability, so handing them a teammate's actual finished moveset in place of
+its full learnset works without any new detection logic, and is strictly
+more precise (a real Trick Room already on the team beats merely being able
+to learn one). `wcScoreMove` picks up two new, purely additive bonuses from
+this: a Fire/Water move gets the same weather-boost bonus its own ability
+would give it when a *teammate's* real ability already set that weather, and
+a non-Status move gets a modest bonus when this Pokémon is a genuine
+beneficiary of a teammate's already-built Trick Room, Tailwind, or
+Follow Me/Rage Powder redirection — leaning into an aggressive moveset once
+the team's speed control or protection is already covered elsewhere, instead
+of duplicating utility that's already there.
+
+**Honesty note, matching this project's existing trust-tier philosophy:**
+this remains curated data plus a smarter heuristic, not a full damage-calc
+optimizer (Showdown's calculator, bulk/speed breakpoint tuning) — that was a
+deliberate scope decision, not an oversight. It's scoped to Doubles, per the
+beta tester's own comment ("I don't play singles so I won't comment on
+that"); the fallback-heuristic fix happens to be format-agnostic so it
+improves Singles too, but no Doubles-specific work was ported over on
+purpose.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your

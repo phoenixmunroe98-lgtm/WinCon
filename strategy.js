@@ -172,22 +172,62 @@ function wcPickRole(baseStats) {
   return baseStats.spe >= 90 ? "fast" : "bulky";
 }
 
-function wcPickNature(primaryOffenseKey, role) {
+/**
+ * Beta-tester fix ("recommend Incineroar adamant full 32HP and 32 ATK...
+ * when they are not good sets"): a "bulky" role used to ALWAYS get an
+ * offense-boosting Nature (Adamant/Modest), even for a Pokemon whose real
+ * strength is its bulk, not its offense -- exactly backwards for a
+ * support/wall-style Pokemon like Incineroar. Now it's conditional: only
+ * go offensive when the primary offense stat actually outclasses this
+ * Pokemon's own bulk (the higher of its two defenses); otherwise go
+ * defensive, boosting whichever defense is naturally stronger while only
+ * ever lowering the SECONDARY offense stat (never the primary one this
+ * Pokemon is actually built around). wcPickSP (below) makes the exact
+ * same offense-vs-bulk comparison so Nature and Stat Points never end up
+ * contradicting each other the way they used to (an offensive Nature
+ * paired with defensively-split Stat Points, or vice versa -- the
+ * tester's other example, Gholdengo "32 spa 32 SpD modest").
+ */
+function wcPickNature(primaryOffenseKey, role, baseStats) {
   if (role === "fast") {
     return primaryOffenseKey === "attack" ? "Jolly" : "Timid";
   }
-  return primaryOffenseKey === "attack" ? "Adamant" : "Modest";
+  const offenseStat = primaryOffenseKey === "attack" ? baseStats.atk : baseStats.spa;
+  const bulkierDefense = baseStats.def >= baseStats.spd ? "defense" : "sp_defense";
+  if (offenseStat >= Math.max(baseStats.def, baseStats.spd)) {
+    return primaryOffenseKey === "attack" ? "Adamant" : "Modest";
+  }
+  // Defensive branch: lower the SECONDARY offense stat (the one this
+  // Pokemon isn't actually built around), not the primary one.
+  if (bulkierDefense === "defense") {
+    return primaryOffenseKey === "attack" ? "Impish" : "Bold";
+  }
+  return primaryOffenseKey === "attack" ? "Careful" : "Calm";
 }
 
 function wcPickSP(primaryOffenseKey, role, baseStats) {
   const sp = { hp: 2, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 0 };
-  sp[primaryOffenseKey] = 32;
   if (role === "fast") {
+    sp[primaryOffenseKey] = 32;
     sp.speed = 32;
+    return sp;
+  }
+  // Bulky role: max HP first -- real spreads nearly always do, since HP
+  // is the most universally efficient bulk investment (it helps both
+  // defenses at once) -- rather than the old "bare defensive stat"
+  // choice. The second 32 follows the SAME offense-vs-bulk comparison
+  // wcPickNature makes above, so the two never disagree; 2 leftover SP
+  // (66 total cap) top up the other side a touch.
+  sp.hp = 32;
+  const offenseStat = primaryOffenseKey === "attack" ? baseStats.atk : baseStats.spa;
+  const bulkierDefense = baseStats.def >= baseStats.spd ? "defense" : "sp_defense";
+  const weakerDefense = bulkierDefense === "defense" ? "sp_defense" : "defense";
+  if (offenseStat >= Math.max(baseStats.def, baseStats.spd)) {
+    sp[primaryOffenseKey] = 32;
+    sp[weakerDefense] = 2;
   } else {
-    // Shore up whichever defensive stat is naturally weaker.
-    const weakerDefense = baseStats.def <= baseStats.spd ? "defense" : "sp_defense";
-    sp[weakerDefense] = 32;
+    sp[bulkierDefense] = 32;
+    sp.speed = 2;
   }
   return sp;
 }
@@ -290,6 +330,20 @@ function wcPickItem(role, format, primaryCategory, usedItems) {
  * entries are still current and correctly built. Added Incineroar and
  * Sneasler, both newly confirmed top-tier by usage across all three
  * sources this pass — everything else on the roster is unchanged.
+ *
+ * Beta-tester fix: every entry below now also carries a real `nature` and
+ * `sp` (Stat Points -- this app's own EV/8 abstraction, see stats.js's
+ * wcSpToEv/wcEvToSp; a real "252 HP / 252 SpD Careful" spread is
+ * `{hp:32, sp_defense:32, ...}` with 2 leftover SP going to the total-66
+ * cap) matching each Pokémon's real competitive role -- a beta tester
+ * flagged that even these curated, real-set Pokémon (Incineroar's own
+ * example) were still getting the generic Adamant/Modest heuristic below,
+ * since only moves/item were ever curated before. A support/wall-style
+ * Pokémon (Incineroar, Whimsicott, Grimmsnarl) gets a bulk-boosting
+ * Nature and HP + its stronger defense; a genuine sweeper/attacker
+ * (Kingambit, Garchomp, Sneasler) keeps an offense-boosting Nature with
+ * HP + its offense stat, matching how wcPickSP's own fixed fallback (see
+ * the note above it) now reasons about every OTHER Pokémon too.
  */
 const WINCON_META_KNOWN_SETS = {
   Kingambit: {
@@ -300,11 +354,22 @@ const WINCON_META_KNOWN_SETS = {
     // explainable, higher-usage-in-one-source pick; the Chople Berry
     // variant is a reasonable hand-edit if this one doesn't fit your team.
     item: "Black Glasses",
+    // Atk 135 is clearly its best stat by a wide margin -- a real
+    // offensive Adamant spread, just with HP (not Def) as the second
+    // investment for maximum survivability going into a sweep.
+    nature: "Adamant",
+    sp: { hp: 32, attack: 32, defense: 0, sp_attack: 0, sp_defense: 2, speed: 0 },
     note: "the standout of the current Reg M-B meta — appears on nearly every top tournament team as a Dark-type cleanup sweeper",
   },
   Whimsicott: {
     moves: ["Tailwind", "Moonblast", "Encore", "Protect"],
     item: "Focus Sash",
+    // Prankster already guarantees Tailwind/Encore go off first regardless
+    // of raw Speed, so real sets lean into surviving to actually use them
+    // instead -- Bold, HP/Def, with the last 2 SP as a small Speed buffer
+    // for Moonblast's real damage.
+    nature: "Bold",
+    sp: { hp: 32, attack: 0, defense: 32, sp_attack: 0, sp_defense: 0, speed: 2 },
     note: "the meta's most common Tailwind setter — Prankster guarantees the priority even against faster threats",
   },
   Farigiraf: {
@@ -313,26 +378,53 @@ const WINCON_META_KNOWN_SETS = {
     // Hand was picked as the more team-oriented (and higher-usage) pick.
     moves: ["Trick Room", "Psyshock", "Helping Hand", "Protect"],
     item: "Sitrus Berry",
+    // SpA 110 comfortably outclasses its bulk, so it stays offensive for
+    // Psyshock's real damage -- Trick Room setters don't need Speed
+    // investment either way, since Trick Room itself reverses turn order.
+    nature: "Modest",
+    sp: { hp: 32, attack: 0, defense: 0, sp_attack: 32, sp_defense: 2, speed: 0 },
     note: "a common Trick Room setter that also blocks priority moves and boosts a teammate's hit with Helping Hand",
   },
   Garchomp: {
     moves: ["Dragon Claw", "Earthquake", "Rock Slide", "Protect"],
     item: "Life Orb",
+    // The meta's standard fast dual-STAB attacker spread -- max Atk/Spe.
+    nature: "Jolly",
+    sp: { hp: 2, attack: 32, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 },
     note: "one of the meta's most-used Pokémon, usually as a fast dual-STAB physical attacker",
   },
   Basculegion: {
     moves: ["Last Respects", "Aqua Jet", "Wave Crash", "Protect"],
     item: "Choice Scarf",
+    // Base Speed (78) isn't naturally high enough to earn the generic
+    // fallback's "fast" role, but a Choice Scarf revenge-killer wants
+    // exactly the fast-role treatment regardless -- max Atk/Spe, Adamant
+    // for the extra power since post-Scarf Speed already clears most of
+    // the field.
+    nature: "Adamant",
+    sp: { hp: 2, attack: 32, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 },
     note: "a fast Adaptability attacker whose Last Respects snowballs as teammates faint",
   },
   Sylveon: {
     moves: ["Hyper Voice", "Quick Attack", "Protect", "Hyper Beam"],
     item: "Fairy Feather",
+    // No Calm Mind on this set (Hyper Beam is a direct finisher instead),
+    // so it needs real SpA now rather than a slow setup game -- Modest,
+    // HP for bulk to actually get a hit in, 2 SP shoring up its weaker
+    // physical Defense.
+    nature: "Modest",
+    sp: { hp: 32, attack: 0, defense: 2, sp_attack: 32, sp_defense: 0, speed: 0 },
     note: "Pixilate turns its Normal-type moves into boosted Fairy-type damage, including priority Quick Attack",
   },
   Grimmsnarl: {
     moves: ["Light Screen", "Reflect", "Parting Shot", "Spirit Break"],
     item: "Light Clay",
+    // Only one attacking move on this set (Spirit Break) and it's meant
+    // to survive to keep resetting screens, not to sweep -- Careful (its
+    // SpA is unused either way), HP/SpD, with a couple SP left toward
+    // Attack so Spirit Break still has some teeth.
+    nature: "Careful",
+    sp: { hp: 32, attack: 2, defense: 0, sp_attack: 0, sp_defense: 32, speed: 0 },
     note: "the meta's main screens setter — Prankster guarantees Light Screen/Reflect go up before the opponent can punish it",
   },
   Incineroar: {
@@ -342,6 +434,13 @@ const WINCON_META_KNOWN_SETS = {
     // agreeing across Pikalytics and Pokémon Zone independently.
     moves: ["Fake Out", "Parting Shot", "Flare Blitz", "Throat Chop"],
     item: "Sitrus Berry",
+    // The exact set a beta tester flagged as broken ("Incineroar adamant
+    // full 32HP and 32 ATK... not a good set") -- Incineroar is support
+    // (Fake Out/Parting Shot/Intimidate), not a sweeper, so real sets
+    // favor surviving to keep pivoting over raw power. Careful, HP/SpD,
+    // 2 SP into Def to round out both sides of its bulk.
+    nature: "Careful",
+    sp: { hp: 32, attack: 0, defense: 2, sp_attack: 0, sp_defense: 32, speed: 0 },
     note: "the meta's most reliable Intimidate support — Fake Out flinches while Parting Shot forces a switch with an Attack drop already in effect, buying its team a turn twice over before it starts chipping damage with Flare Blitz",
   },
   Sneasler: {
@@ -352,14 +451,29 @@ const WINCON_META_KNOWN_SETS = {
     // consumed, immediately doubles Sneasler's Speed via Unburden.
     moves: ["Close Combat", "Fake Out", "Dire Claw", "Protect"],
     item: "White Herb",
+    // Adamant over the generic fallback's Jolly -- once Unburden triggers,
+    // its Speed already clears virtually every real threat even from a
+    // neutral-natured base, so real sets take the extra power instead.
+    nature: "Adamant",
+    sp: { hp: 2, attack: 32, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 },
     note: "White Herb shrugs off Close Combat's own Defense/Sp. Def drop, and Unburden doubles its Speed the instant that berry is used up — one of the meta's fastest attackers once it's triggered",
   },
   "Mega Charizard Y": {
     moves: ["Heat Wave", "Solar Beam", "Protect", "Weather Ball"],
+    // Max SpA/Spe -- a straightforward fast special attacker once
+    // Mega-Evolved, its own Drought sun boosting Heat Wave/Weather Ball
+    // further still.
+    nature: "Timid",
+    sp: { hp: 2, attack: 0, defense: 0, sp_attack: 32, sp_defense: 0, speed: 32 },
     note: "Drought triggers sun the instant it Mega Evolves, boosting its own Fire/Grass coverage all by itself",
   },
   "Mega Floette": {
     moves: ["Dazzling Gleam", "Moonblast", "Calm Mind", "Protect"],
+    // A genuine Calm Mind sweeper (Def 87/SpD 148 already tanky enough to
+    // set up safely) rather than a raw Speed race -- Modest, HP/SpA, 2 SP
+    // toward its already-strong SpD for extra setup safety.
+    nature: "Modest",
+    sp: { hp: 32, attack: 0, defense: 0, sp_attack: 32, sp_defense: 2, speed: 0 },
     note: "Fairy Aura boosts every Fairy-type move on the field (not just its own), and it can set up Calm Mind for a late-game sweep",
   },
   "Mega Staraptor": {
@@ -371,6 +485,11 @@ const WINCON_META_KNOWN_SETS = {
     // turn rather than more fragile (see wcScoreMove's Contrary bonus,
     // which now favors exactly this kind of move for it automatically).
     moves: ["Close Combat", "Protect", "Brave Bird", "Roost"],
+    // Jolly to guarantee it lands the first hit safely -- Contrary's own
+    // bulk-up payoff only starts AFTER it attacks, so outspeeding matters
+    // more than the extra power Adamant would give.
+    nature: "Jolly",
+    sp: { hp: 2, attack: 32, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 },
     note: "Contrary turns Close Combat's own Defense/Sp. Def drop into a boost instead, so it gets bulkier the more it attacks, backed up by Brave Bird for coverage and Roost to stay healthy",
   },
 };
@@ -458,7 +577,7 @@ function wcEffectiveMoveType(move, ability) {
  * a strategy amendment) never reach this scoring path at all — see
  * wcPickMoves — so this only ever nudges the PLAYER's own filler picks.
  */
-function wcScoreMove(move, pokemonTypes, primaryCategory, threats, typeChart, format, ability, sheetMode) {
+function wcScoreMove(move, pokemonTypes, primaryCategory, threats, typeChart, format, ability, sheetMode, teamContext) {
   const effectiveType = wcEffectiveMoveType(move, ability);
   const threatEffectiveness =
     threats.reduce((sum, t) => sum + wcEffectivenessOf(typeChart, effectiveType, t.types), 0) / threats.length;
@@ -474,6 +593,29 @@ function wcScoreMove(move, pokemonTypes, primaryCategory, threats, typeChart, fo
   const weatherBoostType = { sun: "Fire", rain: "Water" }[ownWeather];
   if (weatherBoostType && effectiveType === weatherBoostType) abilityBonus += 1;
   if (ability === "Contrary" && wcMoveHasOwnStatDrop(move)) abilityBonus += 2;
+
+  // Teammate move synergy (see wcGenerateBuild's opts.teamSoFar handling):
+  // teamContext is only ever set once a REAL teammate build earlier in
+  // this same team-generation pass already established something worth
+  // reacting to.
+  if (teamContext) {
+    // A teammate's own ability is already setting real weather -- give
+    // the same boosted-type bonus the OWN-ability case above gets,
+    // unless this Pokemon is already getting it for its own ability
+    // (avoids double-counting the same weather twice).
+    if (!weatherBoostType && teamContext.weatherType && effectiveType === teamContext.weatherType) {
+      abilityBonus += 1;
+    }
+    // The team already has real, built speed-control/redirection support
+    // (Trick Room, Tailwind, or Follow Me/Rage Powder) and this Pokemon
+    // is a genuine beneficiary of it (reuses wcArchetypeBeneficiaryScore's
+    // existing bulky/fast/high-offense checks) -- lean into an aggressive
+    // moveset rather than duplicate utility the team already has covered.
+    const OFFENSE_FAVORING_ARCHETYPES = new Set(["trickroom", "tailwind", "redirect"]);
+    if (teamContext.isBeneficiary && OFFENSE_FAVORING_ARCHETYPES.has(teamContext.archetypeType) && move.category !== "Status") {
+      abilityBonus += 0.5;
+    }
+  }
 
   let otsPenalty = 0;
   if (sheetMode === "open" && stab === 0 && move.category !== "Status") otsPenalty -= 0.75;
@@ -524,7 +666,7 @@ function wcMoveIsExpected(move, pokemonName, pokemonTypes, ability) {
  * "keep type differences as common as able, without affecting strength":
  * variety happens whenever it's close to free, not at a cost.
  */
-function wcPickMoves(pokemon, learnableNames, movesData, primaryCategory, threats, typeChart, forcedMoves, format, ability, sheetMode) {
+function wcPickMoves(pokemon, learnableNames, movesData, primaryCategory, threats, typeChart, forcedMoves, format, ability, sheetMode, teamContext) {
   const learnableSet = new Set(learnableNames);
   const candidates = learnableNames
     .map((name) => movesData.find((m) => m.name === name))
@@ -537,7 +679,7 @@ function wcPickMoves(pokemon, learnableNames, movesData, primaryCategory, threat
 
   const remaining = candidates
     .filter((m) => !picks.includes(m.name))
-    .map((m) => ({ move: m, score: wcScoreMove(m, pokemon.types, primaryCategory, threats, typeChart, format, ability, sheetMode) }));
+    .map((m) => ({ move: m, score: wcScoreMove(m, pokemon.types, primaryCategory, threats, typeChart, format, ability, sheetMode, teamContext) }));
 
   const typeCounts = {};
   picks.forEach((name) => {
@@ -614,6 +756,11 @@ function wcLiveMegaSetFor(megaFormName, baseSpeciesName, liveMetaBuilds) {
   return {
     moves: best.moves,
     item: stoneItem,
+    // Real Nature, when the live pipeline actually logged one for this
+    // build (live_meta_builds.nature) -- see wcFetchLiveMetaBuilds in
+    // teams.js. null (never a guess) when it wasn't captured, same
+    // "silently defer" contract as every other optional live field here.
+    nature: best.nature || null,
     note: `confirmed by real Regulation M-B tournament results — held ${stoneItem} in ${best.timesUsed} real tournament entries${best.winRate != null ? ` (${best.winRate}% wins)` : ""}`,
   };
 }
@@ -653,20 +800,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
 
   const primaryKey = wcPickPrimaryOffense(effectiveBaseStats);
   const role = opts.forceRole || wcPickRole(effectiveBaseStats);
-  // Locked builds: opts.lockedBuild ({nature, sp, moves}) is a permanent,
-  // user-set build for this BASE species (see supabase/migrations/
-  // 0008_locked_builds.sql) that this function should reuse verbatim
-  // instead of picking one algorithmically. Nature and moves (below,
-  // via forcedMoves) always apply, Mega or not -- but a locked Stat
-  // Point spread was tuned against the base species' own stats, so it
-  // only applies when this build is actually staying in base form
-  // (effectivePokemon still === the passed-in pokemon, i.e. no auto-Mega
-  // branch fired above); a slot that auto-opts into a very different
-  // Mega stat line gets a freshly-picked spread for THAT stat line
-  // instead of the base lock's numbers forced onto it.
   const isBaseForm = effectivePokemon === pokemon;
-  const nature = opts.lockedBuild ? opts.lockedBuild.nature : wcPickNature(primaryKey, role);
-  const sp = opts.lockedBuild && isBaseForm ? { ...opts.lockedBuild.sp } : wcPickSP(primaryKey, role, effectiveBaseStats);
   const primaryCategory = primaryKey === "attack" ? "Physical" : "Special";
 
   // Milestone 13: this Pokémon's own real ability (data/abilities.json),
@@ -680,10 +814,55 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   // there's no hand-curated set for it, fall back to a live-tournament-
   // confirmed one (wcLiveMegaSetFor) before giving up on a real set
   // entirely -- never attempted for a non-Mega pick, since that's a
-  // separate, bigger question this follow-up doesn't touch.
-  const metaSet =
-    WINCON_META_KNOWN_SETS[effectivePokemon.name] ||
-    (forcedStoneItem ? wcLiveMegaSetFor(effectivePokemon.name, pokemon.name, opts.liveMetaBuilds) : null);
+  // separate, bigger question this follow-up doesn't touch. Kept separate
+  // from `metaSet` below (curatedSet is ONLY ever a real
+  // WINCON_META_KNOWN_SETS entry) because a curated Nature/Stat Point
+  // spread (see the beta-tester fix note above WINCON_META_KNOWN_SETS) is
+  // static, hand-tuned data -- it's never something wcLiveMegaSetFor can
+  // supply, since the Limitless pipeline has no EV/Stat Point field at
+  // all (see 0007_live_limitless_meta.sql's own header comment).
+  const curatedSet = WINCON_META_KNOWN_SETS[effectivePokemon.name];
+  const metaSet = curatedSet || (forcedStoneItem ? wcLiveMegaSetFor(effectivePokemon.name, pokemon.name, opts.liveMetaBuilds) : null);
+
+  // Locked builds: opts.lockedBuild ({nature, sp, moves}) is a permanent,
+  // user-set build for this BASE species (see supabase/migrations/
+  // 0008_locked_builds.sql) that this function should reuse verbatim
+  // instead of picking one algorithmically. Nature and moves (below,
+  // via forcedMoves) always apply, Mega or not -- but a locked Stat
+  // Point spread was tuned against the base species' own stats, so it
+  // only applies when this build is actually staying in base form
+  // (effectivePokemon still === the passed-in pokemon, i.e. no auto-Mega
+  // branch fired above); a slot that auto-opts into a very different
+  // Mega stat line gets a freshly-picked spread for THAT stat line
+  // instead of the base lock's numbers forced onto it.
+  //
+  // Beta-tester fix: a curated real set's own nature/sp (see the note
+  // above WINCON_META_KNOWN_SETS) now wins over the generic heuristic the
+  // same way its moves/item already did -- this is what actually fixes
+  // "Incineroar adamant full 32HP and 32 ATK", which was happening
+  // because Incineroar's real moves/item WERE curated but its Nature/Stat
+  // Points silently were not, so it fell through to the heuristic anyway.
+  // A live-tournament-sourced nature (metaSet.nature, Mega-only -- see
+  // wcLiveMegaSetFor) is honored too, but never a live sp -- that field
+  // genuinely doesn't exist in the live data.
+  //
+  // Note curatedSet.sp does NOT need the isBaseForm guard opts.lockedBuild
+  // needs below: curatedSet is looked up by effectivePokemon.name (the
+  // Mega-aware, already-resolved form), so a "Mega X" entry's own sp was
+  // curated against THAT Mega's real base stats to begin with (see the
+  // WINCON_META_KNOWN_SETS comments above) -- unlike a locked build,
+  // which is always keyed by the BASE species and tuned against ITS
+  // stats, so forcing it onto a very different auto-opted Mega form
+  // would be wrong.
+  const nature = opts.lockedBuild
+    ? opts.lockedBuild.nature
+    : (metaSet && metaSet.nature) || wcPickNature(primaryKey, role, effectiveBaseStats);
+  const sp = opts.lockedBuild && isBaseForm
+    ? { ...opts.lockedBuild.sp }
+    : curatedSet && curatedSet.sp
+      ? { ...curatedSet.sp }
+      : wcPickSP(primaryKey, role, effectiveBaseStats);
+
   let item;
   if (forcedStoneItem) {
     // A Mega Pokémon isn't in its Mega form without holding its own stone —
@@ -707,11 +886,36 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
     ...(opts.forcedMoves || []),
     ...((metaSet && metaSet.moves) || []),
   ];
+  // Teammate move synergy: opts.teamSoFar ([{name, moves}], see
+  // wcGenerateTeamBuilds below) is every teammate already built earlier
+  // in this SAME team-generation pass. Reuses wcDetectInProgressArchetype/
+  // wcArchetypeBeneficiaryScore (already shipped for Dream Team's
+  // species-picking step) rather than duplicating that logic -- those
+  // functions only ever read `member.learnableNames` (via .includes) and
+  // a real ability, so handing them each teammate's REAL chosen moves in
+  // place of a full learnset works unchanged, and is strictly more
+  // precise (a real Trick Room already on the team beats merely being
+  // ABLE to learn it). See wcScoreMove for what this actually changes.
+  let teamContext = null;
+  if (opts.teamSoFar && opts.teamSoFar.length > 0) {
+    const teammatePseudoMembers = opts.teamSoFar.map((t) => ({ name: t.name, learnableNames: t.moves }));
+    const inProgressArchetype = wcDetectInProgressArchetype(teammatePseudoMembers, format, opts.abilitiesData);
+    if (inProgressArchetype) {
+      const weatherType = { sun: "Fire", rain: "Water" }[inProgressArchetype.type] || null;
+      const isBeneficiary =
+        wcArchetypeBeneficiaryScore(
+          { name: effectivePokemon.name, baseStats: effectiveBaseStats, types: effectivePokemon.types },
+          inProgressArchetype.type,
+          opts.abilitiesData
+        ) > 0;
+      teamContext = { weatherType, archetypeType: inProgressArchetype.type, isBeneficiary };
+    }
+  }
   // Milestone 14: opts.sheetMode ("open" | "closed") — under Open Team
   // Sheet, wcPickMoves' own filler picks (never the forced ones above,
   // which are already meta staples regardless) lean away from pure
   // surprise coverage — see wcScoreMove's sheetMode handling.
-  const moves = wcPickMoves(effectivePokemon, learnableNames, movesData, primaryCategory, threats, typeChart, forcedMoves, format, ability, opts.sheetMode);
+  const moves = wcPickMoves(effectivePokemon, learnableNames, movesData, primaryCategory, threats, typeChart, forcedMoves, format, ability, opts.sheetMode, teamContext);
   return { nature, item, moves, sp };
 }
 
@@ -749,8 +953,15 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
   // Shared across every member below so wcPickItem never hands out the
   // same item twice for this team — see the Item Clause note above it.
   const usedItems = new Set();
+  // Teammate move synergy: grows as each member is built, in order, so
+  // wcGenerateBuild can see every REAL build that already exists earlier
+  // in this same pass (never a later one -- team-building is a strict
+  // left-to-right sequence, same as Item Clause's `usedItems` above) --
+  // see wcGenerateBuild's opts.teamSoFar handling and wcScoreMove's
+  // teamContext param for what this actually feeds.
+  const teamSoFar = [];
   members.forEach((m) => {
-    builds[m.name] = wcGenerateBuild(m, m.baseStats, m.learnableNames, movesData, threats, typeChart, {
+    const build = wcGenerateBuild(m, m.baseStats, m.learnableNames, movesData, threats, typeChart, {
       format: fmt,
       usedItems,
       megaForms: m.megaForms,
@@ -758,7 +969,10 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
       sheetMode,
       liveMetaBuilds,
       lockedBuild: lockedBuildsLookup && lockedBuildsLookup[m.name],
+      teamSoFar,
     });
+    builds[m.name] = build;
+    teamSoFar.push({ name: m.name, moves: build.moves });
   });
   return { builds };
 }
@@ -832,7 +1046,7 @@ function wcProposeSetterAmendment(member, build, wantMoves, wantRole, movesData,
   if (wantRole && wcActualRole(build) !== wantRole) {
     const primaryKey = wcPickPrimaryOffense(member.baseStats);
     const primaryCategory = primaryKey === "attack" ? "Physical" : "Special";
-    const newNature = wcPickNature(primaryKey, wantRole);
+    const newNature = wcPickNature(primaryKey, wantRole, member.baseStats);
     const newSp = wcPickSP(primaryKey, wantRole, member.baseStats);
     amendment.role = {
       from: wcActualRole(build),
