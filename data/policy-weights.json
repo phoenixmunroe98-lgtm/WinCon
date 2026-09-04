@@ -1,0 +1,22 @@
+{
+  "expectedDamageWeight": 1,
+  "guaranteedKoBonus": 10000,
+  "protectLowHpScore": 60,
+  "protectHighHpScore": 15,
+  "protectRepeatMultiplier": 0.3,
+  "tailwindUpScore": 50,
+  "tailwindAlreadyUpScore": 0,
+  "trickRoomUpScore": 30,
+  "trickRoomAlreadyUpScore": 0,
+  "redirectAllyLowScore": 40,
+  "redirectDefaultScore": 20,
+  "helpingHandScore": 30,
+  "selfBoostHealthyScore": 35,
+  "selfBoostLowScore": 10,
+  "healLowHpScore": 40,
+  "healHighHpScore": 5,
+  "statusTargetableScore": 25,
+  "statusUntargetableScore": 0,
+  "hazardScore": 20,
+  "defaultSupportScore": 10
+}
