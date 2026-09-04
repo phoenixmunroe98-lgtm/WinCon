@@ -582,11 +582,50 @@ function wcPickMoves(pokemon, learnableNames, movesData, primaryCategory, threat
  * which every renderer/scorer re-derives from the build's current item
  * rather than trusting whatever auto-build last decided.
  */
-function wcPickAutoMegaForm(megaForms, used) {
+/**
+ * "Untapped gem" follow-up to Milestone 34: the live-data counterpart to
+ * WINCON_META_KNOWN_SETS for Mega forms specifically. A real Champions
+ * decklist names a Pokémon that Mega Evolves in-battle by its BASE
+ * species (Mega Evolution isn't a separate team-sheet slot) with its
+ * Mega Stone as the held item -- see api/cron-limitless-sync.js's own
+ * header comment -- so live_meta_builds (wcFetchLiveMetaBuilds in
+ * teams.js) is keyed by base species too, one entry per distinct real
+ * build signature. This finds the entry (if any) whose item matches
+ * `megaFormName`'s own stone, with enough real sample size to trust it
+ * (same WC_META_USAGE_MIN_SAMPLE bar every other live-data layer uses),
+ * and reshapes it to look exactly like a WINCON_META_KNOWN_SETS entry
+ * ({ moves, item, note }) so every caller of that constant can accept
+ * either without caring which one it got. Returns null (defer to
+ * WINCON_META_KNOWN_SETS, or nothing) whenever there isn't a qualifying
+ * one yet -- a brand new pipeline, too few real games, or this specific
+ * Mega genuinely isn't being played. Always null for Singles, since
+ * liveMetaBuilds is always {} there.
+ */
+function wcLiveMegaSetFor(megaFormName, baseSpeciesName, liveMetaBuilds) {
+  const stoneItem = WINCON_MEGA_STONES[megaFormName];
+  if (!stoneItem || !liveMetaBuilds) return null;
+  const candidateBuilds = liveMetaBuilds[baseSpeciesName];
+  if (!Array.isArray(candidateBuilds)) return null;
+  const qualifying = candidateBuilds
+    .filter((b) => b.item === stoneItem && b.timesUsed >= WC_META_USAGE_MIN_SAMPLE && Array.isArray(b.moves) && b.moves.length > 0)
+    .sort((a, b) => b.timesUsed - a.timesUsed);
+  if (qualifying.length === 0) return null;
+  const best = qualifying[0];
+  return {
+    moves: best.moves,
+    item: stoneItem,
+    note: `confirmed by real Regulation M-B tournament results — held ${stoneItem} in ${best.timesUsed} real tournament entries${best.winRate != null ? ` (${best.winRate}% wins)` : ""}`,
+  };
+}
+
+function wcPickAutoMegaForm(megaForms, used, baseSpeciesName, liveMetaBuilds) {
   if (!Array.isArray(megaForms)) return null;
   return (
     megaForms.find(
-      (m) => WINCON_MEGA_STONES[m.name] && WINCON_META_KNOWN_SETS[m.name] && !used.has(WINCON_MEGA_STONES[m.name])
+      (m) =>
+        WINCON_MEGA_STONES[m.name] &&
+        !used.has(WINCON_MEGA_STONES[m.name]) &&
+        (WINCON_META_KNOWN_SETS[m.name] || wcLiveMegaSetFor(m.name, baseSpeciesName, liveMetaBuilds))
     ) || null
   );
 }
@@ -604,7 +643,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   let effectiveBaseStats = baseStats;
   let forcedStoneItem = WINCON_MEGA_STONES[pokemon.name] || null;
   if (!forcedStoneItem) {
-    const autoMega = wcPickAutoMegaForm(opts.megaForms, used);
+    const autoMega = wcPickAutoMegaForm(opts.megaForms, used, pokemon.name, opts.liveMetaBuilds);
     if (autoMega) {
       effectivePokemon = autoMega;
       effectiveBaseStats = autoMega.baseStats;
@@ -624,7 +663,15 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   // reflect what its own ability does, not just its base stats/typing.
   const ability = wcAbilityOf(opts.abilitiesData, effectivePokemon.name);
 
-  const metaSet = WINCON_META_KNOWN_SETS[effectivePokemon.name];
+  // "Untapped gem" follow-up: when this build ended up Mega (forcedStoneItem
+  // set, whether via a direct call or the auto-mega branch just above) and
+  // there's no hand-curated set for it, fall back to a live-tournament-
+  // confirmed one (wcLiveMegaSetFor) before giving up on a real set
+  // entirely -- never attempted for a non-Mega pick, since that's a
+  // separate, bigger question this follow-up doesn't touch.
+  const metaSet =
+    WINCON_META_KNOWN_SETS[effectivePokemon.name] ||
+    (forcedStoneItem ? wcLiveMegaSetFor(effectivePokemon.name, pokemon.name, opts.liveMetaBuilds) : null);
   let item;
   if (forcedStoneItem) {
     // A Mega Pokémon isn't in its Mega form without holding its own stone —
@@ -673,8 +720,14 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
  * @param sheetMode optional "open" | "closed" (Milestone 14) — passed
  *   straight through to wcGenerateBuild's move scoring; omitted entirely,
  *   every build generates exactly as it did before Milestone 14.
+ * @param liveMetaBuilds optional live_meta_builds lookup ("untapped gem"
+ *   follow-up to Milestone 34, see wcFetchLiveMetaBuilds in teams.js) —
+ *   passed straight through to wcGenerateBuild so a Mega form with real,
+ *   sample-size-qualified tournament results can be auto-opted into even
+ *   without a hand-curated WINCON_META_KNOWN_SETS entry; omitted
+ *   entirely, every build generates exactly as it did before this.
  */
-function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode) {
+function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds) {
   const fmt = wcNormalizeFormat(format);
   const builds = {};
   // Shared across every member below so wcPickItem never hands out the
@@ -687,6 +740,7 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
       megaForms: m.megaForms,
       abilitiesData,
       sheetMode,
+      liveMetaBuilds,
     });
   });
   return { builds };
@@ -1377,9 +1431,14 @@ function wcSameTypingPenalty(candidateTypes, teamTypesList) {
  * Same "explainable rules, not claimed-optimal" honesty as the rest of
  * auto-build.
  */
-/** A base species is "Mega-eligible" for this purpose only when auto-build would actually opt it into a real (not guessed) Mega set — see wcPickAutoMegaForm/WINCON_META_KNOWN_SETS. Same honesty bar as everywhere else in Milestone 10/11: this can't call every base species with a Mega form "Mega-eligible," since guessing a build for the ~60 with no real data behind them isn't something this project does. */
-function wcHasKnownMegaOption(candidate) {
-  return Array.isArray(candidate.megaForms) && candidate.megaForms.some((m) => WINCON_MEGA_STONES[m.name] && WINCON_META_KNOWN_SETS[m.name]);
+/** A base species is "Mega-eligible" for this purpose only when auto-build would actually opt it into a real (not guessed) Mega set — see wcPickAutoMegaForm/WINCON_META_KNOWN_SETS. Same honesty bar as everywhere else in Milestone 10/11: this can't call every base species with a Mega form "Mega-eligible," since guessing a build for the ~60 with no real data behind them isn't something this project does. "Untapped gem" follow-up: `liveMetaBuilds` (optional, trailing) lets a live-tournament-confirmed Mega (wcLiveMegaSetFor) qualify here too, not just a hand-curated one -- omitted entirely, this behaves exactly as before. */
+function wcHasKnownMegaOption(candidate, liveMetaBuilds) {
+  return (
+    Array.isArray(candidate.megaForms) &&
+    candidate.megaForms.some(
+      (m) => WINCON_MEGA_STONES[m.name] && (WINCON_META_KNOWN_SETS[m.name] || wcLiveMegaSetFor(m.name, candidate.name, liveMetaBuilds))
+    )
+  );
 }
 
 /**
@@ -2010,7 +2069,7 @@ function wcNotesIncludedSpecies(notes, pool) {
  * pool's format ("singles"/"doubles") -- passed through the same way, so
  * wcMetaBaselineArchetypeBonus applies alongside the real-usage nudge.
  */
-function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta) {
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
@@ -2107,11 +2166,11 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
   // now also depends on the coverage-aware score above -- so a rival (or
   // Dream Team) doesn't always reach for the same one or two "generically
   // best" Mega options regardless of what they're actually up against.
-  const megaAlreadyOnTeam = team.filter(wcHasKnownMegaOption).length;
-  const eligibleInPool = remaining.filter(wcHasKnownMegaOption);
+  const megaAlreadyOnTeam = team.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds)).length;
+  const eligibleInPool = remaining.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
   const guaranteedMegaCount = Math.max(0, Math.min(2 - megaAlreadyOnTeam, eligibleInPool.length, size - team.length));
   for (let g = 0; g < guaranteedMegaCount; g++) {
-    const best = bestFromRemaining(wcHasKnownMegaOption);
+    const best = bestFromRemaining((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
     if (!best) break;
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
@@ -2155,13 +2214,13 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     }
   }
 
-  const finalMegaCount = team.filter(wcHasKnownMegaOption).length;
+  const finalMegaCount = team.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds)).length;
   const megaNote =
     finalMegaCount >= 2
       ? `This team includes two Mega-capable picks — you can choose which one to actually Mega Evolve depending on the matchup, rather than being locked into one every game.`
       : finalMegaCount === 1
         ? `This team includes one Mega-capable pick — the only currently-obtained option with a real, tournament-informed Mega build (the others don't have confirmed data yet — see README.md).`
-        : `None of your currently obtained, eligible Pokémon have a real, tournament-informed Mega build yet (only Mega Charizard Y, Mega Floette, and Mega Staraptor do right now), so this team has no guaranteed Mega option this time.`;
+        : `None of your currently obtained, eligible Pokémon have a real, tournament-informed Mega build yet — either hand-curated or confirmed by real Regulation M-B tournament results (see README.md) — so this team has no guaranteed Mega option this time.`;
 
   return {
     chosen: team.map((m) => m.name),

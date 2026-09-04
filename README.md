@@ -1411,6 +1411,43 @@ no official Singles tournament to draw from, so `live_tier_stats` is
 always `{}` for Singles and every bonus/weight above stays at its neutral
 default there, same as the original Milestone 34 threats-list nudge.
 
+## Milestone 34 follow-up #2: an "untapped gem" Mega can now get discovered from live data
+
+The "Meta-informed auto-build" section above locks Dream Team, Auto-build,
+and the per-slot Autofill button to only ever opt a base Pokémon into one
+of its own Mega forms when there's a real, verified set behind it
+(`WINCON_META_KNOWN_SETS`) — deliberately, so nothing ever gets a guessed
+"good" Mega build. The cost of that honesty was that the list was
+hand-curated and small (originally just Mega Charizard Y, Mega Floette,
+and Mega Staraptor), so a genuinely strong Mega nobody had gotten around
+to researching yet — an "untapped gem" sitting in someone's own box —
+could never get proactively recommended or guaranteed a team slot, no
+matter how good it actually was.
+
+`wcLiveMegaSetFor` (strategy.js) closes that gap the same way the rest of
+this project prefers: with more real data, not a lowered bar. A real
+Champions decklist names a Pokémon that Mega Evolves in-battle by its
+BASE species holding its Mega Stone as the item (Mega Evolution isn't a
+separate team-sheet slot) — so `live_meta_builds` (read by the new
+`wcFetchLiveMetaBuilds` in teams.js) already captures real Mega usage,
+just keyed by base species rather than the Mega form's own name.
+`wcLiveMegaSetFor` looks up a base species' real builds, finds the one
+(if any) holding the right Mega Stone with enough real sample size to
+trust it (same bar as every other live-data layer in this project), and
+hands back a `{ moves, item, note }` set shaped exactly like a
+`WINCON_META_KNOWN_SETS` entry — so `wcHasKnownMegaOption`,
+`wcPickAutoMegaForm`, and `wcGenerateBuild` all accept either source
+without caring which one it came from.
+
+In practice: once a Mega genuinely starts seeing real Regulation M-B
+tournament play — any Mega, not just the three hand-curated ones — Dream
+Team can guarantee it a slot, Auto-build can opt into it, and Autofill
+can give it a real moveset, automatically, the moment the Limitless
+pipeline has seen enough real games with it. Nothing is invented for a
+Mega no one's actually playing; it just doesn't have to wait for someone
+to hand-research it anymore. Doubles-only, same as every other live-data
+feature — Limitless has no Singles tournament to draw from.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your

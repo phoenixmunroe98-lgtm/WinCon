@@ -87,6 +87,9 @@ let comboSynergyLookup = {};
 /** Milestone 34 (the Limitless pipeline): the live, cross-user usage/win-rate lookup from live_tier_stats (see wcFetchLiveTierStats in teams.js) for THIS page's format -- {} until init()/wcSyncTeamStateForAuth() resolves it, whenever signed out, or always for Singles (Limitless has no official Singles tournament data -- see wcFetchLiveTierStats's own comment). Consumed by wcAugmentThreatsWithLiveMeta (strategy.js), slotted between the real-logged-data and curated-baseline threat layers in getThreatsWithTypes() below. */
 let liveMetaLookup = {};
 
+/** "Untapped gem" follow-up to Milestone 34: the live_meta_builds lookup (see wcFetchLiveMetaBuilds in teams.js) for THIS page's format -- same lifecycle/gating as liveMetaLookup just above (refreshed alongside it in wcSyncTeamStateForAuth(), {} while signed out or for Singles). Consumed by wcLiveMegaSetFor (strategy.js, via wcHasKnownMegaOption/wcPickAutoMegaForm) so Dream Team/Auto-build/autofill can proactively opt into a Mega form with real, live-confirmed tournament usage even when it isn't on the hand-curated WINCON_META_KNOWN_SETS list. */
+let liveMetaBuildsLookup = {};
+
 /** Simulated Win Rate: data/meta-baseline.json's curated Worlds-2026-grounded reference teams for THIS page's format ({doubles:[...], singles:[...]} — only this page's own array is read from). Static file, not auth-gated, loaded once in init() alongside the rest of data/*.json. Feeds wcMetaBaselineSynergyNote/wcMetaBaselineArchetypeBonus/wcAugmentThreatsWithMetaBaseline (strategy.js) and is the opponent pool battle-sim-lineup.js samples against for the Simulated Win Rate itself. */
 let metaBaselineData = { doubles: [], singles: [] };
 
@@ -946,6 +949,9 @@ async function wcSyncTeamStateForAuth() {
   // teams.js) -- refreshed on the exact same schedule/event as the two
   // lookups just above, for the same reason.
   liveMetaLookup = wcTeamDataSignedIn ? await wcFetchLiveTierStats(WINCON_BUILDER_FORMAT) : {};
+  // "Untapped gem" follow-up: refreshed on the exact same schedule/event
+  // as liveMetaLookup just above, for the same reason.
+  liveMetaBuildsLookup = wcTeamDataSignedIn ? await wcFetchLiveMetaBuilds(WINCON_BUILDER_FORMAT) : {};
   if (wcTeamDataSignedIn) {
     activeId = teamState.activeId;
     // Checked BEFORE ensureActiveTeam() below (which can itself create a
@@ -2283,7 +2289,7 @@ function generateDreamTeam() {
     excludedNames,
     notesIncludedNames,
     droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup);
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup, liveMetaBuildsLookup);
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
@@ -2309,7 +2315,7 @@ function generateDreamTeam() {
   const members = picked.map((name) => eligible.find((m) => m.name === name));
 
   chosen = picked;
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup);
   builds = generated;
 
   invalidateComputedNotes();
@@ -2417,6 +2423,7 @@ function autoBuildSingle(baseName) {
       megaForms: megaFormsFor(baseName),
       abilitiesData: data.abilities,
       sheetMode,
+      liveMetaBuilds: liveMetaBuildsLookup,
     }
   );
 
@@ -2462,7 +2469,7 @@ function autoBuildTeam() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup);
 
   Object.entries(generated).forEach(([name, build]) => {
     builds[name] = build;
@@ -2480,7 +2487,7 @@ function autoBuildTeam() {
       ? ` ${megaCount} of them opted into a real Mega build — you can choose which one to actually Mega Evolve depending on the matchup.`
       : megaCount === 1
         ? ` One of them opted into a real Mega build.`
-        : ` None of these six have a real, tournament-informed Mega build yet (only Mega Charizard Y, Mega Floette, and Mega Staraptor do right now) — pick one of your obtained Pokémon with a Mega form and hold its own Mega Stone in the item field if you want to build around one by hand.`;
+        : ` None of these six have a real, tournament-informed Mega build yet — either hand-curated or confirmed by real Regulation M-B tournament results — pick one of your obtained Pokémon with a Mega form and hold its own Mega Stone in the item field if you want to build around one by hand.`;
 
   const formatLabel = WINCON_BUILDER_FORMAT === "singles" ? "Singles" : "Doubles";
   autogenHint.textContent =
@@ -3354,7 +3361,7 @@ function findYourRival() {
   // 8) — run here in reverse, with the pool being the WHOLE roster and
   // the "threats" being your own team, so it picks a 6 that specifically
   // answers your typing/stats well instead of a generic reference list.
-  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup);
+  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup, liveMetaBuildsLookup);
   const rivalMembers = rivalNames.map((name) => pool.find((m) => m.name === name));
 
   pendingRival = { rivalMembers, rivalBuilds: {}, reasoning, rivalSuccessRate: 0, myResult: null, customized: false };
@@ -3374,7 +3381,7 @@ function findYourRival() {
  */
 function recomputeRivalScoring() {
   const myThreats = myTeamAsThreats();
-  const { builds: rivalBuilds } = wcGenerateTeamBuilds(pendingRival.rivalMembers, data.moves, myThreats, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, "closed");
+  const { builds: rivalBuilds } = wcGenerateTeamBuilds(pendingRival.rivalMembers, data.moves, myThreats, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, "closed", liveMetaBuildsLookup);
   const rivalAsThreats = pendingRival.rivalMembers.map((m) => ({ name: m.name, types: m.types, role: "Your Rival" }));
   const myResult = scoreAgainstThreats(rivalAsThreats);
   pendingRival.rivalBuilds = rivalBuilds;

@@ -663,3 +663,50 @@ async function wcFetchLiveReferenceTeams(format) {
     return [];
   }
 }
+
+/**
+ * "Untapped gem" follow-up to Milestone 34: Auto-build/Dream Team only
+ * ever proactively opts a base species into one of its own Mega forms
+ * when there's a real, verified set behind that Mega -- historically
+ * only WINCON_META_KNOWN_SETS (strategy.js), a short hand-curated list.
+ * This reads live_meta_builds -- the same table wcFetchLiveTierStats
+ * reads from a different angle -- so a Mega WinCon hasn't hand-curated
+ * yet can still get proactively picked once real Regulation M-B
+ * tournament results actually confirm someone's fielding it (see
+ * wcLiveMegaSetFor in strategy.js for how a build row here, which is
+ * keyed by the BASE species name since that's how a real decklist names
+ * a Pokémon that Mega Evolves in-battle, gets matched back to a specific
+ * Mega form via its own Mega Stone item).
+ *
+ * Returns { [baseSpeciesName]: [{ item, moves, timesUsed, winRate }, ...] }
+ * -- every distinct real build signature seen for that species, not just
+ * Mega-stone ones, so wcLiveMegaSetFor can filter for the stone it cares
+ * about itself. Same Doubles-only / defensive-empty-object contract as
+ * wcFetchLiveTierStats -- {} whenever there's nothing to offer yet.
+ */
+async function wcFetchLiveMetaBuilds(format) {
+  if (format === "singles") return {};
+  if (typeof window === "undefined" || !window.wcSupabase) return {};
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase.from("live_meta_builds").select("species, item, moves, times_used, win_rate").eq("format", format),
+      5000
+    );
+    if (!selectResult) return {};
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return {};
+    const bySpecies = {};
+    rows.forEach((row) => {
+      if (!bySpecies[row.species]) bySpecies[row.species] = [];
+      bySpecies[row.species].push({
+        item: row.item || "",
+        moves: Array.isArray(row.moves) ? row.moves : [],
+        timesUsed: row.times_used || 0,
+        winRate: row.win_rate,
+      });
+    });
+    return bySpecies;
+  } catch {
+    return {};
+  }
+}
