@@ -90,6 +90,22 @@ let liveMetaLookup = {};
 /** "Untapped gem" follow-up to Milestone 34: the live_meta_builds lookup (see wcFetchLiveMetaBuilds in teams.js) for THIS page's format -- same lifecycle/gating as liveMetaLookup just above (refreshed alongside it in wcSyncTeamStateForAuth(), {} while signed out or for Singles). Consumed by wcLiveMegaSetFor (strategy.js, via wcHasKnownMegaOption/wcPickAutoMegaForm) so Dream Team/Auto-build/autofill can proactively opt into a Mega form with real, live-confirmed tournament usage even when it isn't on the hand-curated WINCON_META_KNOWN_SETS list. */
 let liveMetaBuildsLookup = {};
 
+/**
+ * Locked builds: a permanent, per-species Nature/Stat Points/moveset the
+ * signed-in user has pinned (see supabase/migrations/0008_locked_builds.sql
+ * and wcFetchLockedBuilds/wcSaveLockedBuild/wcDeleteLockedBuild in
+ * teams.js). {[species]: {nature, sp, moves}} for THIS page's format --
+ * refreshed alongside every other per-format lookup in
+ * wcSyncTeamStateForAuth(), {} while signed out. Read by every build-
+ * generation call site (autoBuildSingle/autoBuildTeam/generateDreamTeam,
+ * but deliberately NOT Your Rival's own synthesized-opponent generation)
+ * so a locked species' build is reused instead of regenerated, and by
+ * renderSlot/applyAmendmentsToBuilds to gate manual editing and redirect
+ * would-be strategy-amendment changes into a Current/Recommended preview
+ * (build.recommendedBuild/build.buildView) instead of silently applying.
+ */
+let lockedBuildsLookup = {};
+
 /** Simulated Win Rate: data/meta-baseline.json's curated Worlds-2026-grounded reference teams for THIS page's format ({doubles:[...], singles:[...]} — only this page's own array is read from). Static file, not auth-gated, loaded once in init() alongside the rest of data/*.json. Feeds wcMetaBaselineSynergyNote/wcMetaBaselineArchetypeBonus/wcAugmentThreatsWithMetaBaseline (strategy.js) and is the opponent pool battle-sim-lineup.js samples against for the Simulated Win Rate itself. */
 let metaBaselineData = { doubles: [], singles: [] };
 
@@ -952,6 +968,10 @@ async function wcSyncTeamStateForAuth() {
   // "Untapped gem" follow-up: refreshed on the exact same schedule/event
   // as liveMetaLookup just above, for the same reason.
   liveMetaBuildsLookup = wcTeamDataSignedIn ? await wcFetchLiveMetaBuilds(WINCON_BUILDER_FORMAT) : {};
+  // Locked builds: refreshed on the exact same schedule/event as every
+  // lookup above, for the same reason -- see wcFetchLockedBuilds in
+  // teams.js.
+  lockedBuildsLookup = wcTeamDataSignedIn ? await wcFetchLockedBuilds(WINCON_BUILDER_FORMAT) : {};
   if (wcTeamDataSignedIn) {
     activeId = teamState.activeId;
     // Checked BEFORE ensureActiveTeam() below (which can itself create a
@@ -1554,7 +1574,113 @@ function buildMegaViewToggle(build, baseName, megaName) {
   return wrap;
 }
 
+/**
+ * Locked builds: mirrors a species' permanent lock (lockedBuildsLookup,
+ * refreshed in wcSyncTeamStateForAuth() from wcFetchLockedBuilds in
+ * teams.js) onto this slot's OWN build object, so `build` itself is
+ * never stale relative to the lock -- meaning Export and every other
+ * direct reader of build.nature/.sp/.moves sees locked values for free,
+ * with zero changes anywhere else. A no-op when this species isn't
+ * locked. Called at the very top of renderSlot, every render.
+ */
+function wcApplyLockedBuildIfAny(baseName, build) {
+  const locked = lockedBuildsLookup[baseName];
+  if (!locked) return;
+  build.nature = locked.nature;
+  build.sp = { ...locked.sp };
+  build.moves = [...locked.moves];
+}
+
+/**
+ * The Nature/Stat Points/moves a slot is CURRENTLY SHOWING/scoring with
+ * right now -- mirrors wcSlotEffective's role for Mega/base, but for the
+ * locked-build Recommended preview instead. Returns build.recommendedBuild's
+ * fields while build.buildView === "recommended" and a recommendation
+ * exists (see applyAmendmentsToBuilds), else this slot's own (already
+ * lock-synced, if applicable) fields. Every consumer that reads
+ * build.nature/.sp/.moves for a CALCULATION (Matchup Score, Speed tiers,
+ * Simulated Win Rate) goes through this, exactly the way every Mega-
+ * aware consumer goes through wcSlotEffective.
+ */
+function wcEffectiveBuildFields(baseName, build) {
+  if (build && build.buildView === "recommended" && build.recommendedBuild) {
+    const rec = build.recommendedBuild;
+    return { nature: rec.nature, sp: { ...rec.sp }, moves: [...rec.moves] };
+  }
+  return { nature: build.nature, sp: build.sp, moves: build.moves };
+}
+
+/** The Current/Recommended toggle itself — only rendered once a slot actually has a pending recommendation (build.recommendedBuild, set by applyAmendmentsToBuilds when a strategy amendment would have touched a locked species' moves/nature/Stat Points). Reuses the same .format-toggle/.format-option pill styling as the Mega/Base toggle above. */
+function buildLockedBuildViewToggle(build, baseName) {
+  const wrap = document.createElement("div");
+  wrap.className = "format-toggle locked-build-view-toggle";
+
+  const isRecommended = build.buildView === "recommended";
+  [
+    { key: "current", label: "Current", title: `View and use ${baseName}'s locked build.` },
+    { key: "recommended", label: "Recommended", title: `Preview the strategy-recommended change to ${baseName}'s build without touching the lock.` },
+  ].forEach(({ key, label, title }) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    const isActive = (key === "recommended") === isRecommended;
+    btn.className = "format-option" + (isActive ? " is-active" : "");
+    btn.textContent = label;
+    btn.title = title;
+    btn.addEventListener("click", () => {
+      const nextView = key === "recommended" ? "recommended" : "current";
+      if ((build.buildView === "recommended") === (nextView === "recommended")) return;
+      build.buildView = nextView;
+      invalidateComputedNotes();
+      renderSlots();
+    });
+    wrap.appendChild(btn);
+  });
+  return wrap;
+}
+
+function isSlotBuildLockable(build) {
+  const spTotal = STATS.reduce((sum, s) => sum + (build.sp[s.key] || 0), 0);
+  const movesFilled = build.moves.filter(Boolean).length === 4;
+  return Boolean(build.nature) && movesFilled && spTotal === SP_TOTAL_CAP;
+}
+
+/** Locks/unlocks a species' build globally — see supabase/migrations/0008_locked_builds.sql and wcSaveLockedBuild/wcDeleteLockedBuild in teams.js. The local lockedBuildsLookup is updated immediately regardless of whether the cloud save/delete succeeds (fire-and-forget, same contract as every other cloud write in this project), so the UI never waits on network round-trip. */
+async function toggleLockedBuild(baseName, build) {
+  if (!wcRequireAccount((msg) => { autogenHint.textContent = msg; }, "lock a build")) return;
+  if (lockedBuildsLookup[baseName]) {
+    delete lockedBuildsLookup[baseName];
+    await wcDeleteLockedBuild(baseName, WINCON_BUILDER_FORMAT);
+  } else {
+    if (!isSlotBuildLockable(build)) {
+      autogenHint.textContent = `Fill in ${baseName}'s Nature, all 4 moves, and all ${SP_TOTAL_CAP} Stat Points before locking it.`;
+      return;
+    }
+    const fields = { nature: build.nature, sp: { ...build.sp }, moves: [...build.moves] };
+    lockedBuildsLookup[baseName] = fields;
+    await wcSaveLockedBuild(baseName, WINCON_BUILDER_FORMAT, fields);
+  }
+  invalidateComputedNotes();
+  renderSlots();
+}
+
+/** Adopts a previewed Recommended build as the new permanent lock for this species — the only way a strategy amendment's suggestion actually changes what "locked" means going forward (see applyAmendmentsToBuilds). */
+async function adoptRecommendedBuild(baseName, build) {
+  const rec = build.recommendedBuild;
+  if (!rec) return;
+  lockedBuildsLookup[baseName] = { nature: rec.nature, sp: { ...rec.sp }, moves: [...rec.moves] };
+  build.recommendedBuild = null;
+  build.buildView = "current";
+  await wcSaveLockedBuild(baseName, WINCON_BUILDER_FORMAT, lockedBuildsLookup[baseName]);
+  invalidateComputedNotes();
+  renderSlots();
+}
+
 function renderSlot(baseName, build) {
+  wcApplyLockedBuildIfAny(baseName, build);
+  const isLocked = Boolean(lockedBuildsLookup[baseName]);
+  const isPreviewing = build.buildView === "recommended" && Boolean(build.recommendedBuild);
+  const readOnlyBuildFields = isLocked || isPreviewing;
+  const previewFields = isPreviewing ? wcEffectiveBuildFields(baseName, build) : null;
   const basePokemon = data.pokemon.find((p) => p.name === baseName);
   const itemDerivedEffective = wcEffectivePokemon(data.pokemon, baseName, build.item) || basePokemon;
   const isMegaEligible = itemDerivedEffective.name !== baseName;
@@ -1586,6 +1712,10 @@ function renderSlot(baseName, build) {
 
   if (isMegaEligible) {
     title.appendChild(buildMegaViewToggle(build, baseName, itemDerivedEffective.name));
+  }
+
+  if (build.recommendedBuild) {
+    title.appendChild(buildLockedBuildViewToggle(build, baseName));
   }
 
   const types = document.createElement("div");
@@ -1630,16 +1760,51 @@ function renderSlot(baseName, build) {
   autofillBtn.type = "button";
   autofillBtn.className = "btn-secondary slot-autofill-btn";
   autofillBtn.textContent = "Auto-fill this Pokémon";
-  autofillBtn.title = `Fill in a real, tournament-informed Nature/item/moves/Stat Points build for ${baseName} — respects Item Clause against your other slots' items.`;
+  autofillBtn.title = `Fill in a real, tournament-informed Nature/item/moves/Stat Points build for ${baseName} — respects Item Clause against your other slots' items. Item still fills in even while locked; Nature/moves/Stat Points stay whatever's locked.`;
   autofillBtn.addEventListener("click", () => autoBuildSingle(baseName));
   header.appendChild(autofillBtn);
 
-  const spSection = buildStatPointAllocator(build, effective);
+  // Locked builds: a permanent, per-species Nature/Stat Points/moveset
+  // (see wcApplyLockedBuildIfAny above and supabase/migrations/
+  // 0008_locked_builds.sql) — the lock button is hidden while previewing
+  // a Recommended change, since "lock what, exactly" would be ambiguous
+  // before that preview is either adopted or dismissed.
+  const lockStatus = document.createElement("p");
+  lockStatus.className = "hint slot-lock-hint";
+  if (isPreviewing) {
+    lockStatus.textContent = `Previewing a recommended change to ${baseName}'s locked build — Nature/Stat Points/moves are read-only while previewing. Adopt it to make this the new lock, or switch back to Current to change nothing.`;
+    header.appendChild(lockStatus);
+  } else if (isLocked) {
+    lockStatus.textContent = `🔒 ${baseName}'s Nature/Stat Points/moves are locked — every team using ${baseName} reuses this exact build. Item and Ability stay free to edit or auto-fill.`;
+    header.appendChild(lockStatus);
+  }
+
+  if (!isPreviewing) {
+    const lockBtn = document.createElement("button");
+    lockBtn.type = "button";
+    lockBtn.className = "btn-secondary slot-lock-btn";
+    lockBtn.textContent = isLocked ? "🔓 Unlock this build" : "🔒 Lock this build";
+    lockBtn.title = isLocked
+      ? `Unlock ${baseName}'s build — every team using it goes back to normal auto-generation/manual editing.`
+      : `Lock ${baseName}'s current Nature/Stat Points/moves globally — every team that picks ${baseName} will use this exact build (item/ability stay free).`;
+    lockBtn.addEventListener("click", () => toggleLockedBuild(baseName, build));
+    header.appendChild(lockBtn);
+  } else {
+    const adoptBtn = document.createElement("button");
+    adoptBtn.type = "button";
+    adoptBtn.className = "btn-secondary slot-adopt-btn";
+    adoptBtn.textContent = "Adopt this build";
+    adoptBtn.title = `Make this recommended Nature/Stat Points/moves the new permanent lock for ${baseName}.`;
+    adoptBtn.addEventListener("click", () => adoptRecommendedBuild(baseName, build));
+    header.appendChild(adoptBtn);
+  }
+
+  const spSection = buildStatPointAllocator(build, effective, readOnlyBuildFields, previewFields);
 
   const row1 = document.createElement("div");
   row1.className = "slot-row";
   row1.append(
-    labeled("Nature", buildNatureSelect(build, spSection.refreshFinalStats)),
+    labeled("Nature", buildNatureSelect(build, spSection.refreshFinalStats, readOnlyBuildFields, previewFields && previewFields.nature)),
     buildItemField(build, effective.name, baseName)
   );
 
@@ -1656,7 +1821,7 @@ function renderSlot(baseName, build) {
   const moveOptions = learnset || data.moves.map((m) => m.name);
   const abilityName = abilityControl ? abilityControl.name : abilityInfo && abilityInfo.ability;
   for (let i = 0; i < 4; i++) {
-    moveGrid.appendChild(buildMoveField(build, i, moveOptions, effective, abilityName));
+    moveGrid.appendChild(buildMoveField(build, i, moveOptions, effective, abilityName, readOnlyBuildFields, previewFields && previewFields.moves[i]));
   }
 
   card.append(header, row1, moveGrid, spSection.el);
@@ -1673,21 +1838,24 @@ function labeled(labelText, control) {
   return wrap;
 }
 
-function buildNatureSelect(build, onNatureChange) {
+function buildNatureSelect(build, onNatureChange, readOnly, previewNature) {
   const select = document.createElement("select");
   const blank = document.createElement("option");
   blank.value = "";
   blank.textContent = "— choose —";
   select.appendChild(blank);
+  const displayNature = previewNature !== undefined && previewNature !== null ? previewNature : build.nature;
   data.natures.forEach((n) => {
     const opt = document.createElement("option");
     opt.value = n.name;
     opt.textContent = n.increasedStat
       ? `${n.name} (+${statLabel(n.increasedStat)} / −${statLabel(n.decreasedStat)})`
       : `${n.name} (neutral)`;
-    if (n.name === build.nature) opt.selected = true;
+    if (n.name === displayNature) opt.selected = true;
     select.appendChild(opt);
   });
+  select.disabled = Boolean(readOnly);
+  select.title = readOnly ? "Locked or previewing a recommendation — unlock, or switch back to Current, to edit." : "";
   select.addEventListener("mousedown", (event) => {
     if (!wcIsSignedIn()) {
       event.preventDefault();
@@ -1903,7 +2071,7 @@ function buildAbilityControl(build, effective, abilityInfo) {
  * hidden entirely: a tech move only matters once an opponent can see it
  * coming, so there's nothing useful to flag before that.
  */
-function buildMoveField(build, index, moveOptions, effectivePokemon, abilityName) {
+function buildMoveField(build, index, moveOptions, effectivePokemon, abilityName, readOnly, previewMove) {
   const wrap = document.createElement("label");
   wrap.className = "field";
 
@@ -1918,7 +2086,7 @@ function buildMoveField(build, index, moveOptions, effectivePokemon, abilityName
   tag.className = "move-tag";
   tag.hidden = true;
 
-  const input = buildMoveInput(build, index, moveOptions, meta, tag, effectivePokemon, abilityName);
+  const input = buildMoveInput(build, index, moveOptions, meta, tag, effectivePokemon, abilityName, readOnly, previewMove);
   refreshMoveMeta(input, meta, tag, effectivePokemon, abilityName);
 
   wrap.append(span, input, meta, tag);
@@ -1952,13 +2120,15 @@ function refreshMoveMeta(input, meta, tag, effectivePokemon, abilityName) {
   }
 }
 
-function buildMoveInput(build, index, moveOptions, meta, tag, effectivePokemon, abilityName) {
+function buildMoveInput(build, index, moveOptions, meta, tag, effectivePokemon, abilityName, readOnly, previewMove) {
   const input = document.createElement("input");
   input.type = "text";
   input.className = "move-input";
   input.autocomplete = "off";
-  input.value = build.moves[index] || "";
+  input.value = (previewMove !== undefined && previewMove !== null ? previewMove : build.moves[index]) || "";
   input.placeholder = "Click to see available moves…";
+  input.disabled = Boolean(readOnly);
+  input.title = readOnly ? "Locked or previewing a recommendation — unlock, or switch back to Current, to edit." : "";
 
   const commit = (value) => commitMoveValue(input, meta, tag, build, index, value, effectivePokemon, abilityName);
 
@@ -2131,7 +2301,7 @@ window.addEventListener("resize", () => {
  * needs `refreshFinalStats` too, since Nature also feeds the live stat below
  * but changes it in place rather than triggering a full renderSlots().
  */
-function buildStatPointAllocator(build, effectivePokemon) {
+function buildStatPointAllocator(build, effectivePokemon, readOnly, previewFields) {
   const wrap = document.createElement("div");
   wrap.className = "sp-allocator";
 
@@ -2149,9 +2319,15 @@ function buildStatPointAllocator(build, effectivePokemon) {
 
   const baseStats = data.baseStats.find((b) => b.name === effectivePokemon.name);
   const finalStatEls = {};
+  // Locked builds: while previewing a Recommended change, every read
+  // below goes through the preview's sp/nature instead of the real
+  // (locked) build fields — see wcEffectiveBuildFields. Outside of a
+  // preview this is just build.sp/build.nature, same as always.
+  const displaySp = previewFields ? previewFields.sp : build.sp;
 
   function refreshTotal() {
-    const total = STATS.reduce((sum, s) => sum + (build.sp[s.key] || 0), 0);
+    const sp = previewFields ? previewFields.sp : build.sp;
+    const total = STATS.reduce((sum, s) => sum + (sp[s.key] || 0), 0);
     totalBadge.textContent = `${total} / ${SP_TOTAL_CAP}`;
     totalBadge.classList.toggle("sp-over", total > SP_TOTAL_CAP);
   }
@@ -2168,10 +2344,12 @@ function buildStatPointAllocator(build, effectivePokemon) {
    */
   function refreshFinalStats() {
     if (!baseStats) return;
+    const sp = previewFields ? previewFields.sp : build.sp;
+    const nature = previewFields ? previewFields.nature : build.nature;
     WINCON_STAT_ORDER.forEach((s) => {
       const el = finalStatEls[s.key];
       if (!el) return;
-      el.textContent = String(wcCalcStat(baseStats[s.baseStatKey], s.key, build.sp[s.key], build.nature, data.natures));
+      el.textContent = String(wcCalcStat(baseStats[s.baseStatKey], s.key, sp[s.key], nature, data.natures));
     });
   }
 
@@ -2184,7 +2362,9 @@ function buildStatPointAllocator(build, effectivePokemon) {
     input.type = "number";
     input.min = "0";
     input.max = String(SP_STAT_CAP);
-    input.value = String(build.sp[s.key] || 0);
+    input.value = String(displaySp[s.key] || 0);
+    input.disabled = Boolean(readOnly);
+    input.title = readOnly ? "Locked or previewing a recommendation — unlock, or switch back to Current, to edit." : "";
     input.addEventListener("mousedown", (event) => {
       if (!wcIsSignedIn()) event.preventDefault();
     });
@@ -2315,7 +2495,7 @@ function generateDreamTeam() {
   const members = picked.map((name) => eligible.find((m) => m.name === name));
 
   chosen = picked;
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup);
   builds = generated;
 
   // Milestone 36: "the dream team is providing a full strategised team for
@@ -2447,6 +2627,7 @@ function autoBuildSingle(baseName) {
       abilitiesData: data.abilities,
       sheetMode,
       liveMetaBuilds: liveMetaBuildsLookup,
+      lockedBuild: lockedBuildsLookup[baseName],
     }
   );
 
@@ -2492,7 +2673,7 @@ function autoBuildTeam() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup);
 
   Object.entries(generated).forEach(([name, build]) => {
     builds[name] = build;
@@ -2755,16 +2936,37 @@ function handleMakeChanges() {
   }
 }
 
+/**
+ * Locked builds: a strategy amendment's moves/role change is NEVER
+ * applied directly to a locked species' build -- that's the whole point
+ * of "permanent." Instead it's overlaid (via wcApplyAmendmentToFields in
+ * strategy.js) onto a build.recommendedBuild preview, discoverable via
+ * the Current/Recommended toggle (buildLockedBuildViewToggle) rendered
+ * in renderSlot. Item is never locked, so an item amendment always
+ * applies directly regardless of lock status. Called from both
+ * handleMakeChanges()'s manual "Make changes" flow and
+ * generateDreamTeam()'s auto-apply-on-finish flow, unchanged.
+ */
 function applyAmendmentsToBuilds(amendments) {
   (amendments || []).forEach((amendment) => {
     const build = builds[amendment.pokemon];
     if (!build) return;
-    if (amendment.moves) build.moves[amendment.moves.slotIndex] = amendment.moves.to;
-    if (amendment.role) {
-      build.nature = amendment.role.natureTo;
-      build.sp = { ...amendment.role.spTo };
-    }
     if (amendment.item) build.item = amendment.item.to;
+
+    const isLocked = Boolean(lockedBuildsLookup[amendment.pokemon]);
+    if (!isLocked) {
+      if (amendment.moves) build.moves[amendment.moves.slotIndex] = amendment.moves.to;
+      if (amendment.role) {
+        build.nature = amendment.role.natureTo;
+        build.sp = { ...amendment.role.spTo };
+      }
+      return;
+    }
+
+    if (!amendment.moves && !amendment.role) return;
+    const baseFields = build.recommendedBuild || { nature: build.nature, sp: build.sp, moves: build.moves };
+    build.recommendedBuild = wcApplyAmendmentToFields(baseFields, amendment);
+    if (build.buildView !== "recommended") build.buildView = "current";
   });
 }
 
@@ -2826,9 +3028,15 @@ function effectivePokemonFor(name, build) {
 function scoreAgainstThreats(threatsList) {
   const roster = chosen
     .map((name) => {
-      const build = builds[name] || {};
-      const pokemon = effectivePokemonFor(name, build);
+      const rawBuild = builds[name] || {};
+      const pokemon = effectivePokemonFor(name, rawBuild);
       const baseStats = pokemon && data.baseStats.find((b) => b.name === pokemon.name);
+      // Locked builds: while previewing a Recommended change, Matchup
+      // Score should score with the preview's Nature/Stat Points/moves,
+      // exactly like it already follows build.megaView for Mega/base --
+      // see wcEffectiveBuildFields. Item/ability/megaView etc. are
+      // untouched (spread first, then overridden).
+      const build = { ...rawBuild, ...wcEffectiveBuildFields(name, rawBuild) };
       return pokemon ? { pokemon, build, baseStats } : null;
     })
     .filter(Boolean);
@@ -2918,9 +3126,18 @@ function refreshSimulatedWinRate() {
 
 /** Gathers everything the Worker needs from this page's own data/state -- see wcSimulateTeamWinRate's own doc comment in battle-sim-lineup.js for the exact shape. */
 function buildSimulatedWinRatePayload() {
+  // Locked builds: the Worker should simulate with whatever's actually
+  // being VIEWED right now, same as Matchup Score/Speed tiers above --
+  // a chosen member currently previewing a Recommended change gets that
+  // preview's Nature/Stat Points/moves, everyone else is unaffected.
+  const effectiveBuilds = {};
+  chosen.forEach((name) => {
+    const build = builds[name] || {};
+    effectiveBuilds[name] = { ...build, ...wcEffectiveBuildFields(name, build) };
+  });
   return {
     chosenSix: chosen,
-    builds,
+    builds: effectiveBuilds,
     format: WINCON_BUILDER_FORMAT,
     sheetMode,
     pokemonList: data.pokemon,
@@ -3264,7 +3481,10 @@ function renderSpeedTiers() {
       const pokemon = effectivePokemonFor(name, build);
       const baseStats = pokemon && data.baseStats.find((b) => b.name === pokemon.name);
       if (!pokemon || !baseStats || !build.sp) return null;
-      const speed = wcCalcStat(baseStats.spe, "speed", build.sp.speed || 0, build.nature, data.natures);
+      // Locked builds: follows the Recommended preview while one's
+      // active, same as scoreAgainstThreats above.
+      const eff = wcEffectiveBuildFields(name, build);
+      const speed = wcCalcStat(baseStats.spe, "speed", (eff.sp && eff.sp.speed) || 0, eff.nature, data.natures);
       return { name: pokemon.name, speed };
     })
     .filter(Boolean);

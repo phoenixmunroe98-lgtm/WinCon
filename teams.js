@@ -710,3 +710,93 @@ async function wcFetchLiveMetaBuilds(format) {
     return {};
   }
 }
+
+/**
+ * Locked builds: a permanent, per-species Nature/Stat Points/moveset that
+ * every team reuses instead of wcGenerateBuild regenerating one -- see
+ * supabase/migrations/0008_locked_builds.sql's header for the full
+ * design writeup. Unlike every fetch above this one, `locked_builds` is
+ * a normal user-owned/user-writable table (same RLS shape as `teams`),
+ * not a read-only-to-everyone live-data table -- so this file also needs
+ * real save/delete functions, not just a fetch.
+ *
+ * Returns { [species]: { nature, sp, moves } } for the signed-in user's
+ * locked builds in this format, {} whenever there's nothing to offer
+ * (signed out, no Supabase, or a network hiccup) -- same defensive-empty-
+ * object contract as every other lookup in this file, so a caller never
+ * needs a separate "is this even available" check.
+ */
+async function wcFetchLockedBuilds(format) {
+  if (typeof window === "undefined" || !window.wcSupabase) return {};
+  const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
+  if (!userId) return {};
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase.from("locked_builds").select("species, nature, sp, moves").eq("user_id", userId).eq("format", format),
+      5000
+    );
+    if (!selectResult) return {};
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return {};
+    const bySpecies = {};
+    rows.forEach((row) => {
+      bySpecies[row.species] = {
+        nature: row.nature || "",
+        sp: row.sp || {},
+        moves: Array.isArray(row.moves) ? row.moves : [],
+      };
+    });
+    return bySpecies;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Locks (or updates the lock on) one species' build for this format.
+ * Fire-and-forget, same shape as wcPushMatchResultToCloud below -- a
+ * network hiccup here must never block the local lock from taking
+ * effect (builder.js updates its own in-memory lockedBuildsLookup
+ * regardless of whether this call succeeds), only from persisting past
+ * this session. Returns true/false so the caller can decide whether to
+ * mention a sync failure.
+ */
+async function wcSaveLockedBuild(species, format, fields) {
+  if (typeof window === "undefined" || !window.wcSupabase) return false;
+  const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
+  if (!userId) return false;
+  try {
+    const { error } = await window.wcSupabase.from("locked_builds").upsert(
+      {
+        user_id: userId,
+        species,
+        format,
+        nature: fields.nature,
+        sp: fields.sp,
+        moves: fields.moves,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,species,format" }
+    );
+    if (error) console.warn("WinCon: locked locally, but couldn't sync this build to your account", error.message);
+    return !error;
+  } catch (err) {
+    console.warn("WinCon: locked locally, but couldn't sync this build to your account", err && err.message);
+    return false;
+  }
+}
+
+/** Unlocks one species' build for this format -- see wcSaveLockedBuild above for the fire-and-forget contract. */
+async function wcDeleteLockedBuild(species, format) {
+  if (typeof window === "undefined" || !window.wcSupabase) return false;
+  const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
+  if (!userId) return false;
+  try {
+    const { error } = await window.wcSupabase.from("locked_builds").delete().eq("user_id", userId).eq("species", species).eq("format", format);
+    if (error) console.warn("WinCon: unlocked locally, but couldn't remove this lock from your account", error.message);
+    return !error;
+  } catch (err) {
+    console.warn("WinCon: unlocked locally, but couldn't remove this lock from your account", err && err.message);
+    return false;
+  }
+}

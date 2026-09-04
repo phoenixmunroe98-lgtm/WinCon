@@ -653,8 +653,20 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
 
   const primaryKey = wcPickPrimaryOffense(effectiveBaseStats);
   const role = opts.forceRole || wcPickRole(effectiveBaseStats);
-  const nature = wcPickNature(primaryKey, role);
-  const sp = wcPickSP(primaryKey, role, effectiveBaseStats);
+  // Locked builds: opts.lockedBuild ({nature, sp, moves}) is a permanent,
+  // user-set build for this BASE species (see supabase/migrations/
+  // 0008_locked_builds.sql) that this function should reuse verbatim
+  // instead of picking one algorithmically. Nature and moves (below,
+  // via forcedMoves) always apply, Mega or not -- but a locked Stat
+  // Point spread was tuned against the base species' own stats, so it
+  // only applies when this build is actually staying in base form
+  // (effectivePokemon still === the passed-in pokemon, i.e. no auto-Mega
+  // branch fired above); a slot that auto-opts into a very different
+  // Mega stat line gets a freshly-picked spread for THAT stat line
+  // instead of the base lock's numbers forced onto it.
+  const isBaseForm = effectivePokemon === pokemon;
+  const nature = opts.lockedBuild ? opts.lockedBuild.nature : wcPickNature(primaryKey, role);
+  const sp = opts.lockedBuild && isBaseForm ? { ...opts.lockedBuild.sp } : wcPickSP(primaryKey, role, effectiveBaseStats);
   const primaryCategory = primaryKey === "attack" ? "Physical" : "Special";
 
   // Milestone 13: this Pokémon's own real ability (data/abilities.json),
@@ -690,7 +702,11 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   // caller already asked for (e.g. a strategy amendment's setter move),
   // never ahead of it — see wcPickMoves, which only takes the first 4 and
   // skips anything the Pokémon can't actually learn.
-  const forcedMoves = [...(opts.forcedMoves || []), ...((metaSet && metaSet.moves) || [])];
+  const forcedMoves = [
+    ...((opts.lockedBuild && opts.lockedBuild.moves.filter(Boolean)) || []),
+    ...(opts.forcedMoves || []),
+    ...((metaSet && metaSet.moves) || []),
+  ];
   // Milestone 14: opts.sheetMode ("open" | "closed") — under Open Team
   // Sheet, wcPickMoves' own filler picks (never the forced ones above,
   // which are already meta staples regardless) lean away from pure
@@ -727,7 +743,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
  *   without a hand-curated WINCON_META_KNOWN_SETS entry; omitted
  *   entirely, every build generates exactly as it did before this.
  */
-function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds) {
+function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup) {
   const fmt = wcNormalizeFormat(format);
   const builds = {};
   // Shared across every member below so wcPickItem never hands out the
@@ -741,9 +757,32 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
       abilitiesData,
       sheetMode,
       liveMetaBuilds,
+      lockedBuild: lockedBuildsLookup && lockedBuildsLookup[m.name],
     });
   });
   return { builds };
+}
+
+/**
+ * Locked builds: overlays ONE Auto-build-strategy amendment (see
+ * wcAnalyzeTeamStrategy's return shape) onto a plain {nature, sp, moves}
+ * triple and returns a NEW triple -- never mutates its input. Pure and
+ * DOM-free so it's independently testable. Used by builder.js's
+ * applyAmendmentsToBuilds to build up a "what would this locked
+ * Pokémon's build look like with this recommendation applied" preview
+ * (build.recommendedBuild) instead of ever touching the actual locked
+ * fields directly. An `item`-only amendment has nothing to overlay here
+ * -- item is never locked, so applyAmendmentsToBuilds applies it to the
+ * real build directly and never calls this for it.
+ */
+function wcApplyAmendmentToFields(fields, amendment) {
+  const next = { nature: fields.nature, sp: { ...fields.sp }, moves: [...fields.moves] };
+  if (amendment.moves) next.moves[amendment.moves.slotIndex] = amendment.moves.to;
+  if (amendment.role) {
+    next.nature = amendment.role.natureTo;
+    next.sp = { ...amendment.role.spTo };
+  }
+  return next;
 }
 
 /** "fast" if this build actually invested its Stat Points into Speed, "bulky" otherwise — reads the finished build, not just the Pokémon's raw base stats, since two builds of the same Pokémon can play very differently. */

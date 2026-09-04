@@ -1509,6 +1509,60 @@ result, exactly as asked for ("Look at synergy between pairs, tripples
 and groups of 4 pokemon... the dream team is providing a full
 strategised team for the user to try out").
 
+## Locked builds: a permanent, per-species Nature/Stat Points/moveset
+
+Every build-generating flow in this project — per-slot Autofill, Auto-build
+team, Dream Team, and Auto-build strategy's amendments — could previously
+overwrite a Pokémon's Nature, Stat Point spread, and moveset at any time.
+There was no way to say "this is Charizard's build, permanently, stop
+regenerating it." Locked builds are exactly that.
+
+**Locking is global and per-format, not per-team.** Lock Charizard's build
+once from the "🔒 Lock this build" button on its slot card, and every team
+that picks Charizard — Dream Team, Auto-build team, Autofill, a fresh manual
+pick — reuses that exact Nature/Stat Points/moveset from then on, in every
+team, for as long as you're signed in. Doubles and Singles keep separate
+locks for the same species, since a real build for one format often doesn't
+suit the other. A new `locked_builds` Supabase table (migration `0008`)
+stores one row per `(you, species, format)`, read by `wcGenerateBuild`
+(strategy.js) to short-circuit its own Nature/Stat-Point/move-picking logic
+via a new `opts.lockedBuild` input, and written directly from the Builder
+page via `wcSaveLockedBuild`/`wcDeleteLockedBuild` (teams.js) — the same
+user-owned, user-writable table shape `teams` itself already uses.
+
+**Only Nature, Stat Points, and moves are locked.** Item and Ability stay
+free — Autofill still picks a fresh item for a locked Pokémon, a Mega Stone
+swap still works normally, and the ability field is untouched exactly as
+before (it was already a pure display default/manual override, never
+touched by the build generator in the first place). One deliberate edge
+case: if a locked species auto-opts into a Mega form, its locked Nature and
+moves still apply, but its Stat Point spread is freshly picked against the
+Mega's own (often very different) base stats rather than blindly forcing a
+spread tuned for the base line onto it.
+
+**A recommended change never silently overwrites a lock — it shows up as a
+toggle, exactly like the Mega/Base toggle already does for Mega Evolution.**
+When "Auto-build strategy" (or Dream Team's own auto-apply step) would
+normally change a locked Pokémon's moves or Nature/Stat Points, that change
+is computed exactly as before, but instead of applying it directly,
+`applyAmendmentsToBuilds` (builder.js) overlays it onto a
+`build.recommendedBuild` preview via the new `wcApplyAmendmentToFields`
+(strategy.js) — the locked build itself is never touched. A "Current /
+Recommended" pill appears on the slot card (`buildLockedBuildViewToggle`,
+structurally identical to the existing Mega/Base pill): switching to
+Recommended previews the suggested Nature/Stat Points/moves — read-only,
+same as viewing a lock — and feeds them live into Matchup Score, Speed
+tiers, and Simulated Win Rate (`wcEffectiveBuildFields`, the same resolver
+role `wcSlotEffective` already plays for Mega/base), while Team type
+coverage is untouched since it's type-chart-only. Switching back to Current
+restores the real locked build with zero changes. A separate "Adopt this
+build" button is the only way a preview actually becomes the new permanent
+lock.
+
+Your Rival's own synthesized opponent roster deliberately never reads your
+locked builds — Rival is a hypothetical enemy team, and your own tuned
+personal builds have no business leaking onto a simulated opponent.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your
