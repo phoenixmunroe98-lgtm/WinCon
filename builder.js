@@ -84,6 +84,9 @@ let metaUsageLookup = {};
 /** Simulated Win Rate: the real, cross-user combo (bring-4/3 lineup) win-rate lookup from combo_synergy_stats (see wcFetchComboSynergyStats in teams.js) for THIS page's format — {} until init() resolves it or whenever signed out, same gating as metaUsageLookup. Consumed by wcComboSynergyBonus (strategy.js) when ranking candidate lineups in battle-sim-lineup.js. */
 let comboSynergyLookup = {};
 
+/** Milestone 34 (the Limitless pipeline): the live, cross-user usage/win-rate lookup from live_tier_stats (see wcFetchLiveTierStats in teams.js) for THIS page's format -- {} until init()/wcSyncTeamStateForAuth() resolves it, whenever signed out, or always for Singles (Limitless has no official Singles tournament data -- see wcFetchLiveTierStats's own comment). Consumed by wcAugmentThreatsWithLiveMeta (strategy.js), slotted between the real-logged-data and curated-baseline threat layers in getThreatsWithTypes() below. */
+let liveMetaLookup = {};
+
 /** Simulated Win Rate: data/meta-baseline.json's curated Worlds-2026-grounded reference teams for THIS page's format ({doubles:[...], singles:[...]} — only this page's own array is read from). Static file, not auth-gated, loaded once in init() alongside the rest of data/*.json. Feeds wcMetaBaselineSynergyNote/wcMetaBaselineArchetypeBonus/wcAugmentThreatsWithMetaBaseline (strategy.js) and is the opponent pool battle-sim-lineup.js samples against for the Simulated Win Rate itself. */
 let metaBaselineData = { doubles: [], singles: [] };
 
@@ -363,7 +366,7 @@ function getObtainedNames() {
   }
 }
 
-/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. (Milestone 20 grew a separate, literally-every-Pokémon list for the old Matchup Score section's own win/loss display, since this curated 16 was found too skewed toward Mega forms for that purpose — that whole section, and the list built for it, were retired outright once Simulated Win Rate shipped; this curated list lives on for the picking/building features above, which are about a team's shape, not a win-rate figure.) Milestone 28: also layered with any real, cross-user "frequently faced and genuinely scary" species from meta_usage_stats (see wcAugmentThreatsWithMetaUsage in strategy.js and metaUsageLookup below), then with data/meta-baseline.json's curated Worlds-grounded reference field (see wcAugmentThreatsWithMetaBaseline in strategy.js and metaBaselineData below) — both silently a no-op until real data/curated entries are actually there to add. */
+/** The curated 16-Pokémon reference threat list (data/starter-threats.json) with each entry's real types attached — still used by Generate Dream Team, Auto-build team, and Auto-build strategy, so their picks/roles never quietly disagree about what a threat's types are. (Milestone 20 grew a separate, literally-every-Pokémon list for the old Matchup Score section's own win/loss display, since this curated 16 was found too skewed toward Mega forms for that purpose — that whole section, and the list built for it, were retired outright once Simulated Win Rate shipped; this curated list lives on for the picking/building features above, which are about a team's shape, not a win-rate figure.) Milestone 28: also layered with any real, cross-user "frequently faced and genuinely scary" species from meta_usage_stats (see wcAugmentThreatsWithMetaUsage in strategy.js and metaUsageLookup below), then (Milestone 34) with real Regulation M-B tournament results from live_tier_stats (see wcAugmentThreatsWithLiveMeta in strategy.js and liveMetaLookup below), then with data/meta-baseline.json's curated Worlds-grounded reference field (see wcAugmentThreatsWithMetaBaseline in strategy.js and metaBaselineData below) — all three silently a no-op until real data/curated entries are actually there to add. */
 function getThreatsWithTypes() {
   const curated = data.threats.map((t) => {
     const p = data.pokemon.find((x) => x.name === t.name);
@@ -372,7 +375,8 @@ function getThreatsWithTypes() {
     return { ...t, types: p ? p.types : [], baseStats, ability };
   });
   const withRealUsage = wcAugmentThreatsWithMetaUsage(curated, metaUsageLookup, pokemonByName);
-  return wcAugmentThreatsWithMetaBaseline(withRealUsage, metaBaselineData, WINCON_BUILDER_FORMAT, pokemonByName);
+  const withLiveMeta = wcAugmentThreatsWithLiveMeta(withRealUsage, liveMetaLookup, pokemonByName);
+  return wcAugmentThreatsWithMetaBaseline(withLiveMeta, metaBaselineData, WINCON_BUILDER_FORMAT, pokemonByName);
 }
 
 // ---------------------------------------------------------------------------
@@ -937,6 +941,11 @@ async function wcSyncTeamStateForAuth() {
   // teams.js) -- refreshed on the exact same schedule/event as
   // metaUsageLookup just above, for the same reason.
   comboSynergyLookup = wcTeamDataSignedIn ? await wcFetchComboSynergyStats(WINCON_BUILDER_FORMAT) : {};
+  // Milestone 34: live_tier_stats is gated behind sign-in the same way
+  // meta_usage_stats/combo_synergy_stats are (see wcFetchLiveTierStats in
+  // teams.js) -- refreshed on the exact same schedule/event as the two
+  // lookups just above, for the same reason.
+  liveMetaLookup = wcTeamDataSignedIn ? await wcFetchLiveTierStats(WINCON_BUILDER_FORMAT) : {};
   if (wcTeamDataSignedIn) {
     activeId = teamState.activeId;
     // Checked BEFORE ensureActiveTeam() below (which can itself create a

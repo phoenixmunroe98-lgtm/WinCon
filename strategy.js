@@ -1742,16 +1742,58 @@ function wcAugmentThreatsWithMetaUsage(threats, metaUsage, allPokemonByName) {
 }
 
 /**
+ * Milestone 34 (the Limitless pipeline): the live-data counterpart to
+ * wcAugmentThreatsWithMetaUsage above, and the curated-data COUNTERPART's
+ * own counterpart -- this project now layers threats by trust level three
+ * deep: WinCon's own logged battles (wcAugmentThreatsWithMetaUsage, most
+ * trusted -- real players, this site) first, then real Regulation M-B
+ * tournament results from Limitless (this function, `liveMeta` from
+ * wcFetchLiveTierStats in teams.js / live_tier_stats, kept fresh by
+ * api/cron-limitless-sync.js) filling whatever gaps that leaves, then
+ * data/meta-baseline.json's small hand-curated set
+ * (wcAugmentThreatsWithMetaBaseline) as the final fallback floor. Same
+ * "silently a no-op until there's real data" contract as its neighbors --
+ * a name already added by the more-trusted layer above is never
+ * duplicated or overwritten here.
+ *
+ * Doubles-only in practice: `liveMeta` is always {} for Singles (see
+ * wcFetchLiveTierStats's own comment on why -- Limitless has no official
+ * Singles tournament format to draw from), so this is a real no-op for
+ * Singles calls, not a bug.
+ */
+function wcAugmentThreatsWithLiveMeta(threats, liveMeta, allPokemonByName) {
+  if (!liveMeta) return threats;
+  const existingNames = new Set(threats.map((t) => t.name));
+  const additions = [];
+  Object.keys(liveMeta).forEach((name) => {
+    if (existingNames.has(name)) return;
+    const stat = liveMeta[name];
+    if (!stat || stat.timesUsed < WC_META_USAGE_MIN_SAMPLE) return;
+    if (stat.winRate == null || stat.winRate < 55) return; // only genuinely-scary real opponents, not a coin flip -- same bar as wcAugmentThreatsWithMetaUsage
+    const pokemon = allPokemonByName && allPokemonByName[name];
+    if (!pokemon) return;
+    additions.push({
+      name,
+      role: `Live tournament threat — won ${stat.winRate}% of the time across ${stat.timesUsed} real Regulation M-B entries`,
+      types: pokemon.types,
+    });
+  });
+  return additions.length ? [...threats, ...additions] : threats;
+}
+
+/**
  * Simulated Win Rate feature: the curated-data counterpart to
- * wcAugmentThreatsWithMetaUsage above -- adds any data/meta-baseline.json
- * reference-team member (Worlds 2026 rosters + WinCon's own archetype
- * recombinations) not already in the curated/real-data threat list, so
- * Auto-build's defensive scoring has a real Worlds-grounded floor even
- * with ZERO logged battles on this site yet -- the "ground floor... base
- * of global information" Phoenix asked for. Called alongside (after)
- * wcAugmentThreatsWithMetaUsage, never instead of it -- real logged data
- * always wins when both exist, since that function runs first and this
- * one skips any name already present.
+ * wcAugmentThreatsWithMetaUsage/wcAugmentThreatsWithLiveMeta above -- adds
+ * any data/meta-baseline.json reference-team member (Worlds 2026 rosters +
+ * WinCon's own archetype recombinations) not already in the curated/real-
+ * data threat list, so Auto-build's defensive scoring has a real Worlds-
+ * grounded floor even with ZERO logged battles AND zero live tournament
+ * data on this site yet -- the "ground floor... base of global
+ * information" Phoenix asked for. Called last of the three trust tiers
+ * (see wcAugmentThreatsWithLiveMeta's own comment for the full three-deep
+ * order) -- real logged data and real live tournament data both always
+ * win when either exists, since both run first and this one skips any
+ * name already present.
  */
 function wcAugmentThreatsWithMetaBaseline(threats, metaBaseline, format, allPokemonByName) {
   const referenceTeams = (metaBaseline && metaBaseline[format]) || [];

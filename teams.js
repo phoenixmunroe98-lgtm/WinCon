@@ -590,3 +590,76 @@ async function wcFetchComboSynergyStats(format) {
     return {};
   }
 }
+
+/**
+ * Milestone 34 (the Limitless pipeline): the live, cross-user usage/win-rate
+ * lookup sourced from real Regulation M-B tournament results, kept fresh by
+ * the api/cron-limitless-sync.js Vercel Cron job — NOT by anything this
+ * page does directly. Reads live_tier_stats (supabase/migrations/
+ * 0007_live_limitless_meta.sql), same read-only-to-signed-in RLS shape and
+ * same defensive "never throws, {} on any failure" contract as
+ * wcFetchMetaUsageStats above. Keyed by species name -> {timesUsed,
+ * winRate} for wcAugmentThreatsWithLiveMeta (strategy.js) to read.
+ *
+ * IMPORTANT: Limitless only tracks Doubles (game=VGC) tournaments — there
+ * is no official Singles tournament format to pull from (see README's
+ * Milestone 34 section). A `format: "singles"` call always resolves to {}
+ * for that reason, not because of any fetch failure — Singles keeps
+ * relying entirely on data/meta-baseline.json's curated fallback and
+ * WinCon's own logged battles, exactly as before this milestone existed.
+ */
+async function wcFetchLiveTierStats(format) {
+  if (format === "singles") return {};
+  if (typeof window === "undefined" || !window.wcSupabase) return {};
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase.from("live_tier_stats").select("species, times_used, win_rate").eq("format", format),
+      5000
+    );
+    if (!selectResult) return {};
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return {};
+    const lookup = {};
+    rows.forEach((row) => {
+      lookup[row.species] = { timesUsed: row.times_used || 0, winRate: row.win_rate };
+    });
+    return lookup;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Milestone 34 sibling to wcFetchLiveTierStats above, reading full real
+ * tournament teams from live_reference_teams instead of per-species
+ * aggregates. NOT currently wired into any UI or into Simulated Win Rate's
+ * opponent pool — Milestone 34's own research confirmed a Limitless
+ * decklist has no Stat Points/EV-equivalent field, so a row here can't be
+ * turned into a battle-ready spec the way battle-sim-lineup.js's
+ * wcBattlerSpecForSlot needs (see that migration's own header comment).
+ * This exists now so a future feature (e.g. "real teams from this event")
+ * has a ready-to-use fetch helper the moment one's built, following this
+ * file's existing pattern exactly. Same Doubles-only / defensive-empty-
+ * object contract as wcFetchLiveTierStats.
+ */
+async function wcFetchLiveReferenceTeams(format) {
+  if (format === "singles") return [];
+  if (typeof window === "undefined" || !window.wcSupabase) return [];
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase
+        .from("live_reference_teams")
+        .select("source_tournament_name, placing, record_wins, record_losses, record_ties, members")
+        .eq("format", format)
+        .order("captured_at", { ascending: false })
+        .limit(50),
+      5000
+    );
+    if (!selectResult) return [];
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return [];
+    return rows;
+  } catch {
+    return [];
+  }
+}

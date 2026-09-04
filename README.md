@@ -1290,6 +1290,91 @@ itself is showing. Changing the item away from the stone still wins
 outright — the toggle disappears and the slot reverts to base, the same
 as it always has.
 
+## Milestone 34: the Limitless pipeline
+
+WinCon's competitive grounding before this milestone was two things:
+`meta_usage_stats` (real, but only as good as how many games WinCon's own
+users have logged) and `data/meta-baseline.json` (a small, hand-curated,
+point-in-time set of reference teams). This milestone adds a third, live
+tier in between: real Regulation M-B tournament results pulled straight
+from [Limitless](https://play.limitlesstcg.com)'s public tournaments API,
+refreshed automatically once a day by a new Vercel Cron job
+(`api/cron-limitless-sync.js`) — the first thing in WinCon that runs on a
+schedule instead of only when someone has the site open.
+
+**What it pulls, and what it doesn't.** Limitless's `game=VGC` tournaments
+are Doubles only — Champions Singles has no official tournament format, it's
+ladder-only, so there's nothing there to pull for Singles. Every table this
+milestone adds only ever gets Doubles rows; Singles keeps relying entirely
+on `data/meta-baseline.json` and WinCon's own logged battles, exactly as
+before. A Limitless decklist entry is also confirmed (by hand, against the
+live API) to stop at species/item/ability/moves/nature/tera — there's no
+Stat Points/EV-equivalent field anywhere in it. That means the real teams
+this pulls in can't be turned into battle-ready Simulated Win Rate opponents
+(the engine needs a full Stat Points allocation per member) — they're
+stored (`live_reference_teams`) for a possible future use, but are not wired
+into Simulated Win Rate's opponent pool in this milestone.
+
+**Four new tables** (`supabase/migrations/0007_live_limitless_meta.sql`),
+same read-only-to-signed-in, written-only-by-the-service-role shape as
+`meta_usage_stats`: `live_tier_stats` (per-species usage/win rate),
+`live_meta_builds` (the real ability/item/nature/move combinations actually
+played, with how often and how well each did), `live_reference_teams` (full
+real tournament teams, see the caveat above), and `live_pipeline_runs` (one
+row per pipeline run, so a failed or partial run is visible instead of
+silent).
+
+**One new trust tier.** `strategy.js`'s existing threat-layering (WinCon's
+own logged battles first, most trusted, then a curated fallback) now has a
+real middle layer: `wcAugmentThreatsWithLiveMeta` reads `live_tier_stats`
+(via `wcFetchLiveTierStats` in `teams.js`) and adds any real, genuinely-
+scary tournament species not already named by the more-trusted logged-battle
+layer, before the curated baseline gets its turn. Same "silently a no-op
+until there's real data" contract every layer here has always had — a brand
+new deployment (or one that hasn't run the cron job yet) behaves exactly as
+it did before this milestone.
+
+**The pipeline job itself** is plain Node with zero npm dependencies (no
+`package.json` needed) — it calls Limitless's API and Supabase's own REST
+API (PostgREST) directly with `fetch`, using a service-role key that's never
+committed anywhere. It's idempotent (safe to re-run — upserts, not inserts),
+fails soft per-tournament (one bad response is logged and skipped, never
+aborts the whole run), processes a bounded batch per run (any backlog just
+gets picked up over the next few days rather than risking one run timing
+out), and has a `?dryRun=1` mode that computes and reports exactly what it
+would write without writing anything — safe to try from a plain browser tab
+before ever trusting the real schedule.
+
+**One thing this milestone deliberately did NOT do:** email Limitless about
+their terms of service for automated polling, redistribution, or
+attribution (their docs don't say either way — see the Milestone 34 planning
+notes). It builds against their public, keyless tier, at a conservative
+once-a-day schedule, on the assumption that's reasonable for a small
+community tool — worth revisiting if that assumption ever turns out wrong.
+
+### Setting it up (in addition to the steps below)
+
+1. Run `supabase/migrations/0007_live_limitless_meta.sql` in Supabase's SQL
+   Editor, same as every migration before it (after `0001` through `0006`).
+2. In your Vercel project's Settings → Environment Variables, add:
+   - `SUPABASE_SERVICE_ROLE_KEY` — from Supabase's Project Settings → API
+     (the **service_role** key, NOT the anon key already in
+     `supabase-config.js` — this one is powerful and must never be
+     committed to git or shipped in any client-side file).
+   - `CRON_SECRET` — any long random string you generate yourself (a
+     password manager's "generate password" button works fine). Vercel
+     automatically sends this as the job's own Authorization header on its
+     scheduled runs, which is what stops anyone else from triggering it.
+3. Redeploy (pushing to GitHub triggers this automatically). Vercel reads
+   `vercel.json`'s `crons` entry and starts running the job daily from then
+   on — check Vercel's dashboard under your project's "Cron Jobs" tab to
+   confirm it's scheduled, and its "Logs" to see each run's result once one
+   has actually fired.
+4. To check everything's wired correctly before waiting for the schedule,
+   visit `https://<your-site>.vercel.app/api/cron-limitless-sync?dryRun=1`
+   in a browser — it computes and returns exactly what a real run would
+   write (as JSON), without writing anything or needing any secret.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your
@@ -1326,13 +1411,19 @@ somewhere new:
    depend on it; the site still runs without one, but only in its
    signed-out, 6-Pokémon-preview mode). In that project's SQL Editor,
    paste in and run each file under `supabase/migrations/`, **in order**
-   (`0001_init.sql` through `0005_meta_usage_stats.sql`) — each one only
+   (`0001_init.sql` through `0007_live_limitless_meta.sql`) — each one only
    adds to what the last one created, so running them out of order or
    skipping one will fail partway through with a clear "relation/column
    does not exist" error telling you which one you missed. Then copy that
    project's URL and anon (public) key from Project Settings → API into
    `supabase-config.js` — see that file's own header comment for why the
    anon key is safe to commit and what must never go anywhere near it.
+5. Set up the Limitless pipeline's two Vercel environment variables and
+   confirm its scheduled job — see the "Setting it up" steps under
+   Milestone 34 above for the exact walkthrough. The site works fully
+   without this step too (the live tier is an enhancement, same as
+   everything above it in that layered fallback), it just won't have any
+   real Limitless tournament data until it's done.
 
 ## What's next (see the WinCon Blueprint for the full roadmap)
 
