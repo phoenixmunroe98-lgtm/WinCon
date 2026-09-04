@@ -259,7 +259,10 @@
         effectiveness, critical hits and a random damage roll, stat-stage boosts and drops, and the curated
         ability/item effects and move secondary effects WinCon has mechanical data for — against a reference field
         grounded in real Pokémon Champions World Championships 2026 results plus known competitive archetypes (see
-        data/meta-baseline.json). In-battle move choices are a competent greedy AI, not perfect play, and only the
+        data/meta-baseline.json). Every opponent battled is still one of those hand-verified teams — nothing here
+        gets invented — but a team whose real members are currently winning a lot in live Regulation M-B
+        tournaments gets sampled somewhat more often, so the reported win rate leans toward what's actually being
+        played right now. In-battle move choices are a competent greedy AI, not perfect play, and only the
         Pokémon/abilities/items/moves WinCon has curated mechanical data for get their special effects modeled —
         everything else still battles on its base stats, typing, and raw move power, so treat this as a strong
         estimate, not a lab-perfect one. If your team has one or two Mega-Evolution-eligible members, each is
@@ -275,8 +278,10 @@
             Synthesized from the full Champions roster — not just what you've obtained — specifically to give your
             current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
             reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
-            typing and stats. Unlike Simulated Win Rate above, this stays a fast explainable heuristic (Matchup
-            Score's own type/Speed comparison), not a full battle simulation — see its own note below.
+            typing and stats — with a real nudge toward whatever's actually winning in live Regulation M-B
+            tournaments right now, same as Auto-build gets. Unlike Simulated Win Rate above, this stays a fast
+            explainable heuristic (Matchup Score's own type/Speed comparison), not a full battle simulation — see
+            its own note below.
           </p>
         </div>
         <button id="rival-btn" class="btn-primary">Find Your Rival</button>

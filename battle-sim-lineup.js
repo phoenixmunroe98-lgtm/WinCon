@@ -198,9 +198,13 @@ function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, fo
 /**
  * Top-level entry point for the Builder's Simulated Win Rate. `payload`
  * carries the user's built 6 (`chosenSix` + `builds`), format/sheetMode,
- * every data file the engine needs, and the Worlds-grounded reference
- * field (`metaBaseline`, see data/meta-baseline.json + battle-sim-
- * baseline.js). Picks the best lineup via a real-engine successive-
+ * every data file the engine needs, the Worlds-grounded reference field
+ * (`metaBaseline`, see data/meta-baseline.json + battle-sim-
+ * baseline.js), and (Milestone 34 follow-up) `liveTierStats` -- the same
+ * live_tier_stats lookup that already augments the threats list
+ * (wcFetchLiveTierStats in teams.js), used here to weight how often each
+ * reference team gets sampled, never to add a new one (see
+ * wcLiveUsageWeightForTeam in strategy.js). Picks the best lineup via a real-engine successive-
  * halving search (wcSelectBestLineupBySuccessiveHalving, Milestone 35
  * Task 1 -- see its own doc comment for why), then runs the real Monte
  * Carlo simulation at full accuracy on it once per Mega scenario — see
@@ -212,7 +216,7 @@ function wcSimulateTeamWinRate(payload) {
     chosenSix, builds, format, sheetMode,
     pokemonList, baseStatsData, abilitiesData, movesData,
     moveEffects, abilityEffects, itemEffects, typeChart, natures,
-    metaBaseline, comboLookup,
+    metaBaseline, comboLookup, liveTierStats,
   } = payload;
   const n = format === "singles" ? 3 : 4;
   const lineups = wcEnumerateLineups(chosenSix, n);
@@ -225,7 +229,18 @@ function wcSimulateTeamWinRate(payload) {
   const referenceTeamDefs = (metaBaseline && metaBaseline[format]) || [];
   const referenceTeams = referenceTeamDefs.map((team) => wcResolveBaselineTeam(team, pokemonList, baseStatsData, abilitiesData));
 
-  const oppPool = referenceTeamDefs.map((team, i) => ({ id: team.id, label: team.label, specs: referenceTeams[i] }));
+  // Milestone 34 follow-up: a reference team whose real members are
+  // currently winning a lot in live Regulation M-B tournaments gets
+  // sampled somewhat more often (see wcLiveUsageWeightForTeam in
+  // strategy.js) -- never a new opponent, just how often an already-
+  // trusted one gets battled. Neutral (1) with no live data, so this is
+  // exactly today's behavior until the pipeline has something to offer.
+  const oppPool = referenceTeamDefs.map((team, i) => ({
+    id: team.id,
+    label: team.label,
+    specs: referenceTeams[i],
+    weight: wcLiveUsageWeightForTeam(team.members, liveTierStats),
+  }));
   const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode };
 
   const bestLineup = wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup);

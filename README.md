@@ -1375,6 +1375,42 @@ community tool — worth revisiting if that assumption ever turns out wrong.
    in a browser — it computes and returns exactly what a real run would
    write (as JSON), without writing anything or needing any secret.
 
+## Milestone 34 follow-up: live data also informs Your Rival and Simulated Win Rate
+
+Milestone 34 originally only fed `live_tier_stats` into the Builder's
+threats list (`wcAugmentThreatsWithLiveMeta`). Two more places asked for
+the same real, current data, and got it in two different ways depending
+on what was actually possible:
+
+- **Your Rival and Auto-build's Dream Team** now both get a genuine
+  candidate-scoring nudge (`wcLiveMetaCandidateBonus` in strategy.js,
+  folded into `wcDreamTeamCandidateScore` — the same scorer both features
+  share) toward a species that's winning a lot in real Regulation M-B
+  tournaments right now, same trust-tier idea as the existing real-usage
+  (`wcMetaUsageCandidateBonus`) and curated-baseline
+  (`wcMetaBaselineArchetypeBonus`) bonuses it sits alongside. Zero effect
+  when there's no live data yet — same "silent no-op" contract as every
+  other live-data layer in this project.
+
+- **Simulated Win Rate** deliberately does NOT let a real Limitless
+  decklist into the actual battle pool — Limitless's tournament data has
+  no stat-spread (EV/Stat Points) field at all (see
+  `0007_live_limitless_meta.sql`'s own header comment), and guessing one
+  would mean part of a reported win-rate percentage was invented,
+  dressed up as real tournament fact. Instead, `wcLiveUsageWeightForTeam`
+  (strategy.js) changes how OFTEN each of `data/meta-baseline.json`'s own
+  hand-verified reference teams gets sampled by the Monte Carlo engine,
+  based on how well its real members are currently doing in live
+  tournaments (0.5x-2x the normal sample, capped both ways, neutral 1x
+  with no live data). Every opponent actually battled is still a
+  real, sourced team — this only shifts how much attention each one
+  gets, toward whatever's actually being played right now.
+
+Both are Doubles-only in effect (not just in principle) — Limitless has
+no official Singles tournament to draw from, so `live_tier_stats` is
+always `{}` for Singles and every bonus/weight above stays at its neutral
+default there, same as the original Milestone 34 threats-list nudge.
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your

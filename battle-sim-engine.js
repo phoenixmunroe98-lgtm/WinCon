@@ -559,27 +559,35 @@ function wcApplySwitchInAbilities(incoming, opposing, abilityEffects, rng) {
 
 /**
  * @param myLineupSpecs This side's resolved 4/3-lineup battler specs.
- * @param oppLineupPool Array of { id, label, specs } — one entry per
- *   sampled opponent team (the meta-baseline field, or a single real
+ * @param oppLineupPool Array of { id, label, specs, weight? } — one entry
+ *   per sampled opponent team (the meta-baseline field, or a single real
  *   opponent team for the Battle Tracker's Team vs Team matchup).
- * @param runsPerOpponent How many simulated battles to run against each
- *   pool entry (battle-sim-lineup.js picks the concrete number).
+ *   `weight` (Milestone 34 follow-up, optional) scales this opponent's
+ *   own share of `runsPerOpponent` -- see wcLiveUsageWeightForTeam in
+ *   strategy.js. Missing/falsy `weight` behaves exactly as before (1x),
+ *   so every existing caller that never sets it is unaffected.
+ * @param runsPerOpponent Baseline number of simulated battles per pool
+ *   entry (battle-sim-lineup.js picks the concrete number) -- an
+ *   individual opponent's actual run count is this scaled by its own
+ *   `weight`.
  */
 function wcRunMonteCarlo(myLineupSpecs, oppLineupPool, runsPerOpponent, format, data, rng) {
   const roll = rng || Math.random;
   let wins = 0;
   let losses = 0;
   let draws = 0;
+  let totalRuns = 0;
   const perOpponent = oppLineupPool.map((opp) => {
+    const opponentRuns = Math.max(1, Math.round(runsPerOpponent * (opp.weight || 1)));
     let oppWins = 0;
-    for (let i = 0; i < runsPerOpponent; i += 1) {
+    for (let i = 0; i < opponentRuns; i += 1) {
       const result = wcRunOneBattle(myLineupSpecs, opp.specs, format, data, roll);
       if (result === "win") { wins += 1; oppWins += 1; }
       else if (result === "loss") losses += 1;
       else draws += 1;
     }
-    return { id: opp.id, label: opp.label, winRate: oppWins / runsPerOpponent };
+    totalRuns += opponentRuns;
+    return { id: opp.id, label: opp.label, winRate: oppWins / opponentRuns };
   });
-  const totalRuns = oppLineupPool.length * runsPerOpponent;
   return { winRate: totalRuns > 0 ? wins / totalRuns : 0, wins, losses, draws, totalRuns, perOpponent };
 }

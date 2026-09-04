@@ -2283,7 +2283,7 @@ function generateDreamTeam() {
     excludedNames,
     notesIncludedNames,
     droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT);
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup);
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
@@ -2899,6 +2899,7 @@ function buildSimulatedWinRatePayload() {
     natures: data.natures,
     metaBaseline: metaBaselineData,
     comboLookup: comboSynergyLookup,
+    liveTierStats: liveMetaLookup,
   };
 }
 
@@ -3353,7 +3354,7 @@ function findYourRival() {
   // 8) — run here in reverse, with the pool being the WHOLE roster and
   // the "threats" being your own team, so it picks a 6 that specifically
   // answers your typing/stats well instead of a generic reference list.
-  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT);
+  const { chosen: rivalNames, reasoning } = wcPickDreamTeam(pool, myThreats, data.typeChart, 6, undefined, undefined, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup);
   const rivalMembers = rivalNames.map((name) => pool.find((m) => m.name === name));
 
   pendingRival = { rivalMembers, rivalBuilds: {}, reasoning, rivalSuccessRate: 0, myResult: null, customized: false };

@@ -1636,6 +1636,77 @@ function wcMetaBaselineReasoningNote(candidateName, metaBaseline, format) {
 }
 
 /**
+ * Milestone 34 follow-up: the live-data counterpart to
+ * wcMetaUsageCandidateBonus/wcMetaBaselineArchetypeBonus above, at a
+ * trust level between the two -- real Regulation M-B tournament results
+ * (live_tier_stats, via wcFetchLiveTierStats in teams.js /
+ * api/cron-limitless-sync.js) are more current than the static,
+ * hand-curated meta-baseline field, but less trusted than this site's
+ * own logged battles (nobody's actually played WITH or AGAINST this pick
+ * on WinCon itself yet). Used by Dream Team's own candidate scoring and
+ * Your Rival's (which reuses the same scorer "in reverse" -- see
+ * wcDreamTeamCandidateScore's doc comment), so a species genuinely
+ * winning right now in real tournaments nudges toward being picked
+ * either way. Same "silently 0 until real data exists" contract as its
+ * neighbors -- always 0 for Singles, since liveMeta is always {} there
+ * (see wcFetchLiveTierStats's own comment on why).
+ */
+const WC_LIVE_META_CANDIDATE_WEIGHT = 1.75;
+
+function wcLiveMetaCandidateBonus(name, liveMeta) {
+  const stat = liveMeta && liveMeta[name];
+  if (!stat || !(stat.timesUsed >= WC_META_USAGE_MIN_SAMPLE) || stat.winRate == null) return 0;
+  return ((stat.winRate - 50) / 50) * WC_LIVE_META_CANDIDATE_WEIGHT;
+}
+
+/** Reasoning-list counterpart to wcLiveMetaCandidateBonus, same "explainable, not a black box" standard as its neighbors. Returns "" when there's nothing worth saying yet -- no data, too few tournament entries, or a real win rate too close to even to call out. */
+function wcLiveMetaReasoningNote(name, liveMeta) {
+  const stat = liveMeta && liveMeta[name];
+  if (!stat || !(stat.timesUsed >= WC_META_USAGE_MIN_SAMPLE) || stat.winRate == null) return "";
+  if (Math.abs(stat.winRate - 50) < 5) return "";
+  return stat.winRate >= 50
+    ? ` It's also winning big in real Regulation M-B tournaments right now: ${stat.winRate}% across ${stat.timesUsed} real entries.`
+    : ` Worth knowing: real tournament results have it at a below-average ${stat.winRate}% wins across ${stat.timesUsed} entries -- everything else about the pick still stands, but that's worth watching.`;
+}
+
+/**
+ * Simulated Win Rate feature: how much more or less often one of
+ * data/meta-baseline.json's own hand-verified reference teams should be
+ * sampled by the Monte Carlo engine, based on how its real members are
+ * actually performing in live Regulation M-B tournaments right now
+ * (live_tier_stats). This deliberately never lets a real, incomplete
+ * Limitless decklist (no stat-spread data -- see
+ * 0007_live_limitless_meta.sql's own header comment on
+ * live_reference_teams) INTO the simulated battle pool itself: every
+ * opponent actually battled is still one of the hand-verified teams
+ * below, with a real, sourced stat spread. All this changes is how OFTEN
+ * each already-trusted team gets battled, so a currently-thriving
+ * archetype shows up more in the reported win rate and a fading one
+ * shows up less -- a nudge toward "what's actually being played right
+ * now," never a source of new, unverified opponents.
+ *
+ * Returns 1 (neutral -- exactly today's un-weighted behavior) whenever
+ * there isn't enough live data for this team's own members yet, so this
+ * is a silent no-op until the Limitless pipeline has real data to offer,
+ * same contract as every other live-data layer in this file. Always 1
+ * for Singles, since liveTierStats is always {} there.
+ */
+const WC_LIVE_WEIGHT_STRENGTH = 1;
+const WC_LIVE_WEIGHT_MIN = 0.5;
+const WC_LIVE_WEIGHT_MAX = 2;
+
+function wcLiveUsageWeightForTeam(teamMembers, liveTierStats) {
+  if (!liveTierStats) return 1;
+  const qualifying = (teamMembers || [])
+    .map((m) => liveTierStats[m.name])
+    .filter((stat) => stat && stat.timesUsed >= WC_META_USAGE_MIN_SAMPLE && stat.winRate != null);
+  if (qualifying.length === 0) return 1;
+  const avgWinRate = qualifying.reduce((sum, stat) => sum + stat.winRate, 0) / qualifying.length;
+  const raw = 1 + ((avgWinRate - 50) / 50) * WC_LIVE_WEIGHT_STRENGTH;
+  return Math.min(WC_LIVE_WEIGHT_MAX, Math.max(WC_LIVE_WEIGHT_MIN, raw));
+}
+
+/**
  * Combo-level counterpart to wcMetaUsageCandidateBonus/wcMetaBaselineArchetypeBonus
  * -- Simulated Win Rate's own learning loop (see supabase/migrations/
  * 0006_lineup_scope_and_combo_synergy.sql's combo_synergy_stats table and
@@ -1699,10 +1770,11 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
   const dup = wcSameTypingPenalty(candidate.types, teamTypesList);
   const bst = wcBaseStatTotal(candidate.baseStats);
   const metaBonus = wcMetaUsageCandidateBonus(candidate.name, options.metaUsage);
+  const liveMetaBonus = wcLiveMetaCandidateBonus(candidate.name, options.liveMeta);
   const metaBaselineBonus = options.metaBaseline
     ? wcMetaBaselineArchetypeBonus(candidate.name, options.metaBaseline, options.format || "doubles")
     : 0;
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + metaBaselineBonus;
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus;
 }
 
 /**
@@ -1938,7 +2010,7 @@ function wcNotesIncludedSpecies(notes, pool) {
  * pool's format ("singles"/"doubles") -- passed through the same way, so
  * wcMetaBaselineArchetypeBonus applies alongside the real-usage nudge.
  */
-function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format) {
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
@@ -1958,7 +2030,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
 
   const canScoreCoverage = Boolean(natures && movesData);
   const weatherInfo = canScoreCoverage ? wcDetectWeatherArchetype(threats, abilitiesData) : null;
-  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format };
+  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format, liveMeta };
 
   const remaining = [...usablePool];
   const team = [];
@@ -1975,6 +2047,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
         ? `${name} — already picked on this team, so Dream Team kept it and built the rest around it.`
         : `${name} — included because you named it in your team notes.`) +
         wcMetaUsageReasoningNote(name, metaUsage) +
+        wcLiveMetaReasoningNote(name, liveMeta) +
         wcMetaBaselineReasoningNote(name, metaBaseline, format || "doubles")
     );
   });
@@ -2045,6 +2118,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     reasoning.push(
       `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.` +
         wcMetaUsageReasoningNote(best.name, metaUsage) +
+        wcLiveMetaReasoningNote(best.name, liveMeta) +
         wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles")
     );
   }
@@ -2055,6 +2129,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     const reasonText =
       describePick(best, i === 0) +
       wcMetaUsageReasoningNote(best.name, metaUsage) +
+      wcLiveMetaReasoningNote(best.name, liveMeta) +
       wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles");
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
