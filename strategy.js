@@ -35,6 +35,11 @@ const WINCON_STRATEGY_MOVES = {
   // Trick Room/Tailwind already have rather than only ever showing up
   // because a specific curated Pokemon (Grimmsnarl) happens to run them.
   screens: ["Light Screen", "Reflect"],
+  // Wide Guard (Milestone 38: Phoenix's Wide-Guard/Steelix doc) -- blocks
+  // spread moves aimed at the whole side, the same "protect the team's
+  // real hard hitter" role screens/redirect already play, just against
+  // a different attack shape.
+  wideguard: ["Wide Guard"],
 };
 
 // A move whose own description says it fails outside a Double Battle, or
@@ -1160,6 +1165,10 @@ const WINCON_NOTES_KEYWORDS = {
     boost: ["screens", "light screen", "reflect", "dual screens"],
     suppress: ["no screens", "not screens", "avoid screens"],
   },
+  wideguard: {
+    boost: ["wide guard", "wideguard", "spread protection"],
+    suppress: ["no wide guard", "not wide guard", "avoid wide guard"],
+  },
 };
 
 /** Applies the player's free-text team notes to a list of strategy candidates: drops any archetype the notes explicitly say to avoid, and boosts the fitScore of any archetype the notes ask for, tagging it with a `noteSuffix` so the note text can say so. A blank/whitespace-only `notes` leaves the candidates untouched. */
@@ -1548,6 +1557,27 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     });
   }
 
+  // Wide Guard (Milestone 38: Phoenix's Steelix/Wide-Guard doc) -- unlike
+  // screens, Wide Guard has fixed +3 priority baked into the move itself
+  // (data/moves.json), so there's no ability-based "free" case to prefer
+  // the way Prankster is for screens -- just find a learner and, if the
+  // notes name one, prefer that one via wcPreferredSetter.
+  const wideguardCandidates = members.filter((m) => canLearn(m, "Wide Guard"));
+  if (wideguardCandidates.length > 0) {
+    const { setter, mentioned } = wcPreferredSetter(wideguardCandidates, notes, (p) => p[0]);
+    candidates.push({
+      archetype: "wideguard",
+      setterName: setter.name,
+      setter,
+      wantMoves: ["Wide Guard"],
+      wantRole: null,
+      fitScore: 1,
+      note:
+        `${setter.name} can learn Wide Guard — it blocks spread moves aimed at your whole side for the turn, shielding your real hard hitters from the exact attacks that threaten them most in Doubles.` +
+        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+    });
+  }
+
   const biasedCandidates = wcApplyNotesBias(candidates, notes);
 
   if (biasedCandidates.length === 0) {
@@ -1557,7 +1587,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
       note:
         candidates.length > 0
           ? `Your team notes ruled out every strategy that would otherwise fit here — playing as six independent attackers is the fallback while that's the case.`
-          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
+          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, Wide Guard, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
             `move would clearly help more of the team than it'd cost — no single shared strategy stands out here, so playing as six independent attackers is the safer call.`,
       amendments: [],
       metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
@@ -1729,6 +1759,69 @@ function wcMegaMatchupAdvice(effectiveMembers, threats, typeChart) {
   return { ranked, note };
 }
 
+/**
+ * Anti-synergy auditor (Milestone 38: Phoenix's Steelix/Wide-Guard doc,
+ * which explicitly asked to "identify hidden anti-synergies" -- this is
+ * the first real version of that). Post-build, same "explainable, return
+ * nothing when there's genuinely nothing to say" contract as every other
+ * advisory note in this file (wcMegaMatchupAdvice, wcSoftPreferenceTradeoffNote).
+ *
+ * Starts with exactly two real, current, well-understood VGC/Champions
+ * conflicts -- hand-picked, not an exhaustive conflict-detection engine,
+ * same honesty note WINCON_SPREAD_MOVES/starter-threats.json already
+ * carry:
+ *   (a) A teammate's own Sandstorm (Sand Stream) chips a same-team Focus
+ *       Sash holder for 1/16 max HP every turn it's up -- Focus Sash only
+ *       triggers from FULL HP, so even one turn of that residual damage
+ *       first quietly breaks it. Only sand is checked: Snow no longer
+ *       deals residual damage in the current generation, matching how
+ *       this file already models weather (WINCON_WEATHER_SETTING_ABILITIES/
+ *       WINCON_WEATHER_PASSIVE_BULK_TYPE only ever treat sand as
+ *       damaging, snow as a passive bulk boost).
+ *   (b) A teammate holds Choice Scarf while another teammate's REAL build
+ *       (not just learnable -- checked against builds[name].moves) runs
+ *       Trick Room. Choice Scarf's Speed boost works directly against
+ *       Trick Room's reversed turn order for that Pokemon specifically --
+ *       it'd move LAST instead of first while Trick Room is up.
+ */
+function wcAntiSynergyWarnings(members, builds, abilitiesData) {
+  const warnings = [];
+  if (!members || !members.length || !builds) return warnings;
+
+  const sandSetters = members.filter((m) => wcAbilityOf(abilitiesData, m.name) === "Sand Stream");
+  if (sandSetters.length > 0) {
+    const setterNames = sandSetters.map((s) => s.name).join(", ");
+    members.forEach((m) => {
+      const build = builds[m.name];
+      const immuneTyped = (m.types || []).some((t) => ["Rock", "Ground", "Steel"].includes(t));
+      if (build && build.item === "Focus Sash" && !immuneTyped) {
+        warnings.push(
+          `${m.name} holds Focus Sash, but ${setterNames}'s Sandstorm chips it for 1/16 max HP every turn it's up -- if it takes even one turn of that residual damage first, it won't be at full HP any more and the Sash won't trigger.`
+        );
+      }
+    });
+  }
+
+  const trickRoomUsers = members.filter((m) => {
+    const build = builds[m.name];
+    return Boolean(build && build.moves && build.moves.includes("Trick Room"));
+  });
+  if (trickRoomUsers.length > 0) {
+    const setterNames = trickRoomUsers.map((t) => t.name).join(", ");
+    members.forEach((m) => {
+      const build = builds[m.name];
+      const isSetter = trickRoomUsers.some((t) => t.name === m.name);
+      if (build && build.item === "Choice Scarf" && !isSetter) {
+        warnings.push(
+          `${m.name} holds Choice Scarf, but ${setterNames} sets Trick Room -- Choice Scarf's Speed boost works directly against Trick Room's reversed turn order, so ${m.name} would move LAST instead of first while it's up.`
+        );
+      }
+    });
+  }
+
+  return warnings;
+}
+
 function wcBaseStatTotal(baseStats) {
   return baseStats.hp + baseStats.atk + baseStats.def + baseStats.spa + baseStats.spd + baseStats.spe;
 }
@@ -1772,6 +1865,73 @@ function wcDefenseCoverageBonus(candidateTypes, teamTypesList, allTypes, typeCha
 function wcSameTypingPenalty(candidateTypes, teamTypesList) {
   const key = [...candidateTypes].sort().join("/");
   return teamTypesList.filter((types) => [...types].sort().join("/") === key).length;
+}
+
+const WC_SPREAD_SAFETY_BONUS = 0.75;
+
+/**
+ * Immunity-enabled spread-move safety (Milestone 38: Phoenix's Steelix/
+ * Wide-Guard doc -- "Staraptor/Charizard's Ground immunity permits
+ * unilateral Earthquake spamming"). In Doubles, a spread move
+ * (WINCON_SPREAD_MOVES) hits both opposing Pokemon at once, but by
+ * default also hits your OWN ally standing next to it -- a real, famous
+ * Doubles synergy is pairing a spread-move attacker with a teammate
+ * immune to that exact move's type, so it can be thrown every turn
+ * without ever needing to be aimed carefully or costing an ally HP.
+ *
+ * General-purpose, not hardcoded to Ground/Earthquake specifically --
+ * any WINCON_SPREAD_MOVES entry and any real type immunity counts (a
+ * Water-immune Storm Drain/Water Absorb ally next to Surf, an
+ * Electric-immune Ground-type ally next to Discharge, and so on), the
+ * same generality wcDefenseCoverageBonus already treats type matchups
+ * with. Checked from BOTH directions -- the candidate might be the
+ * immune partner joining an existing attacker, or the attacker joining
+ * an existing immune partner -- but returns at most one match, since
+ * this is meant as a modest nudge like every sibling scoring term, not a
+ * stacking bonus per move pair. Singles-only teams get nothing back: a
+ * spread move never hits an ally there in the first place, so there's
+ * nothing to protect.
+ */
+function wcSpreadMoveSafetyMatch(candidate, team, format, movesData, typeChart) {
+  if (format === "singles" || !team.length || !movesData) return null;
+  const spreadMoveType = (moveName) => {
+    const move = movesData.find((m) => m.name === moveName);
+    return move ? move.type : null;
+  };
+  const isImmune = (types, attackType) => Boolean(attackType) && wcEffectivenessOf(typeChart, attackType, types) === 0;
+
+  for (const teammate of team) {
+    for (const moveName of teammate.learnableNames || []) {
+      if (!WINCON_SPREAD_MOVES.has(moveName)) continue;
+      if (isImmune(candidate.types, spreadMoveType(moveName))) {
+        return { direction: "candidateSafeguards", moveName, partnerName: teammate.name };
+      }
+    }
+  }
+
+  for (const moveName of candidate.learnableNames || []) {
+    if (!WINCON_SPREAD_MOVES.has(moveName)) continue;
+    const attackType = spreadMoveType(moveName);
+    const immuneTeammate = team.find((teammate) => isImmune(teammate.types, attackType));
+    if (immuneTeammate) {
+      return { direction: "teammateSafeguards", moveName, partnerName: immuneTeammate.name };
+    }
+  }
+
+  return null;
+}
+
+function wcSpreadMoveSafetyBonus(candidate, team, format, movesData, typeChart) {
+  return wcSpreadMoveSafetyMatch(candidate, team, format, movesData, typeChart) ? WC_SPREAD_SAFETY_BONUS : 0;
+}
+
+/** Reasoning-list counterpart to wcSpreadMoveSafetyBonus, same ""-when-nothing-to-say contract as wcLiveMetaReasoningNote. */
+function wcSpreadMoveSafetyReasoningNote(candidate, team, format, movesData, typeChart) {
+  const match = wcSpreadMoveSafetyMatch(candidate, team, format, movesData, typeChart);
+  if (!match) return "";
+  return match.direction === "candidateSafeguards"
+    ? ` Its typing is also immune to ${match.partnerName}'s ${match.moveName} — that spread move can be thrown every turn without ever hitting ${candidate.name}.`
+    : ` ${match.partnerName}'s typing is immune to ${match.moveName} — ${candidate.name} can throw that spread move every turn without ever hitting ${match.partnerName}.`;
 }
 
 /**
@@ -2254,6 +2414,7 @@ function wcArchetypeSignalsFor(member, format, abilitiesData) {
   if (learnable.includes("Trick Room")) signals.push("trickroom");
   if (learnable.includes("Tailwind")) signals.push("tailwind");
   if (learnable.includes("Light Screen") || learnable.includes("Reflect")) signals.push("screens");
+  if (learnable.includes("Wide Guard")) signals.push("wideguard");
   if (format !== "singles" && (learnable.includes("Follow Me") || learnable.includes("Rage Powder"))) {
     signals.push("redirect");
   }
@@ -2325,6 +2486,14 @@ function wcArchetypeBeneficiaryScore(candidate, archetypeType, abilitiesData) {
       const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
       return Math.max(atk, spa) >= 100 ? 1 : 0;
     }
+    case "wideguard": {
+      // Same reasoning again -- Wide Guard exists to shield the team's
+      // real hard hitter from an opposing spread move, not to protect
+      // another support Pokemon that wasn't a priority target anyway.
+      const atk = (candidate.baseStats && candidate.baseStats.atk) || 0;
+      const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
+      return Math.max(atk, spa) >= 100 ? 1 : 0;
+    }
     case "hazards":
       return 0;
     default:
@@ -2365,6 +2534,7 @@ const WC_ARCHETYPE_DISPLAY_NAMES = {
   redirect: "redirection (Follow Me / Rage Powder)",
   hazards: "entry hazards",
   screens: "screens (Light Screen / Reflect)",
+  wideguard: "Wide Guard",
 };
 
 function wcArchetypeDisplayName(type) {
@@ -2442,7 +2612,8 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
     : 0;
   const archetypeBonus = wcArchetypeSynergyBonus(candidate, team, options.format || "doubles", options.abilitiesData);
   const softPreferenceBonus = wcNotesSoftPreferenceBonus(candidate.name, options.notes);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + softPreferenceBonus;
+  const spreadSafetyBonus = wcSpreadMoveSafetyBonus(candidate, team, options.format || "doubles", options.movesData, typeChart);
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + softPreferenceBonus + spreadSafetyBonus;
 }
 
 /**
@@ -2812,7 +2983,8 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
       wcMetaUsageReasoningNote(best.name, metaUsage) +
       wcLiveMetaReasoningNote(best.name, liveMeta) +
       wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles") +
-      wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData);
+      wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData) +
+      wcSpreadMoveSafetyReasoningNote(best, team, format || "doubles", movesData, typeChart);
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(reasonText);

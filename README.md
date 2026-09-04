@@ -1731,7 +1731,74 @@ preference nudge above, it never removes a Pokémon from your roster or
 drops a build on your behalf. It only ever explains what the numbers
 suggest and, when a preference didn't win out, what was traded away.
 
+## Wide Guard, an anti-synergy auditor, and spread-move immunity safety (Milestone 38)
+
+Phoenix shared a second research chat -- a full team architecture (a
+Staraptor/Primarina Tailwind-and-screens core, a Dual-Mega Charizard-Y/
+Sceptile pairing, Steelix as a Wide-Guard/Ground-immune anchor) -- and
+asked WinCon to absorb the *thought process* behind it, not just that one
+team. Checking it against the existing code found real depth already
+there (Sneasler's curated set already encodes the doc's own White Herb +
+Unburden trigger chain from real tournament usage, and screens already
+covers its Primarina role from the milestone above) plus three genuine
+gaps, now closed.
+
+**Wide Guard is now a full eighth archetype**, exactly mirroring how
+Trick Room/Tailwind/weather/redirect/hazards/screens already work:
+`wcArchetypeSignalsFor`/`wcArchetypeBeneficiaryScore` recognize a real
+Wide Guard learner and treat a genuine hard hitter (Attack or Sp. Atk
+100+) as the beneficiary it exists to protect, Team Notes' keyword bias
+picks up "wide guard"/"wideguard"/"spread protection", and Auto-build
+strategy's amendment system can propose a Wide Guard setter outright.
+Unlike screens, Wide Guard's +3 priority is baked into the move itself,
+so there's no ability-based branching -- just a learner, optionally the
+one you named in your notes.
+
+**A new anti-synergy auditor (`wcAntiSynergyWarnings`) flags real,
+current conflicts a team's own build can quietly have with itself** --
+the first version of exactly what the shared doc's own framing asked for
+("identify hidden anti-synergies"). It starts with two real, well-
+understood Doubles/Champions conflicts, checked directly against your
+actual builds after Generate Dream Team or Auto-build strategy runs: a
+teammate's own Sandstorm (Sand Stream) chipping a same-team Focus Sash
+holder that isn't Rock/Ground/Steel-typed for 1/16 max HP a turn -- Focus
+Sash only triggers from full HP, so even one turn of that residual damage
+first quietly breaks it (Snow no longer deals residual damage in the
+current generation, so only sand is checked, matching how this app
+already models weather elsewhere); and a teammate holding Choice Scarf
+while another teammate's real, built moveset runs Trick Room -- Scarf's
+Speed boost works directly against Trick Room's reversed turn order for
+that Pokémon specifically. Honesty note, matching `WINCON_SPREAD_MOVES`'s
+own comment: this is a hand-picked starting set, not an exhaustive
+conflict-detection engine -- more real, well-understood conflicts can be
+added the same way later.
+
+**Immunity-enabled spread-move safety** rewards the exact synergy the
+doc's Steelix/Earthquake framing described: in Doubles, a spread move
+(`WINCON_SPREAD_MOVES`) also hits your own ally by default, so pairing
+one with a teammate immune to that move's type lets it be thrown every
+turn for free. `wcSpreadMoveSafetyBonus` checks both directions during
+Dream Team's picking (a candidate immune to a teammate's already-learnable
+spread move, or a candidate that can learn one a teammate is already
+immune to) and is genuinely general-purpose, not hardcoded to Ground --
+a Water-immune ally next to Surf, an Electric-immune ally next to
+Discharge, and so on, all count the same way. Singles-only teams get
+nothing from it, since a spread move never hits an ally there in the
+first place.
+
+**A chatbot layer is being scoped separately and is intentionally not
+part of this milestone.** The doc's own Section 3 sketched a system
+prompt for wrapping WinCon in a conversational LLM assistant -- a real
+architectural departure from everything above, which is deliberately
+curated data plus explainable, non-LLM heuristics. That needs its own
+backend (a new Vercel serverless function, following the same pattern
+`api/cron-limitless-sync.js` already established) and a real, billed
+Anthropic API key, which only Phoenix can create -- tracked as a
+follow-up once that's set up, not folded into this milestone's scoring
+changes.
+
 ## Running it
+
 
 
 **Easiest — no install:** double-click `index.html` and it opens in your

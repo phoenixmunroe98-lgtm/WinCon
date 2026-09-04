@@ -2529,14 +2529,15 @@ function generateDreamTeam() {
   const strategyResult = wcAnalyzeTeamStrategy(strategyMembers, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   applyAmendmentsToBuilds(strategyResult.amendments);
   const megaAdvice = wcMegaMatchupAdvice(strategyMembers, threatsWithTypes, data.typeChart);
+  const antiSynergyWarnings = wcAntiSynergyWarnings(strategyMembers, builds, data.abilities);
 
   invalidateComputedNotes();
   pendingStrategy = strategyResult;
 
   renderPicker();
   renderSlots();
-  renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes);
-  renderStrategyNote(strategyResult, true, megaAdvice);
+  renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes, antiSynergyWarnings);
+  renderStrategyNote(strategyResult, true, megaAdvice, antiSynergyWarnings);
 
   autogenHint.textContent = "";
   saveStatus.textContent =
@@ -2545,9 +2546,18 @@ function generateDreamTeam() {
       : `Dream Team picked, built, and strategized around ${archetypeLabel(strategyResult.archetype)} — Save team when you're happy with it.`;
 }
 
-function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes) {
+function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes, antiSynergyWarnings) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
+
+  if (antiSynergyWarnings && antiSynergyWarnings.length) {
+    antiSynergyWarnings.forEach((text) => {
+      const warningP = document.createElement("p");
+      warningP.className = "hint dream-team-excluded-note anti-synergy-warning";
+      warningP.textContent = text;
+      dreamTeamNoteEl.appendChild(warningP);
+    });
+  }
 
   if (tradeoffNotes && tradeoffNotes.length) {
     tradeoffNotes.forEach((text) => {
@@ -2810,7 +2820,7 @@ function autoBuildStrategy() {
   const result = wcAnalyzeTeamStrategy(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   pendingStrategy = result;
   autogenHint.textContent = "";
-  renderStrategyNote(result, false, wcMegaMatchupAdvice(members, threatsWithTypes, data.typeChart));
+  renderStrategyNote(result, false, wcMegaMatchupAdvice(members, threatsWithTypes, data.typeChart), wcAntiSynergyWarnings(members, builds, data.abilities));
 }
 
 function renderStrategyOption(container, option, headingText, metaSynergy) {
@@ -2836,7 +2846,7 @@ function renderStrategyOption(container, option, headingText, metaSynergy) {
   }
 }
 
-function renderStrategyNote(strategy, alreadyApplied, megaAdvice) {
+function renderStrategyNote(strategy, alreadyApplied, megaAdvice, antiSynergyWarnings) {
   strategyNoteEl.innerHTML = "";
   strategyNoteEl.hidden = false;
 
@@ -2850,6 +2860,18 @@ function renderStrategyNote(strategy, alreadyApplied, megaAdvice) {
     megaAdviceP.appendChild(megaAdviceLabel);
     megaAdviceP.appendChild(document.createTextNode(megaAdvice.note));
     strategyNoteEl.appendChild(megaAdviceP);
+  }
+
+  if (antiSynergyWarnings && antiSynergyWarnings.length) {
+    antiSynergyWarnings.forEach((text) => {
+      const warningP = document.createElement("p");
+      warningP.className = "meta-synergy-note anti-synergy-warning";
+      const warningLabel = document.createElement("strong");
+      warningLabel.textContent = "Possible conflict: ";
+      warningP.appendChild(warningLabel);
+      warningP.appendChild(document.createTextNode(text));
+      strategyNoteEl.appendChild(warningP);
+    });
   }
 
   if (alreadyApplied && strategy.amendments && strategy.amendments.length > 0) {
@@ -2892,7 +2914,7 @@ function renderStrategyNote(strategy, alreadyApplied, megaAdvice) {
         alternative: { archetype: strategy.archetype, setterName: strategy.setterName, note: strategy.note, amendments: strategy.amendments },
       };
       pendingStrategy = swapped;
-      renderStrategyNote(swapped, false, megaAdvice);
+      renderStrategyNote(swapped, false, megaAdvice, antiSynergyWarnings);
     });
     altBox.appendChild(switchBtn);
     strategyNoteEl.appendChild(altBox);
