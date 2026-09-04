@@ -223,7 +223,11 @@ async function handler(req, res) {
               format: WC_FORMAT,
               source_tournament_id: String(tournament.id),
               source_tournament_name: tournament.name || null,
-              placing: player.placing,
+              // NOTE: the outgoing DB column is `placement`, not `placing` —
+              // PLACING is a reserved PostgreSQL keyword and can't be a bare
+              // column name (see 0007_live_limitless_meta.sql). player.placing
+              // itself is Limitless's own API field name and stays as-is.
+              placement: player.placing,
               record_wins: player.record.wins,
               record_losses: player.record.losses,
               record_ties: player.record.ties,
@@ -265,7 +269,7 @@ async function handler(req, res) {
       await supabaseUpsert("live_meta_builds", buildUpsertRows, "species,format,ability,item,nature,moves");
       summary.buildsUpdated = buildUpsertRows.length;
 
-      await supabaseUpsert("live_reference_teams", referenceTeamRows, "format,source_tournament_id,placing");
+      await supabaseUpsert("live_reference_teams", referenceTeamRows, "format,source_tournament_id,placement");
       summary.referenceTeamsUpserted = referenceTeamRows.length;
 
       await supabaseInsert("live_pipeline_runs", {

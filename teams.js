@@ -649,7 +649,7 @@ async function wcFetchLiveReferenceTeams(format) {
     const selectResult = await wcWithTimeout(
       window.wcSupabase
         .from("live_reference_teams")
-        .select("source_tournament_name, placing, record_wins, record_losses, record_ties, members")
+        .select("source_tournament_name, placement, record_wins, record_losses, record_ties, members")
         .eq("format", format)
         .order("captured_at", { ascending: false })
         .limit(50),

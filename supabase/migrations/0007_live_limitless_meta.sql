@@ -134,21 +134,28 @@ create policy "Anyone signed in can read live meta builds"
 -- ---------------------------------------------------------------------------
 -- live_reference_teams — see header comment (point 4) for why `members`
 -- deliberately has no stat-spread field. `source_tournament_id` +
--- `placing` together make a run idempotent: re-processing the same
+-- `placement` together make a run idempotent: re-processing the same
 -- tournament upserts the same rows instead of duplicating them.
+-- NOTE: this column is named `placement`, not `placing` — PLACING is a
+-- reserved PostgreSQL keyword (it's part of the standard OVERLAY(...
+-- PLACING ... FROM ...) function syntax) and cannot be used as a bare
+-- column identifier; using it here throws "syntax error at or near
+-- placing". `player.placing` from Limitless's own API is unaffected —
+-- only this table's own outgoing column is renamed (see
+-- api/cron-limitless-sync.js).
 -- ---------------------------------------------------------------------------
 create table if not exists public.live_reference_teams (
   id                       uuid primary key default gen_random_uuid(),
   format                   text not null check (format in ('singles', 'doubles')),
   source_tournament_id     text not null,
   source_tournament_name   text,
-  placing                  int,
+  placement                int,
   record_wins              int,
   record_losses            int,
   record_ties              int,
   members                  jsonb not null default '[]'::jsonb,  -- [{name, item, ability, moves, nature, tera}, ...] — see header comment on why there's no per-member stat spread
   captured_at              timestamptz not null default now(),
-  unique (format, source_tournament_id, placing)
+  unique (format, source_tournament_id, placement)
 );
 
 alter table public.live_reference_teams enable row level security;
