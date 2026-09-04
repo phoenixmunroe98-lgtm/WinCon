@@ -1448,6 +1448,67 @@ Mega no one's actually playing; it just doesn't have to wait for someone
 to hand-research it anymore. Doubles-only, same as every other live-data
 feature — Limitless has no Singles tournament to draw from.
 
+## Milestone 36: Dream Team now auto-strategises while it picks, not just after it builds
+
+Every earlier version of Dream Team scored candidates purely on matchup
+strength, type coverage, raw stats, and real-data usage bonuses — it had
+no sense of how the picks it was making might work TOGETHER as a pair,
+trio, or foursome. A team-wide strategy (Trick Room, Tailwind, a weather
+core, redirection) only ever got looked at afterward, and only if you
+clicked the separate "Auto-build strategy" button once the whole team
+was already fully built.
+
+Two things changed:
+
+**Picking now leans toward a cohesive team as it goes.** `strategy.js`
+adds `wcArchetypeSignalsFor`, which reads the two signals that actually
+exist DURING picking — before any moveset is built, since
+`wcGenerateTeamBuilds` always runs after `wcPickDreamTeam` finishes — a
+species' fixed real ability, and whether it can LEARN a strategy-defining
+move (`data/learnsets.json`). Weather is read from ability only
+(`WINCON_WEATHER_SETTING_ABILITIES`, the same signal
+`wcDetectWeatherArchetype` already trusts for the threat side of this):
+Sunny Day and Rain Dance turned out to be near-universal TM moves (about
+three-quarters of all species can learn one or the other), so "can learn
+it" carries no real signal for weather the way it does for Trick Room,
+Tailwind, redirection, and hazards, which stay genuinely restricted move
+pools. `wcDetectInProgressArchetype` looks at the team as picked so far
+and finds whichever archetype already has the most independent setters
+on it; `wcArchetypeBeneficiaryScore` asks whether a given candidate is a
+real fit for that archetype (bulky for Trick Room, fast for Tailwind,
+Fire-typed or sun-boosted for sun, a real 100+ Atk/SpA hitter for
+redirection, and so on). `wcArchetypeSynergyBonus` folds both into
+`wcDreamTeamCandidateScore`: once a strategy is forming, a real
+beneficiary of it outweighs a pick that's merely individually strong
+(doubling down on a working game plan beats starting a second, competing
+one); before anything has formed, a candidate that could start one gets a
+smaller nudge. None of this overrides real matchup/coverage/meta-data
+scoring outright — it's additive, the same way every other scoring bonus
+in this project is. The "why these six" reasoning list now names it too,
+via a new `wcArchetypeSynergyReasoningNote` line alongside the existing
+meta-usage/live-data/meta-baseline notes.
+
+**The finished team's strategy is now applied automatically.** Clicking
+Generate Dream Team used to leave you with "picked and built — click
+Auto-build strategy below to see a recommended strategy." Now
+`generateDreamTeam()` (builder.js) runs the exact same
+`wcAnalyzeTeamStrategy` analysis immediately afterward and applies its
+recommended move/role change with `applyAmendmentsToBuilds` right away —
+no second click needed. The strategy panel shows the same recommended
+strategy exactly as before, just with an "Applied automatically as part
+of Dream Team" note in place of the manual "Make changes" button. The
+standalone "Auto-build strategy" button (for a team you built by hand, or
+to re-check a Dream Team you've since edited) works exactly as it always
+has — this only changes what happens automatically right after Dream
+Team finishes.
+
+In short: one click now produces a complete, already-strategized team —
+Dream Team leans toward a real shared game plan as it picks, and that
+plan's build changes are already in place by the time you see the
+result, exactly as asked for ("Look at synergy between pairs, tripples
+and groups of 4 pokemon... the dream team is providing a full
+strategised team for the user to try out").
+
 ## Running it
 
 **Easiest — no install:** double-click `index.html` and it opens in your

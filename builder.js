@@ -2318,14 +2318,37 @@ function generateDreamTeam() {
   const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup);
   builds = generated;
 
+  // Milestone 36: "the dream team is providing a full strategised team for
+  // the user to try out" -- Dream Team no longer stops at "picked and
+  // built." It now auto-runs the same analysis "Auto-build strategy"
+  // offers as a separate manual step (wcAnalyzeTeamStrategy), and applies
+  // its recommended move/role change immediately (applyAmendmentsToBuilds)
+  // rather than waiting for a second click -- one click now produces a
+  // complete, already-strategized team. The standalone "Auto-build
+  // strategy" button below still works exactly as before for re-running
+  // or re-checking this later.
+  const strategyMembers = picked.map((name) => {
+    const pokemon = data.pokemon.find((p) => p.name === name);
+    const baseStats = data.baseStats.find((b) => b.name === name);
+    const learnableNames = data.learnsets[name];
+    return effectiveMemberFor(name, pokemon.types, baseStats, learnableNames, builds[name]);
+  });
+  const strategyResult = wcAnalyzeTeamStrategy(strategyMembers, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
+  applyAmendmentsToBuilds(strategyResult.amendments);
+
   invalidateComputedNotes();
+  pendingStrategy = strategyResult;
 
   renderPicker();
   renderSlots();
   renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible);
+  renderStrategyNote(strategyResult, true);
 
   autogenHint.textContent = "";
-  saveStatus.textContent = "Dream Team picked and built — click Auto-build strategy below when you're ready to see a recommended team strategy, then Save team when you're happy with it.";
+  saveStatus.textContent =
+    strategyResult.archetype === "balanced"
+      ? "Dream Team picked and built — no single shared strategy stood out for this roster, so it's playing as six strong independent attackers. Save team when you're happy with it."
+      : `Dream Team picked, built, and strategized around ${archetypeLabel(strategyResult.archetype)} — Save team when you're happy with it.`;
 }
 
 function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible) {
@@ -2608,13 +2631,18 @@ function renderStrategyOption(container, option, headingText, metaSynergy) {
   }
 }
 
-function renderStrategyNote(strategy) {
+function renderStrategyNote(strategy, alreadyApplied) {
   strategyNoteEl.innerHTML = "";
   strategyNoteEl.hidden = false;
 
   renderStrategyOption(strategyNoteEl, strategy, "Recommended strategy", strategy.metaSynergy);
 
-  if (strategy.amendments && strategy.amendments.length > 0) {
+  if (alreadyApplied && strategy.amendments && strategy.amendments.length > 0) {
+    const appliedNote = document.createElement("p");
+    appliedNote.className = "hint";
+    appliedNote.textContent = "Applied automatically as part of Dream Team — no extra click needed.";
+    strategyNoteEl.appendChild(appliedNote);
+  } else if (strategy.amendments && strategy.amendments.length > 0) {
     const changeBtn = document.createElement("button");
     changeBtn.type = "button";
     changeBtn.id = "make-changes-btn";

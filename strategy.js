@@ -1789,6 +1789,168 @@ function wcComboSynergyBonus(lineupNames, comboLookup) {
 }
 
 /**
+ * Milestone 36: "auto strategise when picking the team" -- look at
+ * synergy between pairs/triples/groups while species are still being
+ * PICKED, not just after the team is fully built (that's what
+ * wcAnalyzeTeamStrategy already does, via WINCON_STRATEGY_MOVES/
+ * WINCON_WEATHER_SETTING_ABILITIES/WINCON_WEATHER_BENEFIT_ABILITIES --
+ * all reused here rather than re-defined). The catch: movesets don't
+ * exist yet during picking (wcGenerateTeamBuilds always runs AFTER
+ * wcPickDreamTeam finishes), so this reads the two signals that ARE
+ * known this early -- a species' fixed real ability (abilitiesData) and
+ * whether it CAN LEARN a strategy-defining move (candidate.learnableNames,
+ * from data/learnsets.json) -- the same two kinds of evidence
+ * wcAnalyzeTeamStrategy itself treats as sufficient for a real pick.
+ */
+function wcArchetypeSignalsFor(member, format, abilitiesData) {
+  const signals = [];
+  // Weather is ability-only here, deliberately -- Sunny Day/Rain Dance are
+  // near-universal TM moves (roughly three-quarters of all species can
+  // learn one or the other in data/learnsets.json), so "can learn it"
+  // carries no real signal for them the way it does for Trick Room/
+  // Tailwind/redirection/hazards below. A real weather team is set by
+  // ability anyway (instant, costs no turn or moveslot) -- exactly what
+  // WINCON_WEATHER_SETTING_ABILITIES/wcDetectWeatherArchetype already
+  // assume for the THREAT side of this same distinction.
+  const ability = wcAbilityOf(abilitiesData, member.name);
+  const abilityWeather = ability && WINCON_WEATHER_SETTING_ABILITIES[ability];
+  if (abilityWeather) signals.push(abilityWeather);
+  const learnable = member.learnableNames || [];
+  if (learnable.includes("Trick Room")) signals.push("trickroom");
+  if (learnable.includes("Tailwind")) signals.push("tailwind");
+  if (format !== "singles" && (learnable.includes("Follow Me") || learnable.includes("Rage Powder"))) {
+    signals.push("redirect");
+  }
+  if (format === "singles" && WINCON_STRATEGY_MOVES.hazards.some((mv) => learnable.includes(mv))) {
+    signals.push("hazards");
+  }
+  return signals;
+}
+
+/**
+ * Looks at the team as picked SO FAR and asks "is there already a shared
+ * strategy forming?" -- the archetype with the most independent setters
+ * wins (ties broken by whichever was detected first), mirroring
+ * wcDetectWeatherArchetype's own "most setters wins" logic just applied
+ * across all archetype types, not only weather.
+ */
+function wcDetectInProgressArchetype(team, format, abilitiesData) {
+  const setterNames = {};
+  team.forEach((m) => {
+    wcArchetypeSignalsFor(m, format, abilitiesData).forEach((type) => {
+      if (!setterNames[type]) setterNames[type] = [];
+      if (!setterNames[type].includes(m.name)) setterNames[type].push(m.name);
+    });
+  });
+  let winner = null;
+  let winnerCount = 0;
+  Object.keys(setterNames).forEach((type) => {
+    if (setterNames[type].length > winnerCount) {
+      winner = type;
+      winnerCount = setterNames[type].length;
+    }
+  });
+  return winner ? { type: winner, setters: setterNames[winner] } : null;
+}
+
+/** Does this candidate actually make good use of an archetype already forming on the team? */
+function wcArchetypeBeneficiaryScore(candidate, archetypeType, abilitiesData) {
+  if (!archetypeType) return 0;
+  const ability = wcAbilityOf(abilitiesData, candidate.name);
+  switch (archetypeType) {
+    case "trickroom":
+      return wcPickRole(candidate.baseStats) === "bulky" ? 1 : 0;
+    case "tailwind":
+      return wcPickRole(candidate.baseStats) === "fast" ? 1 : 0;
+    case "sun":
+    case "rain": {
+      const boostedType = archetypeType === "sun" ? "Fire" : "Water";
+      const abilityMatch = Boolean(ability && WINCON_WEATHER_BENEFIT_ABILITIES[archetypeType] && WINCON_WEATHER_BENEFIT_ABILITIES[archetypeType].includes(ability));
+      const typeMatch = Boolean(candidate.types && candidate.types.includes(boostedType));
+      return abilityMatch || typeMatch ? 1 : 0;
+    }
+    case "sand":
+    case "snow": {
+      const passiveType = WINCON_WEATHER_PASSIVE_BULK_TYPE[archetypeType];
+      const abilityMatch = Boolean(ability && WINCON_WEATHER_BENEFIT_ABILITIES[archetypeType] && WINCON_WEATHER_BENEFIT_ABILITIES[archetypeType].includes(ability));
+      const typeMatch = Boolean(passiveType && candidate.types && candidate.types.includes(passiveType));
+      return abilityMatch || typeMatch ? 1 : 0;
+    }
+    case "redirect": {
+      const atk = (candidate.baseStats && candidate.baseStats.atk) || 0;
+      const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
+      return Math.max(atk, spa) >= 100 ? 1 : 0;
+    }
+    case "hazards":
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+const WC_ARCHETYPE_SETTER_WEIGHT = 1;
+const WC_ARCHETYPE_BENEFICIARY_WEIGHT = 1.5;
+
+/**
+ * The scoring hook wired into wcDreamTeamCandidateScore below: once a
+ * shared strategy is already forming on the team, a candidate that
+ * actually benefits from it outweighs one that's merely individually
+ * strong (WC_ARCHETYPE_BENEFICIARY_WEIGHT > WC_ARCHETYPE_SETTER_WEIGHT) --
+ * doubling down on a working game plan beats starting a second, competing
+ * one. Before any strategy has formed, a candidate that COULD start one
+ * gets a smaller nudge, so Dream Team leans toward a cohesive team from
+ * the very first picks without ever overriding real matchup/coverage
+ * scoring outright.
+ */
+function wcArchetypeSynergyBonus(candidate, team, format, abilitiesData) {
+  const existing = wcDetectInProgressArchetype(team, format, abilitiesData);
+  if (existing) {
+    return wcArchetypeBeneficiaryScore(candidate, existing.type, abilitiesData) * WC_ARCHETYPE_BENEFICIARY_WEIGHT;
+  }
+  const ownSignals = wcArchetypeSignalsFor(candidate, format, abilitiesData);
+  return ownSignals.length > 0 ? WC_ARCHETYPE_SETTER_WEIGHT : 0;
+}
+
+const WC_ARCHETYPE_DISPLAY_NAMES = {
+  trickroom: "Trick Room",
+  tailwind: "Tailwind",
+  sun: "sun",
+  rain: "rain",
+  sand: "sandstorm",
+  snow: "snow",
+  redirect: "redirection (Follow Me / Rage Powder)",
+  hazards: "entry hazards",
+};
+
+function wcArchetypeDisplayName(type) {
+  return WC_ARCHETYPE_DISPLAY_NAMES[type] || type;
+}
+
+/**
+ * The reasoning-list line for the archetype-synergy bonus above, following
+ * the same additive-string pattern as wcMetaUsageReasoningNote/
+ * wcLiveMetaReasoningNote/wcMetaBaselineReasoningNote (a leading space,
+ * empty string when there's nothing to say). `team` must be the team
+ * BEFORE this candidate is added, so the detection reflects what was
+ * already forming rather than trivially "detecting" this pick's own
+ * signal as if it were already on the team.
+ */
+function wcArchetypeSynergyReasoningNote(candidate, team, format, abilitiesData) {
+  const existing = wcDetectInProgressArchetype(team, format, abilitiesData);
+  if (existing) {
+    if (wcArchetypeBeneficiaryScore(candidate, existing.type, abilitiesData) > 0) {
+      return ` This team is already leaning into ${wcArchetypeDisplayName(existing.type)} (via ${existing.setters.join(", ")}), and ${candidate.name} is a real fit for it, so this pick doubles down on a shared game plan instead of just being individually strong.`;
+    }
+    return "";
+  }
+  const ownSignals = wcArchetypeSignalsFor(candidate, format, abilitiesData);
+  if (ownSignals.length > 0) {
+    return ` ${candidate.name} can also set up ${ownSignals.map(wcArchetypeDisplayName).join("/")} for this team, giving the rest of the picks a real shared strategy to build around.`;
+  }
+  return "";
+}
+
+/**
  * Milestone 21: candidate scoring for team-picking, now built on marginal,
  * threat-specific coverage (wcCandidateCoverageGain) instead of a flat
  * average, plus a weather-archetype bonus (wcWeatherCounterBonus) when the
@@ -1833,7 +1995,8 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
   const metaBaselineBonus = options.metaBaseline
     ? wcMetaBaselineArchetypeBonus(candidate.name, options.metaBaseline, options.format || "doubles")
     : 0;
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus;
+  const archetypeBonus = wcArchetypeSynergyBonus(candidate, team, options.format || "doubles", options.abilitiesData);
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus;
 }
 
 /**
@@ -2099,6 +2262,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     const idx = remaining.findIndex((c) => c.name === name);
     if (idx === -1) return;
     const member = remaining[idx];
+    const archetypeNote = wcArchetypeSynergyReasoningNote(member, team, format || "doubles", abilitiesData);
     team.push(member);
     remaining.splice(idx, 1);
     reasoning.push(
@@ -2107,7 +2271,8 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
         : `${name} — included because you named it in your team notes.`) +
         wcMetaUsageReasoningNote(name, metaUsage) +
         wcLiveMetaReasoningNote(name, liveMeta) +
-        wcMetaBaselineReasoningNote(name, metaBaseline, format || "doubles")
+        wcMetaBaselineReasoningNote(name, metaBaseline, format || "doubles") +
+        archetypeNote
     );
   });
 
@@ -2172,13 +2337,15 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
   for (let g = 0; g < guaranteedMegaCount; g++) {
     const best = bestFromRemaining((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
     if (!best) break;
+    const archetypeNote = wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData);
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(
       `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.` +
         wcMetaUsageReasoningNote(best.name, metaUsage) +
         wcLiveMetaReasoningNote(best.name, liveMeta) +
-        wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles")
+        wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles") +
+        archetypeNote
     );
   }
 
@@ -2189,7 +2356,8 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
       describePick(best, i === 0) +
       wcMetaUsageReasoningNote(best.name, metaUsage) +
       wcLiveMetaReasoningNote(best.name, liveMeta) +
-      wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles");
+      wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles") +
+      wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData);
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(reasonText);
