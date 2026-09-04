@@ -2749,7 +2749,16 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
       const coverageState = wcThreatCoverageState(team, threats, natures, typeChart, movesData);
       const wins = wcCoverageWinsFor(candidate, coverageState, natures, typeChart, movesData);
       if (wins.length > 0 && wins.length <= 3) {
-        return `${candidate.name} — specifically answers ${wins.join(", ")}, which nothing else on this team beats yet.`;
+        // Bug report (Phoenix): this used to omit the word "threats"
+        // entirely -- "Corviknight -- specifically answers Grimmsnarl,
+        // Archaludon, which nothing else on this team beats yet" reads
+        // exactly like a suggestion to go add Grimmsnarl/Archaludon to
+        // the roster too, when wins here are OPPONENT reference Pokemon
+        // (real, currently-scary meta threats, via wcAugmentThreatsWith*)
+        // this pick counters -- never a recommendation to obtain them.
+        // Leading with "these threats" up front removes the ambiguity,
+        // matching the >3 branch just below, which already said it.
+        return `${candidate.name} — specifically answers these threats nothing else on this team beats yet: ${wins.join(", ")}.`;
       }
       if (wins.length > 3) {
         return `${candidate.name} — specifically answers ${wins.length} threats nothing else on this team beats yet, including ${wins.slice(0, 2).join(", ")}.`;
