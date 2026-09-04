@@ -1,0 +1,31 @@
+{
+  "label": "Kingambit / Sneasler / Basculegion / Garchomp",
+  "format": "doubles",
+  "lineup": ["Kingambit", "Sneasler", "Basculegion", "Garchomp"],
+  "builds": {
+    "Kingambit": {
+      "nature": "Adamant",
+      "item": "Life Orb",
+      "moves": ["Kowtow Cleave", "Sucker Punch", "Swords Dance", "Protect"],
+      "sp": { "hp": 32, "attack": 32, "defense": 0, "sp_attack": 0, "sp_defense": 2, "speed": 0 }
+    },
+    "Sneasler": {
+      "nature": "Jolly",
+      "item": "Focus Sash",
+      "moves": ["Close Combat", "Dire Claw", "Protect", "Fake Out"],
+      "sp": { "hp": 2, "attack": 32, "defense": 0, "sp_attack": 0, "sp_defense": 0, "speed": 32 }
+    },
+    "Basculegion": {
+      "nature": "Adamant",
+      "item": "Choice Band",
+      "moves": ["Wave Crash", "Flip Turn", "Aqua Jet", "Liquidation"],
+      "sp": { "hp": 32, "attack": 32, "defense": 0, "sp_attack": 0, "sp_defense": 0, "speed": 2 }
+    },
+    "Garchomp": {
+      "nature": "Jolly",
+      "item": "Rocky Helmet",
+      "moves": ["Earthquake", "Stone Edge", "Scale Shot", "Protect"],
+      "sp": { "hp": 32, "attack": 32, "defense": 0, "sp_attack": 0, "sp_defense": 0, "speed": 2 }
+    }
+  }
+}

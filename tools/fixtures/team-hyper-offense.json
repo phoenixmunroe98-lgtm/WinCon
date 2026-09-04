@@ -1,0 +1,31 @@
+{
+  "label": "Gholdengo / Whimsicott / Torkoal / Arcanine",
+  "format": "doubles",
+  "lineup": ["Gholdengo", "Whimsicott", "Torkoal", "Arcanine"],
+  "builds": {
+    "Gholdengo": {
+      "nature": "Timid",
+      "item": "Choice Specs",
+      "moves": ["Make It Rain", "Shadow Ball", "Trick", "Protect"],
+      "sp": { "hp": 2, "attack": 0, "defense": 0, "sp_attack": 32, "sp_defense": 0, "speed": 32 }
+    },
+    "Whimsicott": {
+      "nature": "Timid",
+      "item": "Focus Sash",
+      "moves": ["Tailwind", "Moonblast", "Encore", "Protect"],
+      "sp": { "hp": 2, "attack": 0, "defense": 0, "sp_attack": 32, "sp_defense": 0, "speed": 32 }
+    },
+    "Torkoal": {
+      "nature": "Quiet",
+      "item": "Charcoal",
+      "moves": ["Eruption", "Protect", "Rock Slide", "Will-O-Wisp"],
+      "sp": { "hp": 32, "attack": 0, "defense": 2, "sp_attack": 32, "sp_defense": 0, "speed": 0 }
+    },
+    "Arcanine": {
+      "nature": "Adamant",
+      "item": "Sitrus Berry",
+      "moves": ["Flare Blitz", "Extreme Speed", "Protect", "Snarl"],
+      "sp": { "hp": 32, "attack": 32, "defense": 2, "sp_attack": 0, "sp_defense": 0, "speed": 0 }
+    }
+  }
+}
