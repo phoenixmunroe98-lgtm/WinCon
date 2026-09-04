@@ -20,6 +20,15 @@
 const WC_REFERENCE_RUNS_PER_OPPONENT = 200;
 const WC_TEAMVSTEAM_RUNS_PER_OPPONENT = 3000;
 
+// Milestone 35, Task 1: how many lineups the two narrowing rounds below
+// keep sampling before the caller spends the full
+// WC_REFERENCE_RUNS_PER_OPPONENT count on a single finalist. Deliberately
+// small -- these rounds only need to be accurate enough to tell a clearly
+// weak lineup from a clearly strong one, not to produce a reportable win
+// rate on their own.
+const WC_SEARCH_ROUND1_RUNS_PER_OPPONENT = 20;
+const WC_SEARCH_ROUND2_RUNS_PER_OPPONENT = 60;
+
 /** Portable equivalent of builder.js's wcSlotEffective. */
 function wcResolveSlotIdentity(baseName, build, pokemonList) {
   const itemDerived = wcEffectivePokemon(pokemonList, baseName, build && build.item);
@@ -142,14 +151,61 @@ function wcBuildMegaScenarios(lineupNames, buildsByName, pokemonList, baseStatsD
 }
 
 /**
+ * Milestone 35, Task 1 -- replaces the old "rank once with the cheap
+ * non-mechanical wcScoreMatchup heuristic, simulate only its #1 pick"
+ * shortcut. wcScoreMatchup never sees abilities, items, or a real damage
+ * roll (type effectiveness + Speed only), so its ranking can be wrong --
+ * and a wrong ranking meant the true best lineup was never even
+ * simulated, while WinCon reported a confident win rate for one that
+ * wasn't actually the best.
+ *
+ * This narrows the candidate lineups in two rounds, using the REAL
+ * mechanical engine (wcRunMonteCarlo) at every round instead of the cheap
+ * proxy -- a lineup is only ever eliminated by an actual (if lightly
+ * sampled) simulated result, never by a metric that can't see abilities
+ * or items. A real logged-battle combo bonus (wcComboSynergyBonus, when a
+ * comboLookup is available) is folded into each round's score too, so a
+ * combination with a real proven track record still gets its usual nudge
+ * -- this is the same signal the old heuristic-only ranking used, just
+ * layered on top of real simulated results instead of replacing them.
+ *
+ * Round 1 samples every candidate lightly and keeps the top half; round 2
+ * samples those survivors more heavily and keeps a single winner. The
+ * caller then spends the full WC_REFERENCE_RUNS_PER_OPPONENT count on
+ * that one lineup (see wcSimulateTeamWinRate) -- total budget lands in
+ * the low thousands of simulated battles, not the ~15,000-20,000 a true
+ * brute force over every candidate at full accuracy would take.
+ */
+function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup, rng) {
+  const scoreRound = (candidateLineups, runsPerOpponent) =>
+    candidateLineups
+      .map((names) => {
+        const specs = names.map((name) => specsByName[name]);
+        const result = wcRunMonteCarlo(specs, oppPool, runsPerOpponent, format, simData, rng);
+        const synergyBonus = comboLookup && typeof wcComboSynergyBonus === "function" ? wcComboSynergyBonus(names, comboLookup) : 0;
+        return { names, score: result.winRate + synergyBonus };
+      })
+      .sort((a, b) => b.score - a.score);
+
+  const round1 = scoreRound(lineups, WC_SEARCH_ROUND1_RUNS_PER_OPPONENT);
+  const round1Survivors = round1.slice(0, Math.max(1, Math.ceil(round1.length / 2))).map((r) => r.names);
+  if (round1Survivors.length === 1) return round1Survivors[0];
+
+  const round2 = scoreRound(round1Survivors, WC_SEARCH_ROUND2_RUNS_PER_OPPONENT);
+  return round2[0].names;
+}
+
+/**
  * Top-level entry point for the Builder's Simulated Win Rate. `payload`
  * carries the user's built 6 (`chosenSix` + `builds`), format/sheetMode,
  * every data file the engine needs, and the Worlds-grounded reference
  * field (`metaBaseline`, see data/meta-baseline.json + battle-sim-
- * baseline.js). Picks the best lineup (Phase 1, cheap heuristic), then
- * runs the real Monte Carlo simulation on it once per Mega scenario
- * (Phase 2) — see the plan's "Bring-N lineup selection" section for why
- * only the winning combo gets the expensive full simulation.
+ * baseline.js). Picks the best lineup via a real-engine successive-
+ * halving search (wcSelectBestLineupBySuccessiveHalving, Milestone 35
+ * Task 1 -- see its own doc comment for why), then runs the real Monte
+ * Carlo simulation at full accuracy on it once per Mega scenario — see
+ * the plan's "Bring-N lineup selection" section for why only the
+ * winning combo gets the expensive full simulation.
  */
 function wcSimulateTeamWinRate(payload) {
   const {
@@ -169,14 +225,12 @@ function wcSimulateTeamWinRate(payload) {
   const referenceTeamDefs = (metaBaseline && metaBaseline[format]) || [];
   const referenceTeams = referenceTeamDefs.map((team) => wcResolveBaselineTeam(team, pokemonList, baseStatsData, abilitiesData));
 
-  const rankData = { typeChart, natures, movesData, sheetMode };
-  const ranked = wcRankLineupsHeuristic(lineups, specsByName, referenceTeams, rankData, comboLookup);
-  const bestLineup = ranked[0].names;
+  const oppPool = referenceTeamDefs.map((team, i) => ({ id: team.id, label: team.label, specs: referenceTeams[i] }));
+  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode };
+
+  const bestLineup = wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup);
 
   const scenarios = wcBuildMegaScenarios(bestLineup, builds, pokemonList, baseStatsData, abilitiesData);
-  const oppPool = referenceTeamDefs.map((team, i) => ({ id: team.id, label: team.label, specs: referenceTeams[i] }));
-
-  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode };
   const scenarioResults = scenarios.map((scenario) => ({
     megaName: scenario.megaName,
     ...wcRunMonteCarlo(scenario.specs, oppPool, WC_REFERENCE_RUNS_PER_OPPONENT, format, simData),
