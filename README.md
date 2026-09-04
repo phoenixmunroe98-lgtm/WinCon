@@ -1797,6 +1797,88 @@ Anthropic API key, which only Phoenix can create -- tracked as a
 follow-up once that's set up, not folded into this milestone's scoring
 changes.
 
+## Terrain, Quick Guard, Aurora Veil, Helping Hand, Safeguard, and two small refinements (Milestone 39)
+
+Phoenix asked for a full audit of "Special" move category moves and how
+they affect battles the same way Light Screen/Reflect/Wide Guard already
+do -- turned out she meant **Status**-category moves (Light Screen/
+Reflect/Wide Guard are all Status, not the separate 120-move Special
+damage-dealing category, confirmed and clarified before starting). Every
+one of the 176 real Status moves in `data/moves.json` got checked against
+the archetype-synergy system from Milestones 36-38. Her call on what to
+build: all of it, terrain first.
+
+**Terrain is a new archetype family -- four of them.** Electric/Grassy/
+Misty/Psychic Terrain are learned by 20/27/30/30 of the 298 species in
+`data/learnsets.json` (6.7%-10.1%), squarely the same "genuine minority,
+real signal" range as Trick Room (17.8%) and Wide Guard (8.1%) --
+terrain-setting *abilities*, unlike weather's, are essentially absent
+from this dataset (only one curated Pokemon holds one), so terrain is
+**move-signaled** like Trick Room/Tailwind/Wide Guard, not ability-only
+like weather. Electric/Grassy/Psychic Terrain each get a real
+`wcArchetypeBeneficiaryScore` case (a 1.3x STAB boost for a grounded
+attacker of the matching type, confirmed against each move's actual
+in-game description); Misty Terrain is whole-side defensive utility
+(halves incoming Dragon damage, blocks status/confusion) with no single
+power-matched beneficiary, so it honestly scores 0 there -- the same
+precedent entry hazards already set.
+
+**Quick Guard is Wide Guard's direct sibling**, protecting the team's
+real hard hitter from priority moves instead of spread moves, in exactly
+the same five places (signal detection, beneficiary scoring, notes
+keywords, display name, Auto-build strategy amendment).
+
+**Aurora Veil extends the existing screens archetype, rather than
+becoming a ninth one.** It's strictly better than Light Screen + Reflect
+combined -- one move covers both physical and special damage reduction --
+but only works while Snow is active, so it only ever counts as a real
+signal for a Pokemon that sets its *own* Snow. Notably, Alolan Ninetales
+holds Snow Warning **and** learns Aurora Veil -- a genuinely
+self-sufficient setter, confirmed directly against the data. Auto-build
+strategy now prefers that path over Light Screen/Reflect (even over
+Prankster) when it's real, and falls back to the existing behavior
+otherwise -- Milestone 37's Whimsicott/Prankster case is untouched.
+
+**Helping Hand took a deliberately different shape.** It's learned by
+204 of 298 species (68.5%) -- nowhere near a real "setter signal" the way
+an 8-18% move is. Giving it the same `wcArchetypeSignalsFor` treatment as
+everything above would mean the Dream-Team-picking bonus firing for most
+candidates regardless of team composition -- a fake signal, not a real
+one, exactly the failure mode weather's ability-only design already
+exists to avoid (its own move pair sits at ~95% learnability, which is
+why weather is detected by ability alone). So Helping Hand deliberately
+has no entry in the pick-time archetype system at all. It only ever gets
+proposed by Auto-build strategy, after the team is built, and only when
+there's a real hard hitter (Attack or Sp. Atk 100+) already on the roster
+worth amplifying -- the reason to run it isn't "something can learn it",
+it's "something on this team is worth spending a teammate's move slot
+boosting." Doubles-only, since Helping Hand needs an adjacent ally.
+
+**Safeguard is a tenth simple archetype** -- 5-turn team-wide immunity to
+status conditions and confusion, learned by 22.8% of all species (the
+same healthy range as Stealth Rock/Trick Room). Like Misty Terrain, it's
+whole-team protection with no type-matched power beneficiary, so its
+beneficiary score is honestly 0 too.
+
+**Two small refinements closed out the audit.** Chilly Reception
+(Slowking/Galarian Slowking only -- 2 of 298 species, genuinely rare and
+deliberate, nothing like Sunny Day/Rain Dance's near-universal rate)
+folds into the existing snow archetype as a second, move-based setter
+path -- a real Snow Warning ability setter still wins when both exist,
+since it costs no move slot, but Chilly Reception is now a real fallback
+when that's all a team has. And Parting Shot (lowers Attack/Sp. Atk by 1,
+then switches out -- a real pivot move by the same mechanic as U-turn/
+Volt Switch/Flip Turn/Baton Pass) was simply missing from
+`WINCON_PIVOT_MOVES`, so Tailwind's own pivot-sequencing note now
+recognizes it too.
+
+Six new test files (`tools/test-terrain-archetypes.mjs`,
+`tools/test-quickguard-archetype.mjs`, `tools/test-aurora-veil-screens.mjs`,
+`tools/test-helping-hand.mjs`, `tools/test-safeguard-archetype.mjs`,
+`tools/test-chilly-reception-and-parting-shot.mjs`), 42 checks total, all
+green alongside the full existing suite (24 files, zero regressions).
+
+
 ## Running it
 
 

@@ -40,6 +40,33 @@ const WINCON_STRATEGY_MOVES = {
   // real hard hitter" role screens/redirect already play, just against
   // a different attack shape.
   wideguard: ["Wide Guard"],
+  // Terrain (Milestone 39: Phoenix's Status-move audit, "terrain first")
+  // -- Electric/Grassy/Misty/Psychic Terrain are each learned by only
+  // 6.7%-10.1% of all species (confirmed against data/learnsets.json),
+  // squarely in the same "genuine minority, real signal" range as Trick
+  // Room/Tailwind/Wide Guard above -- and terrain-setting ABILITIES
+  // (Electric/Grassy/Misty/Psychic Surge) are essentially absent from
+  // this dataset (only Mega Raichu X holds one), so unlike weather these
+  // are move-signaled, not ability-only.
+  electricterrain: ["Electric Terrain"],
+  grassyterrain: ["Grassy Terrain"],
+  mistyterrain: ["Misty Terrain"],
+  psychicterrain: ["Psychic Terrain"],
+  // Quick Guard (Milestone 39) -- Wide Guard's direct sibling: same fixed
+  // +3 priority, same "protect the team's real hard hitter" role, just
+  // blocking priority moves instead of spread moves.
+  quickguard: ["Quick Guard"],
+  // Safeguard (Milestone 39) -- 5-turn team-wide immunity to status
+  // conditions and confusion, learned by 22.8% of all species (the same
+  // healthy minority range as Stealth Rock/Trick Room).
+  safeguard: ["Safeguard"],
+  // Helping Hand (Milestone 39) -- listed here for documentation/notes-
+  // keyword consistency only. At 68.5% learnability it's far too common
+  // to serve as a pick-time "setter signal" the way everything else in
+  // this object does (see the analyzer-only candidate block in
+  // wcAnalyzeTeamStrategy, and the comment there for the full reasoning)
+  // -- it deliberately has no entry in wcArchetypeSignalsFor.
+  helpinghand: ["Helping Hand"],
 };
 
 // A move whose own description says it fails outside a Double Battle, or
@@ -159,7 +186,7 @@ function wcAbilityOf(abilitiesData, name) {
 // switch" is a real, well-known sequencing tactic, not just "have
 // Tailwind." Baton Pass also passes along any of the setter's own stat
 // boosts, not just the turn.
-const WINCON_PIVOT_MOVES = new Set(["U-turn", "Volt Switch", "Flip Turn", "Baton Pass"]);
+const WINCON_PIVOT_MOVES = new Set(["U-turn", "Volt Switch", "Flip Turn", "Baton Pass", "Parting Shot"]);
 
 function wcNormalizeFormat(format) {
   return format === "singles" ? "singles" : "doubles";
@@ -1162,12 +1189,40 @@ const WINCON_NOTES_KEYWORDS = {
     suppress: ["no hazard", "not hazard", "avoid hazard"],
   },
   screens: {
-    boost: ["screens", "light screen", "reflect", "dual screens"],
+    boost: ["screens", "light screen", "reflect", "dual screens", "aurora veil"],
     suppress: ["no screens", "not screens", "avoid screens"],
   },
   wideguard: {
     boost: ["wide guard", "wideguard", "spread protection"],
     suppress: ["no wide guard", "not wide guard", "avoid wide guard"],
+  },
+  electricterrain: {
+    boost: ["electric terrain"],
+    suppress: ["no electric terrain", "not electric terrain", "avoid electric terrain"],
+  },
+  grassyterrain: {
+    boost: ["grassy terrain"],
+    suppress: ["no grassy terrain", "not grassy terrain", "avoid grassy terrain"],
+  },
+  mistyterrain: {
+    boost: ["misty terrain"],
+    suppress: ["no misty terrain", "not misty terrain", "avoid misty terrain"],
+  },
+  psychicterrain: {
+    boost: ["psychic terrain"],
+    suppress: ["no psychic terrain", "not psychic terrain", "avoid psychic terrain"],
+  },
+  quickguard: {
+    boost: ["quick guard", "quickguard", "priority protection"],
+    suppress: ["no quick guard", "not quick guard", "avoid quick guard"],
+  },
+  safeguard: {
+    boost: ["safeguard", "safe guard", "status immunity"],
+    suppress: ["no safeguard", "not safeguard", "avoid safeguard"],
+  },
+  helpinghand: {
+    boost: ["helping hand"],
+    suppress: ["no helping hand", "not helping hand", "avoid helping hand"],
   },
 };
 
@@ -1451,7 +1506,14 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
   // up when a real ability-setter is actually on the team.
   ["sand", "snow"].forEach((key) => {
     const abilitySetters = members.filter((m) => WINCON_WEATHER_SETTING_ABILITIES[wcAbilityOf(abilitiesData, m.name)] === key);
-    if (abilitySetters.length === 0) return;
+    // Chilly Reception (Milestone 39): Slowking/Galarian Slowking only (2
+    // of 298 species) -- rare and deliberate, so it's a real second path
+    // onto snow specifically, alongside Snow Warning. Kept as a second
+    // TIER, not merged into abilitySetters, since a free ability setter
+    // (no move slot spent) is still strictly better when both exist.
+    const moveSetters =
+      key === "snow" ? members.filter((m) => canLearn(m, "Chilly Reception") && !abilitySetters.some((s) => s.name === m.name)) : [];
+    if (abilitySetters.length === 0 && moveSetters.length === 0) return;
     const bulkType = WINCON_WEATHER_PASSIVE_BULK_TYPE[key];
     const bulkBeneficiaries = members.filter((m) => m.types.includes(bulkType));
     const abilityBeneficiaries = members.filter((m) =>
@@ -1460,7 +1522,9 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     const beneficiaries = [...new Set([...bulkBeneficiaries, ...abilityBeneficiaries])];
     if (beneficiaries.length === 0) return;
 
-    const { setter, mentioned } = wcPreferredSetter(abilitySetters, notes, (pool) => pool[0]);
+    const settersPool = abilitySetters.length > 0 ? abilitySetters : moveSetters;
+    const { setter, mentioned } = wcPreferredSetter(settersPool, notes, (pool) => pool[0]);
+    const usesChillyReception = abilitySetters.length === 0 && moveSetters.some((m) => m.name === setter.name);
     const parts = [];
     if (bulkBeneficiaries.length > 0) {
       parts.push(
@@ -1476,11 +1540,14 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
       archetype: key,
       setterName: setter.name,
       setter,
-      wantMoves: [],
+      wantMoves: usesChillyReception ? ["Chilly Reception"] : [],
       wantRole: null,
-      fitScore: beneficiaries.length + 1,
+      fitScore: beneficiaries.length + (usesChillyReception ? 0.5 : 1),
       note:
-        `${setter.name}'s own ability sets ${key === "sand" ? "a sandstorm" : "snow"} automatically the moment it's on the field — no move slot spent — and ${parts.join(", and ")}.` +
+        (usesChillyReception
+          ? `${setter.name} can learn Chilly Reception — it switches out and sets Snow the moment it's used`
+          : `${setter.name}'s own ability sets ${key === "sand" ? "a sandstorm" : "snow"} automatically the moment it's on the field — no move slot spent`) +
+        ` — and ${parts.join(", and ")}.` +
         (mentioned ? ` You mentioned ${setter.name} in your team notes.` : ""),
     });
   });
@@ -1536,12 +1603,23 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
   // just with Prankster (guaranteed-priority screens) standing in for a
   // weather-setting ABILITY as the "no real cost" case, since screens
   // has no ability-only path the way weather does.
-  const screensCandidates = members.filter((m) => canLearn(m, "Light Screen") || canLearn(m, "Reflect"));
+  const screensCandidates = members.filter((m) => canLearn(m, "Light Screen") || canLearn(m, "Reflect") || canLearn(m, "Aurora Veil"));
   if (screensCandidates.length > 0) {
+    // Aurora Veil (Milestone 39) is strictly better than Light Screen +
+    // Reflect combined when it's available -- one move covers both
+    // physical and special damage reduction -- but it only works while
+    // Snow is active, so it's only a real "free" option for a Pokemon
+    // that sets its OWN Snow (e.g. Alolan Ninetales, Snow Warning). That
+    // beats even Prankster, since it needs zero setup turns for either
+    // effect.
+    const auroraVeilSelfSnow = screensCandidates.filter(
+      (m) => canLearn(m, "Aurora Veil") && WINCON_WEATHER_SETTING_ABILITIES[wcAbilityOf(abilitiesData, m.name)] === "snow"
+    );
     const prankster = screensCandidates.filter((m) => wcAbilityOf(abilitiesData, m.name) === "Prankster");
-    const pool = prankster.length > 0 ? prankster : screensCandidates;
+    const pool = auroraVeilSelfSnow.length > 0 ? auroraVeilSelfSnow : prankster.length > 0 ? prankster : screensCandidates;
     const { setter, mentioned } = wcPreferredSetter(pool, notes, (p) => p[0]);
-    const learnableScreens = ["Light Screen", "Reflect"].filter((mv) => canLearn(setter, mv));
+    const usesAuroraVeil = auroraVeilSelfSnow.some((m) => m.name === setter.name);
+    const learnableScreens = usesAuroraVeil ? ["Aurora Veil"] : ["Light Screen", "Reflect"].filter((mv) => canLearn(setter, mv));
     const isPrankster = wcAbilityOf(abilitiesData, setter.name) === "Prankster";
     candidates.push({
       archetype: "screens",
@@ -1549,11 +1627,13 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
       setter,
       wantMoves: [learnableScreens[0]],
       wantRole: null,
-      fitScore: isPrankster ? 1.5 : 1,
-      note:
-        `${setter.name} can learn ${learnableScreens.join(" and ")} — screens cut incoming damage for your whole side, buying time for a setup sweeper or a slower attacker to get going.` +
-        (isPrankster ? ` Prankster guarantees it goes up before the opponent can punish it.` : "") +
-        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+      fitScore: usesAuroraVeil ? 2 : isPrankster ? 1.5 : 1,
+      note: usesAuroraVeil
+        ? `${setter.name}'s own ability sets Snow automatically, which lets it run Aurora Veil instead of Light Screen or Reflect — one move covers both physical and special damage reduction for your whole side (it doesn't stack with Reflect/Light Screen), for 5 turns (8 if it's holding Light Clay).` +
+          (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : "")
+        : `${setter.name} can learn ${learnableScreens.join(" and ")} — screens cut incoming damage for your whole side, buying time for a setup sweeper or a slower attacker to get going.` +
+          (isPrankster ? ` Prankster guarantees it goes up before the opponent can punish it.` : "") +
+          (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
     });
   }
 
@@ -1578,6 +1658,133 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     });
   }
 
+  // Quick Guard (Milestone 39) -- Wide Guard's direct sibling: same
+  // fixed +3 priority, same "no ability-based free case" shape, just
+  // blocking priority moves instead of spread moves.
+  const quickguardCandidates = members.filter((m) => canLearn(m, "Quick Guard"));
+  if (quickguardCandidates.length > 0) {
+    const { setter, mentioned } = wcPreferredSetter(quickguardCandidates, notes, (p) => p[0]);
+    candidates.push({
+      archetype: "quickguard",
+      setterName: setter.name,
+      setter,
+      wantMoves: ["Quick Guard"],
+      wantRole: null,
+      fitScore: 1,
+      note:
+        `${setter.name} can learn Quick Guard — it blocks priority moves aimed at your whole side for the turn, shielding your real hard hitters from the exact attacks that threaten them most in Doubles.` +
+        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+    });
+  }
+
+  // Terrain (Milestone 39: Phoenix's Status-move audit, "terrain first")
+  // -- move-signaled like Trick Room/Tailwind/Wide Guard above, not
+  // ability-only like weather, since terrain-setting abilities are
+  // essentially absent from this dataset. Electric/Grassy/Psychic
+  // Terrain each boost their own attacking type by 1.3x for grounded
+  // Pokemon, so their notes name real type-matching teammates already on
+  // the roster the same way sun/rain's beneficiary phrasing does.
+  [
+    ["electricterrain", "Electric Terrain", "Electric"],
+    ["grassyterrain", "Grassy Terrain", "Grass"],
+    ["psychicterrain", "Psychic Terrain", "Psychic"],
+  ].forEach(([key, moveName, boostedType]) => {
+    const terrainCandidates = members.filter((m) => canLearn(m, moveName));
+    if (terrainCandidates.length === 0) return;
+    const beneficiaries = members.filter((m) => m.types && m.types.includes(boostedType));
+    const { setter, mentioned } = wcPreferredSetter(terrainCandidates, notes, (p) => p[0]);
+    candidates.push({
+      archetype: key,
+      setterName: setter.name,
+      setter,
+      wantMoves: [moveName],
+      wantRole: null,
+      fitScore: beneficiaries.length + 1,
+      note:
+        `${setter.name} can learn ${moveName} — ` +
+        (beneficiaries.length > 0
+          ? `${beneficiaries.map((m) => m.name).join(", ")} ${beneficiaries.length > 1 ? "are" : "is"} already ${boostedType}-type and get${beneficiaries.length > 1 ? "" : "s"} a real 1.3x boost to grounded ${boostedType}-type attacks while it's up.`
+          : `it's a real damage boost for any ${boostedType}-type attacker you build in later, and it's up for 5 turns.`) +
+        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+    });
+  });
+
+  const mistyTerrainCandidates = members.filter((m) => canLearn(m, "Misty Terrain"));
+  if (mistyTerrainCandidates.length > 0) {
+    const { setter, mentioned } = wcPreferredSetter(mistyTerrainCandidates, notes, (p) => p[0]);
+    candidates.push({
+      archetype: "mistyterrain",
+      setterName: setter.name,
+      setter,
+      wantMoves: ["Misty Terrain"],
+      wantRole: null,
+      fitScore: 1,
+      note:
+        `${setter.name} can learn Misty Terrain — for 5 turns it blocks non-volatile status conditions and confusion for your whole side (grounded members) and halves incoming Dragon-type damage against them, real team-wide protection rather than a single power boost.` +
+        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+    });
+  }
+
+  // Safeguard (Milestone 39) -- same shape as Wide Guard/Quick Guard, no
+  // ability-based free case, purely protective (5-turn team-wide
+  // status/confusion immunity, mirrors Misty Terrain's defensive role).
+  const safeguardCandidates = members.filter((m) => canLearn(m, "Safeguard"));
+  if (safeguardCandidates.length > 0) {
+    const { setter, mentioned } = wcPreferredSetter(safeguardCandidates, notes, (p) => p[0]);
+    candidates.push({
+      archetype: "safeguard",
+      setterName: setter.name,
+      setter,
+      wantMoves: ["Safeguard"],
+      wantRole: null,
+      fitScore: 1,
+      note:
+        `${setter.name} can learn Safeguard — for 5 turns your whole side can't be hit with non-volatile status conditions or confusion, real insurance for a team that doesn't otherwise have a way to shrug off a burn, paralysis, or sleep at the worst moment.` +
+        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+    });
+  }
+
+  // Helping Hand (Milestone 39) -- learnable by ~68.5% of all species
+  // (204/298 in data/learnsets.json), nowhere near a real "setter
+  // signal" the way Trick Room (~17.8%) or Wide Guard (~8.1%) are, so
+  // unlike every archetype above this deliberately has no entry in
+  // wcArchetypeSignalsFor/wcArchetypeBeneficiaryScore -- treating "can
+  // learn Helping Hand" as an on-strategy signal during Dream Team
+  // picking would fire for most candidates regardless of team
+  // composition, the exact fake-signal problem weather's ability-only
+  // design already exists to avoid. It only ever gets proposed HERE,
+  // after the team is built, and only when there's a real hard hitter
+  // already on the roster worth amplifying (same Atk/SpA >= 100 bar
+  // redirect/screens/Wide Guard use for "worth protecting"). Doubles-
+  // only -- Helping Hand requires an adjacent ally.
+  if (fmt === "doubles") {
+    const hardHitters = members.filter((m) => {
+      const atk = (m.baseStats && m.baseStats.atk) || 0;
+      const spa = (m.baseStats && m.baseStats.spa) || 0;
+      return Math.max(atk, spa) >= 100;
+    });
+    if (hardHitters.length > 0) {
+      const helpingHandCandidates = members.filter(
+        (m) => canLearn(m, "Helping Hand") && !hardHitters.some((h) => h.name === m.name)
+      );
+      if (helpingHandCandidates.length > 0) {
+        const { setter, mentioned } = wcPreferredSetter(helpingHandCandidates, notes, (p) => p[0]);
+        const beneficiary = hardHitters[0];
+        candidates.push({
+          archetype: "helpinghand",
+          setterName: setter.name,
+          setter,
+          wantMoves: ["Helping Hand"],
+          wantRole: null,
+          fitScore: hardHitters.length,
+          note:
+            `${setter.name} can learn Helping Hand — with ${beneficiary.name} already built as a real hard hitter on this team, boosting its attack by 1.5x for one turn from an adjacent ally is a big swing in Doubles, especially on the turn you need a KO most.` +
+            (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+        });
+      }
+    }
+  }
+
   const biasedCandidates = wcApplyNotesBias(candidates, notes);
 
   if (biasedCandidates.length === 0) {
@@ -1587,7 +1794,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
       note:
         candidates.length > 0
           ? `Your team notes ruled out every strategy that would otherwise fit here — playing as six independent attackers is the fallback while that's the case.`
-          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, Wide Guard, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
+          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, Wide Guard, Quick Guard, Safeguard, terrain, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
             `move would clearly help more of the team than it'd cost — no single shared strategy stands out here, so playing as six independent attackers is the safer call.`,
       amendments: [],
       metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
@@ -2411,10 +2618,31 @@ function wcArchetypeSignalsFor(member, format, abilitiesData) {
   const abilityWeather = ability && WINCON_WEATHER_SETTING_ABILITIES[ability];
   if (abilityWeather) signals.push(abilityWeather);
   const learnable = member.learnableNames || [];
+  // Chilly Reception (Milestone 39): Slowking/Galarian Slowking only (2
+  // of 298 species) -- rare and deliberate, unlike Sunny Day/Rain Dance,
+  // so it's a real second path onto "snow" alongside Snow Warning rather
+  // than breaking the ability-only reasoning weather otherwise relies on.
+  if (learnable.includes("Chilly Reception") && abilityWeather !== "snow") signals.push("snow");
   if (learnable.includes("Trick Room")) signals.push("trickroom");
   if (learnable.includes("Tailwind")) signals.push("tailwind");
-  if (learnable.includes("Light Screen") || learnable.includes("Reflect")) signals.push("screens");
+  // Aurora Veil (Milestone 39) only ever counts as a screens signal for a
+  // Pokemon that can set its OWN Snow -- e.g. Alolan Ninetales (Snow
+  // Warning) -- never as a false signal from a Pokemon that would need a
+  // teammate's snow just to use the move at all.
+  if (
+    learnable.includes("Light Screen") ||
+    learnable.includes("Reflect") ||
+    (learnable.includes("Aurora Veil") && abilityWeather === "snow")
+  ) {
+    signals.push("screens");
+  }
   if (learnable.includes("Wide Guard")) signals.push("wideguard");
+  if (learnable.includes("Quick Guard")) signals.push("quickguard");
+  if (learnable.includes("Safeguard")) signals.push("safeguard");
+  if (learnable.includes("Electric Terrain")) signals.push("electricterrain");
+  if (learnable.includes("Grassy Terrain")) signals.push("grassyterrain");
+  if (learnable.includes("Misty Terrain")) signals.push("mistyterrain");
+  if (learnable.includes("Psychic Terrain")) signals.push("psychicterrain");
   if (format !== "singles" && (learnable.includes("Follow Me") || learnable.includes("Rage Powder"))) {
     signals.push("redirect");
   }
@@ -2494,6 +2722,34 @@ function wcArchetypeBeneficiaryScore(candidate, archetypeType, abilitiesData) {
       const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
       return Math.max(atk, spa) >= 100 ? 1 : 0;
     }
+    case "quickguard": {
+      // Same reasoning again -- Quick Guard shields the team's real hard
+      // hitter from incoming priority moves, not another support Pokemon.
+      const atk = (candidate.baseStats && candidate.baseStats.atk) || 0;
+      const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
+      return Math.max(atk, spa) >= 100 ? 1 : 0;
+    }
+    case "electricterrain":
+    case "grassyterrain":
+    case "psychicterrain": {
+      // Electric/Grassy/Psychic Terrain each multiply grounded attacks of
+      // their own type by 1.3x (confirmed against each move's real
+      // description in data/moves.json), so the real beneficiary is a
+      // candidate that actually carries that STAB type -- same pattern
+      // as sun/rain's boostedType check above.
+      const boostedType = { electricterrain: "Electric", grassyterrain: "Grass", psychicterrain: "Psychic" }[archetypeType];
+      return Boolean(candidate.types && candidate.types.includes(boostedType)) ? 1 : 0;
+    }
+    case "mistyterrain":
+      // Misty Terrain doesn't boost an attack type -- it halves incoming
+      // Dragon damage and blocks status/confusion for the whole side, a
+      // team-wide defensive benefit with no single type-matching
+      // beneficiary, same honest "0" as hazards below.
+      return 0;
+    case "safeguard":
+      // Same reasoning as Misty Terrain -- Safeguard is whole-team status
+      // immunity, not a power-boosting synergy tied to any one candidate.
+      return 0;
     case "hazards":
       return 0;
     default:
@@ -2535,6 +2791,12 @@ const WC_ARCHETYPE_DISPLAY_NAMES = {
   hazards: "entry hazards",
   screens: "screens (Light Screen / Reflect)",
   wideguard: "Wide Guard",
+  quickguard: "Quick Guard",
+  safeguard: "Safeguard",
+  electricterrain: "Electric Terrain",
+  grassyterrain: "Grassy Terrain",
+  mistyterrain: "Misty Terrain",
+  psychicterrain: "Psychic Terrain",
 };
 
 function wcArchetypeDisplayName(type) {
