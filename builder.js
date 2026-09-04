@@ -2494,8 +2494,21 @@ function generateDreamTeam() {
 
   const members = picked.map((name) => eligible.find((m) => m.name === name));
 
+  // Milestone (Phoenix's Tailwind/Staraptor/screens request): a Pokemon
+  // you just mentioned by name in your notes -- not necessarily hard
+  // "must include" -- that carried a real archetype signal but didn't
+  // make the final team gets an honest trade-off note instead of silence,
+  // see wcSoftPreferenceTradeoffNote. Only checked against names actually
+  // eligible (need real baseStats/learnableNames to evaluate a signal).
+  const softMentionedNotIncluded = wcNotesPlainMentionedNames(notes, eligible.map((m) => m.name)).filter(
+    (name) => !picked.includes(name)
+  );
+  const tradeoffNotes = softMentionedNotIncluded
+    .map((name) => wcSoftPreferenceTradeoffNote(eligible.find((m) => m.name === name), members, WINCON_BUILDER_FORMAT, data.abilities))
+    .filter(Boolean);
+
   chosen = picked;
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup, notes);
   builds = generated;
 
   // Milestone 36: "the dream team is providing a full strategised team for
@@ -2515,14 +2528,15 @@ function generateDreamTeam() {
   });
   const strategyResult = wcAnalyzeTeamStrategy(strategyMembers, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   applyAmendmentsToBuilds(strategyResult.amendments);
+  const megaAdvice = wcMegaMatchupAdvice(strategyMembers, threatsWithTypes, data.typeChart);
 
   invalidateComputedNotes();
   pendingStrategy = strategyResult;
 
   renderPicker();
   renderSlots();
-  renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible);
-  renderStrategyNote(strategyResult, true);
+  renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes);
+  renderStrategyNote(strategyResult, true, megaAdvice);
 
   autogenHint.textContent = "";
   saveStatus.textContent =
@@ -2531,9 +2545,18 @@ function generateDreamTeam() {
       : `Dream Team picked, built, and strategized around ${archetypeLabel(strategyResult.archetype)} — Save team when you're happy with it.`;
 }
 
-function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible) {
+function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
+
+  if (tradeoffNotes && tradeoffNotes.length) {
+    tradeoffNotes.forEach((text) => {
+      const tradeoffP = document.createElement("p");
+      tradeoffP.className = "hint dream-team-excluded-note";
+      tradeoffP.textContent = text;
+      dreamTeamNoteEl.appendChild(tradeoffP);
+    });
+  }
 
   if (excludedNames && excludedNames.length) {
     const excludedP = document.createElement("p");
@@ -2628,6 +2651,7 @@ function autoBuildSingle(baseName) {
       sheetMode,
       liveMetaBuilds: liveMetaBuildsLookup,
       lockedBuild: lockedBuildsLookup[baseName],
+      notes,
     }
   );
 
@@ -2673,7 +2697,7 @@ function autoBuildTeam() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup, notes);
 
   Object.entries(generated).forEach(([name, build]) => {
     builds[name] = build;
@@ -2786,7 +2810,7 @@ function autoBuildStrategy() {
   const result = wcAnalyzeTeamStrategy(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   pendingStrategy = result;
   autogenHint.textContent = "";
-  renderStrategyNote(result);
+  renderStrategyNote(result, false, wcMegaMatchupAdvice(members, threatsWithTypes, data.typeChart));
 }
 
 function renderStrategyOption(container, option, headingText, metaSynergy) {
@@ -2812,11 +2836,21 @@ function renderStrategyOption(container, option, headingText, metaSynergy) {
   }
 }
 
-function renderStrategyNote(strategy, alreadyApplied) {
+function renderStrategyNote(strategy, alreadyApplied, megaAdvice) {
   strategyNoteEl.innerHTML = "";
   strategyNoteEl.hidden = false;
 
   renderStrategyOption(strategyNoteEl, strategy, "Recommended strategy", strategy.metaSynergy);
+
+  if (megaAdvice) {
+    const megaAdviceP = document.createElement("p");
+    megaAdviceP.className = "meta-synergy-note mega-matchup-advice";
+    const megaAdviceLabel = document.createElement("strong");
+    megaAdviceLabel.textContent = "Mega matchup advisor: ";
+    megaAdviceP.appendChild(megaAdviceLabel);
+    megaAdviceP.appendChild(document.createTextNode(megaAdvice.note));
+    strategyNoteEl.appendChild(megaAdviceP);
+  }
 
   if (alreadyApplied && strategy.amendments && strategy.amendments.length > 0) {
     const appliedNote = document.createElement("p");
@@ -2858,7 +2892,7 @@ function renderStrategyNote(strategy, alreadyApplied) {
         alternative: { archetype: strategy.archetype, setterName: strategy.setterName, note: strategy.note, amendments: strategy.amendments },
       };
       pendingStrategy = swapped;
-      renderStrategyNote(swapped);
+      renderStrategyNote(swapped, false, megaAdvice);
     });
     altBox.appendChild(switchBtn);
     strategyNoteEl.appendChild(altBox);

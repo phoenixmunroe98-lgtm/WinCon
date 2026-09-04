@@ -29,6 +29,12 @@ const WINCON_STRATEGY_MOVES = {
   rain: ["Rain Dance"],
   redirect: ["Follow Me", "Rage Powder"],
   hazards: ["Stealth Rock", "Spikes", "Toxic Spikes", "Sticky Web"],
+  // Screens (Milestone: Phoenix's Tailwind/Staraptor/screens request) --
+  // Light Screen and Reflect protect the whole side, not just one
+  // Pokemon, so they get the same first-class archetype treatment
+  // Trick Room/Tailwind already have rather than only ever showing up
+  // because a specific curated Pokemon (Grimmsnarl) happens to run them.
+  screens: ["Light Screen", "Reflect"],
 };
 
 // A move whose own description says it fails outside a Double Battle, or
@@ -54,7 +60,7 @@ const WINCON_SPREAD_MOVES = new Set([
 
 // Still fully functional solo, but built around having a teammate to
 // protect/speed up — a mild Doubles-side bonus, no Singles penalty.
-const WINCON_DOUBLES_FAVORED_MOVES = new Set(["Wide Guard", "Quick Guard", "Tailwind", "Trick Room"]);
+const WINCON_DOUBLES_FAVORED_MOVES = new Set(["Wide Guard", "Quick Guard", "Tailwind", "Trick Room", "Light Screen", "Reflect"]);
 
 // Hazards / status / recovery / pivoting — the long-game tools that matter
 // more in a 1-on-1 war of attrition than in Doubles' shorter, faster games.
@@ -492,6 +498,22 @@ const WINCON_META_KNOWN_SETS = {
     sp: { hp: 2, attack: 32, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 },
     note: "Contrary turns Close Combat's own Defense/Sp. Def drop into a boost instead, so it gets bulkier the more it attacks, backed up by Brave Bird for coverage and Roost to stay healthy",
   },
+  "Mega Sceptile": {
+    // Added for Phoenix's Tailwind/Staraptor/screens request -- wanted
+    // as an alternative Mega alongside Mega Charizard Y, compared
+    // matchup-by-matchup rather than picking one outright (see
+    // wcMegaMatchupAdvice). Lightning Rod redirects Electric moves aimed
+    // at the whole side onto Sceptile and turns them into a free SpA
+    // boost instead of damage -- real defensive utility a pure attacker
+    // wouldn't otherwise have.
+    moves: ["Dragon Pulse", "Giga Drain", "Focus Blast", "Protect"],
+    // Giga Drain over the harder-hitting Leaf Storm: no self-inflicted
+    // SpA drop to manage turn to turn, and the recovery lets it stay in
+    // and keep threatening rather than nuke once and fold.
+    nature: "Timid",
+    sp: { hp: 2, attack: 0, defense: 0, sp_attack: 32, sp_defense: 0, speed: 32 },
+    note: "SpA 145 and Speed 145 are both far and away its best stats once Mega Evolved, and Lightning Rod gives it a genuine defensive angle most pure special attackers don't get",
+  },
 };
 
 /**
@@ -765,16 +787,31 @@ function wcLiveMegaSetFor(megaFormName, baseSpeciesName, liveMetaBuilds) {
   };
 }
 
-function wcPickAutoMegaForm(megaForms, used, baseSpeciesName, liveMetaBuilds) {
+/**
+ * `notes` (Phoenix's Tailwind/Staraptor/screens request, optional,
+ * trailing -- every existing call site is unaffected): when a species
+ * has more than one qualifying Mega form (a real, curated-or-live-
+ * confirmed X vs Y choice), a form mentioned by name in your team notes
+ * (plain substring, same wcPreferredSetter convention used everywhere
+ * else in this file) is tried FIRST, before falling back to today's
+ * plain array order. Doesn't change anything for the common one-real-
+ * Mega-form case, and doesn't help two DIFFERENT species each pick their
+ * own Mega (that's not a same-species choice at all -- see
+ * wcMegaMatchupAdvice for comparing across different species already on
+ * the roster).
+ */
+function wcPickAutoMegaForm(megaForms, used, baseSpeciesName, liveMetaBuilds, notes) {
   if (!Array.isArray(megaForms)) return null;
-  return (
-    megaForms.find(
-      (m) =>
-        WINCON_MEGA_STONES[m.name] &&
-        !used.has(WINCON_MEGA_STONES[m.name]) &&
-        (WINCON_META_KNOWN_SETS[m.name] || wcLiveMegaSetFor(m.name, baseSpeciesName, liveMetaBuilds))
-    ) || null
-  );
+  const qualifies = (m) =>
+    WINCON_MEGA_STONES[m.name] &&
+    !used.has(WINCON_MEGA_STONES[m.name]) &&
+    (WINCON_META_KNOWN_SETS[m.name] || wcLiveMegaSetFor(m.name, baseSpeciesName, liveMetaBuilds));
+  const text = (notes || "").toLowerCase();
+  if (text.trim()) {
+    const notesPreferred = megaForms.find((m) => qualifies(m) && text.includes(m.name.toLowerCase()));
+    if (notesPreferred) return notesPreferred;
+  }
+  return megaForms.find(qualifies) || null;
 }
 
 function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats, typeChart, options) {
@@ -790,7 +827,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   let effectiveBaseStats = baseStats;
   let forcedStoneItem = WINCON_MEGA_STONES[pokemon.name] || null;
   if (!forcedStoneItem) {
-    const autoMega = wcPickAutoMegaForm(opts.megaForms, used, pokemon.name, opts.liveMetaBuilds);
+    const autoMega = wcPickAutoMegaForm(opts.megaForms, used, pokemon.name, opts.liveMetaBuilds, opts.notes);
     if (autoMega) {
       effectivePokemon = autoMega;
       effectiveBaseStats = autoMega.baseStats;
@@ -947,7 +984,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
  *   without a hand-curated WINCON_META_KNOWN_SETS entry; omitted
  *   entirely, every build generates exactly as it did before this.
  */
-function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup) {
+function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes) {
   const fmt = wcNormalizeFormat(format);
   const builds = {};
   // Shared across every member below so wcPickItem never hands out the
@@ -970,6 +1007,7 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
       liveMetaBuilds,
       lockedBuild: lockedBuildsLookup && lockedBuildsLookup[m.name],
       teamSoFar,
+      notes,
     });
     builds[m.name] = build;
     teamSoFar.push({ name: m.name, moves: build.moves });
@@ -1117,6 +1155,10 @@ const WINCON_NOTES_KEYWORDS = {
   hazards: {
     boost: ["hazard", "stealth rock", "spikes", "stall"],
     suppress: ["no hazard", "not hazard", "avoid hazard"],
+  },
+  screens: {
+    boost: ["screens", "light screen", "reflect", "dual screens"],
+    suppress: ["no screens", "not screens", "avoid screens"],
   },
 };
 
@@ -1479,6 +1521,33 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     }
   }
 
+  // Screens (Milestone: Phoenix's Tailwind/Staraptor/screens request) --
+  // same "find a candidate, prefer a free/no-cost angle first, fall back
+  // to wcPreferredSetter" shape the weather block above already uses,
+  // just with Prankster (guaranteed-priority screens) standing in for a
+  // weather-setting ABILITY as the "no real cost" case, since screens
+  // has no ability-only path the way weather does.
+  const screensCandidates = members.filter((m) => canLearn(m, "Light Screen") || canLearn(m, "Reflect"));
+  if (screensCandidates.length > 0) {
+    const prankster = screensCandidates.filter((m) => wcAbilityOf(abilitiesData, m.name) === "Prankster");
+    const pool = prankster.length > 0 ? prankster : screensCandidates;
+    const { setter, mentioned } = wcPreferredSetter(pool, notes, (p) => p[0]);
+    const learnableScreens = ["Light Screen", "Reflect"].filter((mv) => canLearn(setter, mv));
+    const isPrankster = wcAbilityOf(abilitiesData, setter.name) === "Prankster";
+    candidates.push({
+      archetype: "screens",
+      setterName: setter.name,
+      setter,
+      wantMoves: [learnableScreens[0]],
+      wantRole: null,
+      fitScore: isPrankster ? 1.5 : 1,
+      note:
+        `${setter.name} can learn ${learnableScreens.join(" and ")} — screens cut incoming damage for your whole side, buying time for a setup sweeper or a slower attacker to get going.` +
+        (isPrankster ? ` Prankster guarantees it goes up before the opponent can punish it.` : "") +
+        (mentioned ? ` You mentioned ${setter.name} in your team notes, so it's the one set up to run this.` : ""),
+    });
+  }
+
   const biasedCandidates = wcApplyNotesBias(candidates, notes);
 
   if (biasedCandidates.length === 0) {
@@ -1488,7 +1557,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
       note:
         candidates.length > 0
           ? `Your team notes ruled out every strategy that would otherwise fit here — playing as six independent attackers is the fallback while that's the case.`
-          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
+          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
             `move would clearly help more of the team than it'd cost — no single shared strategy stands out here, so playing as six independent attackers is the safer call.`,
       amendments: [],
       metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
@@ -1618,6 +1687,46 @@ function wcTeamDefenseScore(types, threats, typeChart) {
   if (!threats || threats.length === 0) return 0;
   const avgIncoming = threats.reduce((sum, t) => sum + wcBestEffectiveness(typeChart, t.types, types), 0) / threats.length;
   return -avgIncoming;
+}
+
+/**
+ * Mega matchup advisor (Phoenix's Tailwind/Staraptor/screens request):
+ * "either Mega Charizard or Mega Sceptile ... whichever fits the
+ * opponent." WinCon has never enforced "only one real Mega per roster" --
+ * Mega Evolution itself is a once-per-battle choice a player makes at
+ * Team Preview, not a per-slot restriction, so any number of team
+ * members can already carry their own real Mega Stone at once (see
+ * wcPickAutoMegaForm -- no cross-member exclusivity check exists or
+ * needs to). What's missing is guidance on WHICH one to actually press
+ * this game. This never touches the roster or a build -- purely an
+ * explainable recommendation, reusing the exact same pure
+ * offense/defense scoring Dream Team's own fallback candidate scoring
+ * uses (wcTeamOffenseScore/wcTeamDefenseScore) when it has no fuller
+ * coverage-gain data available either.
+ *
+ * `effectiveMembers` must already be Mega-resolved (see
+ * effectiveMemberFor/wcSlotEffective in builder.js -- the same list
+ * wcAnalyzeTeamStrategy itself is called with) so `.name`/`.types`
+ * reflect each slot's REAL current Mega form, not its base species.
+ * Returns null whenever there's nothing to compare (0 or 1 real Mega
+ * built this generation -- the common case).
+ */
+function wcMegaMatchupAdvice(effectiveMembers, threats, typeChart) {
+  const megaMembers = (effectiveMembers || []).filter((m) => WINCON_MEGA_STONES[m.name]);
+  if (megaMembers.length < 2) return null;
+  const ranked = megaMembers
+    .map((m) => ({
+      name: m.name,
+      score: wcTeamOffenseScore(m.types, threats, typeChart) + wcTeamDefenseScore(m.types, threats, typeChart),
+    }))
+    .sort((a, b) => b.score - a.score);
+  const [best, ...rest] = ranked;
+  const note =
+    `You have ${ranked.length} real Megas built this generation (${ranked.map((r) => r.name).join(", ")}) -- treating them as interchangeable, ` +
+    `${best.name} looks like the stronger matchup call against your current threat list. ${rest.map((r) => r.name).join(", ")} ` +
+    `${rest.length > 1 ? "are" : "is"} the safer pick if the threats you're actually facing shift. This is typing-based offense/defense fit against your ` +
+    `threat list, not a full damage calc -- and it never drops either one from your roster on your behalf.`;
+  return { ranked, note };
 }
 
 function wcBaseStatTotal(baseStats) {
@@ -1971,6 +2080,79 @@ function wcLiveMetaCandidateBonus(name, liveMeta) {
   return ((stat.winRate - 50) / 50) * WC_LIVE_META_CANDIDATE_WEIGHT;
 }
 
+/**
+ * Milestone (Phoenix's Tailwind/Staraptor/screens request): a genuinely
+ * SCORED preference, not a force. WINCON_INCLUDE_TRIGGERS/
+ * wcNotesMentionedSpecies (a hard "must include X"/"built around X"
+ * phrase) still guarantees a Pokemon a roster spot -- this is separate
+ * and much smaller: just mentioning a Pokemon's name anywhere in your
+ * notes ("I've landed on Staraptor...") nudges Dream Team toward it
+ * without ever overriding a clearly better-fitting alternative. Reuses
+ * wcPreferredSetter's exact plain-substring matching convention -- no
+ * new trigger-phrase vocabulary. WC_SOFT_PREFERENCE_BONUS is
+ * deliberately smaller than a real archetype-synergy weight (1/1.5, see
+ * WC_ARCHETYPE_SETTER_WEIGHT/WC_ARCHETYPE_BENEFICIARY_WEIGHT below) so a
+ * plain mention can only ever break a close tie, never beat a real
+ * matchup/coverage edge -- which is exactly what makes it honest to flag
+ * when the mentioned Pokemon still loses (see wcSoftPreferenceTradeoffNote).
+ */
+const WC_SOFT_PREFERENCE_BONUS = 0.5;
+
+function wcNotesSoftPreferenceBonus(candidateName, notes) {
+  const text = (notes || "").toLowerCase();
+  if (!text.trim()) return 0;
+  return text.includes(candidateName.toLowerCase()) ? WC_SOFT_PREFERENCE_BONUS : 0;
+}
+
+/**
+ * Every name in `namesList` that appears anywhere in `notes` as a plain
+ * substring -- the same permissive matching wcPreferredSetter/
+ * wcNotesSoftPreferenceBonus use (no trigger phrase required), just
+ * returning every match instead of only the first. Longer names checked
+ * first so a two-word form name can't spuriously eat a shorter base name
+ * sitting inside it (same precaution wcNotesMentionedSpecies already
+ * takes for the hard-include case).
+ */
+function wcNotesPlainMentionedNames(notes, namesList) {
+  const text = (notes || "").toLowerCase();
+  if (!text.trim()) return [];
+  const sortedNames = [...namesList].sort((a, b) => b.length - a.length);
+  return sortedNames.filter((name) => text.includes(name.toLowerCase()));
+}
+
+/**
+ * The honest flip side of wcNotesSoftPreferenceBonus: when a Pokemon
+ * mentioned in your notes (plain mention, not necessarily a hard "must
+ * include") carries a real archetype signal (wcArchetypeSignalsFor --
+ * the same pre-build signals Milestone 36's Dream Team picking already
+ * uses) but didn't make the final team, and another teammate ended up
+ * running that same archetype with a DIFFERENT ability, this says so
+ * plainly instead of staying silent about the trade-off. Returns null
+ * whenever there's nothing worth saying: the mentioned Pokemon made the
+ * team after all, it never carried an archetype signal to begin with,
+ * nothing on the final team fills that role either, or the actual
+ * setter's ability matches anyway (nothing was actually given up).
+ */
+function wcSoftPreferenceTradeoffNote(mentionedCandidate, finalTeamMembers, format, abilitiesData) {
+  if (!mentionedCandidate) return null;
+  if (finalTeamMembers.some((m) => m.name === mentionedCandidate.name)) return null;
+  const signals = wcArchetypeSignalsFor(mentionedCandidate, format, abilitiesData);
+  const mentionedAbility = wcAbilityOf(abilitiesData, mentionedCandidate.name);
+  if (!mentionedAbility) return null;
+  for (const archetypeType of signals) {
+    const actualSetter = finalTeamMembers.find((m) => wcArchetypeSignalsFor(m, format, abilitiesData).includes(archetypeType));
+    if (!actualSetter) continue;
+    const actualAbility = wcAbilityOf(abilitiesData, actualSetter.name);
+    if (actualAbility !== mentionedAbility) {
+      return (
+        `${mentionedCandidate.name} wasn't included -- ${actualSetter.name} is your ${wcArchetypeDisplayName(archetypeType)} setter instead ` +
+        `(${actualAbility || "no notable ability"}, not ${mentionedAbility} -- if ${mentionedCandidate.name}'s ${mentionedAbility} mattered to you, this is worth a manual swap).`
+      );
+    }
+  }
+  return null;
+}
+
 /** Reasoning-list counterpart to wcLiveMetaCandidateBonus, same "explainable, not a black box" standard as its neighbors. Returns "" when there's nothing worth saying yet -- no data, too few tournament entries, or a real win rate too close to even to call out. */
 function wcLiveMetaReasoningNote(name, liveMeta) {
   const stat = liveMeta && liveMeta[name];
@@ -2071,6 +2253,7 @@ function wcArchetypeSignalsFor(member, format, abilitiesData) {
   const learnable = member.learnableNames || [];
   if (learnable.includes("Trick Room")) signals.push("trickroom");
   if (learnable.includes("Tailwind")) signals.push("tailwind");
+  if (learnable.includes("Light Screen") || learnable.includes("Reflect")) signals.push("screens");
   if (format !== "singles" && (learnable.includes("Follow Me") || learnable.includes("Rage Powder"))) {
     signals.push("redirect");
   }
@@ -2134,6 +2317,14 @@ function wcArchetypeBeneficiaryScore(candidate, archetypeType, abilitiesData) {
       const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
       return Math.max(atk, spa) >= 100 ? 1 : 0;
     }
+    case "screens": {
+      // Same reasoning as redirect above: screens exist to keep a real
+      // hard hitter alive long enough to matter, not to protect another
+      // support Pokemon.
+      const atk = (candidate.baseStats && candidate.baseStats.atk) || 0;
+      const spa = (candidate.baseStats && candidate.baseStats.spa) || 0;
+      return Math.max(atk, spa) >= 100 ? 1 : 0;
+    }
     case "hazards":
       return 0;
     default:
@@ -2173,6 +2364,7 @@ const WC_ARCHETYPE_DISPLAY_NAMES = {
   snow: "snow",
   redirect: "redirection (Follow Me / Rage Powder)",
   hazards: "entry hazards",
+  screens: "screens (Light Screen / Reflect)",
 };
 
 function wcArchetypeDisplayName(type) {
@@ -2249,7 +2441,8 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
     ? wcMetaBaselineArchetypeBonus(candidate.name, options.metaBaseline, options.format || "doubles")
     : 0;
   const archetypeBonus = wcArchetypeSynergyBonus(candidate, team, options.format || "doubles", options.abilitiesData);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus;
+  const softPreferenceBonus = wcNotesSoftPreferenceBonus(candidate.name, options.notes);
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + softPreferenceBonus;
 }
 
 /**
@@ -2505,7 +2698,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
 
   const canScoreCoverage = Boolean(natures && movesData);
   const weatherInfo = canScoreCoverage ? wcDetectWeatherArchetype(threats, abilitiesData) : null;
-  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format, liveMeta };
+  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format, liveMeta, notes };
 
   const remaining = [...usablePool];
   const team = [];

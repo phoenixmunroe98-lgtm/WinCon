@@ -1646,7 +1646,93 @@ that"); the fallback-heuristic fix happens to be format-agnostic so it
 improves Singles too, but no Doubles-specific work was ported over on
 purpose.
 
+## Screens, a softer kind of species preference, and a Mega matchup advisor (Milestone 37)
+
+Phoenix shared a Gemini research chat about a real Doubles archetype
+question: a Tailwind team built around Staraptor (Intimidate, but
+defensively fragile), wanting either Mega Charizard Y or Mega Sceptile as
+the team's Mega depending on the opponent, and wanting a dedicated screens
+setter (Light Screen/Reflect) too — with an explicit ask that if Staraptor
+ever got replaced, the replacement should carry equivalent value, not just
+win on a raw score. All three pieces are now real, and all three are built
+as extensions to the existing Team Notes system already covered above — no
+new UI, no LLM integration, just teaching Team Notes to understand a few
+more things.
+
+**Screens is now a full seventh archetype, recognized everywhere Trick
+Room/Tailwind/weather/redirection/hazards already are.** Milestone 36's
+pre-build synergy detection (`wcArchetypeSignalsFor`/
+`wcArchetypeBeneficiaryScore`) now recognizes a Pokémon that can learn
+Light Screen or Reflect, and treats a real hard hitter (Attack or Sp. Atk
+100+) as a genuine beneficiary — the same reasoning already used for
+redirection, since screens and redirection both exist to keep a real
+sweeper alive. Team Notes' keyword bias (`WINCON_NOTES_KEYWORDS`) picks up
+"screens"/"light screen"/"reflect"/"dual screens" the same way every other
+archetype's keywords already work. And Auto-build strategy's post-build
+amendment system (`wcAnalyzeTeamStrategy`) can now propose a screens setter
+outright — preferring a Prankster holder when one's on the team (priority
+screens are strictly better, so this mirrors the weather block's own
+preference for a free/no-cost setter), and falling back to whichever
+member you've named in your notes otherwise.
+
+**A genuinely scored, softer kind of preference — separate from the
+existing hard "must include" system, and able to lose.** Team Notes'
+existing include-triggers ("must include X", "built around X") still
+force a Pokémon onto the roster unconditionally, exactly as before — this
+doesn't touch that. But just mentioning a Pokémon's name in passing ("I've
+landed on Staraptor...") used to do nothing at all during Dream Team's
+picking step. Now it does: `wcNotesSoftPreferenceBonus` gives a plainly
+mentioned Pokémon a small, fixed nudge (worth roughly a third of a real
+archetype-synergy bonus) in Dream Team's scoring — enough to win a genuine
+toss-up, never enough to beat a clearly better-fitting alternative. When a
+mentioned, archetype-relevant Pokémon still loses out to a real
+alternative, `wcSoftPreferenceTradeoffNote` says so plainly rather than
+silently swapping it out: *"Staraptor wasn't included — Whimsicott is your
+Tailwind setter instead (Prankster, not Reckless — if Staraptor's Reckless
+mattered to you, this is worth a manual swap)."* It only ever speaks up
+when there's something real to flag — a different-ability teammate
+actually took over that exact role — and stays silent otherwise.
+
+**Mega Sceptile now has a real curated set** (`WINCON_META_KNOWN_SETS`),
+matching the existing convention: a Lightning Rod special attacker (base
+Sp. Atk and Speed both 145, clearly its best stats), running Dragon Pulse/
+Giga Drain/Focus Blast/Protect on a Timid Nature with Stat Points split
+between Sp. Atk and Speed. Giga Drain over the harder-hitting Leaf Storm —
+no self-inflicted Sp. Atk drop to manage turn to turn, plus real recovery,
+a better fit for a Pokémon meant to threaten repeatedly rather than nuke
+once.
+
+**Multiple real Megas on one roster, treated as interchangeable, already
+worked — WinCon just never had anything comparing them.** Real Champions/
+VGC rules only limit Mega Evolution to one *use* per battle, a choice made
+at Team Preview — not one held stone per roster — so `wcPickAutoMegaForm`
+never enforced "only one Mega" in the first place, and both Mega Charizard
+Y and Mega Sceptile can already sit on the same team, each fully built.
+What was missing was the "which one this game" guidance itself: a new
+`wcMegaMatchupAdvice` finds every team member that's currently built into
+a real Mega form, and — with two or more — reuses the exact same
+offense/defense typing scores Dream Team's own fallback picking already
+falls back on (`wcTeamOffenseScore`/`wcTeamDefenseScore`) to rank them
+against your current threats list, surfacing an explainable note in
+Auto-build strategy's reasoning panel (*"Mega Sceptile looks like the
+stronger matchup call against your current threat list. Mega Charizard Y
+is the safer pick if the threats you're actually facing shift."*). It says
+nothing when you have zero or one real Mega built, which is most teams.
+
+**Same-species Mega-form preference, for the rare case a species has more
+than one Mega form to choose between:** `wcPickAutoMegaForm` now also
+checks whether a specific form's name is mentioned in your notes before
+falling back to its existing default order.
+
+**Honesty note, matching every other advisory feature in this project:**
+the Mega matchup advisor is typing-based offense/defense fit against your
+current threats list, not a full damage calculator — and, like the soft
+preference nudge above, it never removes a Pokémon from your roster or
+drops a build on your behalf. It only ever explains what the numbers
+suggest and, when a preference didn't win out, what was traded away.
+
 ## Running it
+
 
 **Easiest — no install:** double-click `index.html` and it opens in your
 browser. Some browsers block a page from loading files under `data/` when
