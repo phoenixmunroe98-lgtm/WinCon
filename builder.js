@@ -139,6 +139,9 @@ let notes = "";
 /** "closed" | "open" — this team's Open/Closed Team Sheet setting (Milestone 14). See wcGetSheetMode in teams.js and the big comment at the top of this file. */
 let sheetMode = "closed";
 
+/** "obtained" | "full" — which candidate pool Generate Dream Team draws from: your own Pokédex tracker's "obtained" list, or the whole roster (Milestone 40). See wcGetPoolScope in teams.js. */
+let poolScope = "obtained";
+
 /** The last strategy analysis result from "Auto-build strategy", or null if none is showing / it's gone stale since a field changed. */
 let pendingStrategy = null;
 
@@ -175,6 +178,7 @@ const importModalApplyBtn = document.getElementById("import-modal-apply-btn");
 const importModalCloseBtn = document.getElementById("import-modal-close-btn");
 const teamsHint = document.getElementById("teams-hint");
 const sheetToggleEl = document.getElementById("sheet-toggle");
+const poolScopeToggleEl = document.getElementById("pool-scope-toggle");
 const teamNotesInput = document.getElementById("team-notes-input");
 const matchRecordEl = document.getElementById("match-record-note");
 
@@ -269,6 +273,7 @@ async function init() {
 
   renderTeamTabs();
   renderSheetToggle();
+  renderPoolScopeToggle();
   renderTeamNotes();
   renderMatchRecord();
   renderPicker();
@@ -293,6 +298,9 @@ async function init() {
   if (simwinrateRerunBtn) simwinrateRerunBtn.addEventListener("click", () => runSimulatedWinRate());
   sheetToggleEl.querySelectorAll(".format-option").forEach((btn) => {
     btn.addEventListener("click", () => setSheetMode(btn.dataset.sheet));
+  });
+  poolScopeToggleEl.querySelectorAll(".format-option").forEach((btn) => {
+    btn.addEventListener("click", () => setPoolScope(btn.dataset.pool));
   });
   teamNotesInput.addEventListener("change", () => {
     if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "add team notes")) {
@@ -338,6 +346,7 @@ async function init() {
     wcUpdateSignedOutBodyClass();
     renderTeamTabs();
     renderSheetToggle();
+    renderPoolScopeToggle();
     renderTeamNotes();
     renderMatchRecord();
     renderPicker();
@@ -433,6 +442,7 @@ function loadActiveIntoWorkingState() {
   builds = active ? JSON.parse(JSON.stringify(active.builds)) : {};
   notes = active && active.notes ? active.notes : "";
   sheetMode = wcGetSheetMode(active);
+  poolScope = wcGetPoolScope(active);
   // Simulated Win Rate: a freshly-loaded team (switching tabs, a new/moved
   // team, etc.) is a different build entirely -- forgetting any prior
   // result here (rather than just invalidateSimulatedWinRate()'s lighter
@@ -453,6 +463,7 @@ function syncWorkingStateIntoActiveTeam() {
   active.format = WINCON_BUILDER_FORMAT;
   active.notes = notes;
   active.sheetMode = sheetMode;
+  active.poolScope = poolScope;
 }
 
 function renderTeamNotes() {
@@ -634,6 +645,7 @@ function switchTeam(id) {
   autogenHint.textContent = "";
   renderTeamTabs();
   renderSheetToggle();
+  renderPoolScopeToggle();
   renderTeamNotes();
   renderMatchRecord();
   renderPicker();
@@ -658,6 +670,7 @@ function addTeam() {
   autogenHint.textContent = "";
   renderTeamTabs();
   renderSheetToggle();
+  renderPoolScopeToggle();
   renderTeamNotes();
   renderMatchRecord();
   renderPicker();
@@ -693,6 +706,7 @@ function deleteActiveTeam() {
   autogenHint.textContent = "";
   renderTeamTabs();
   renderSheetToggle();
+  renderPoolScopeToggle();
   renderTeamNotes();
   renderMatchRecord();
   renderPicker();
@@ -718,6 +732,7 @@ function moveActiveTeamToOtherFormat() {
   autogenHint.textContent = "";
   renderTeamTabs();
   renderSheetToggle();
+  renderPoolScopeToggle();
   renderTeamNotes();
   renderMatchRecord();
   renderPicker();
@@ -1340,6 +1355,7 @@ function setSheetMode(newMode) {
     wcSaveTeamState(teamState);
   }
   renderSheetToggle();
+  renderPoolScopeToggle();
   invalidateRival();
   // Re-renders every move field's Expected/Tech tag and re-scores the live
   // Matchup Score / Your Rival sections under the new mode — see
@@ -1351,6 +1367,36 @@ function setSheetMode(newMode) {
 function renderSheetToggle() {
   sheetToggleEl.querySelectorAll(".format-option").forEach((btn) => {
     btn.classList.toggle("is-active", btn.dataset.sheet === sheetMode);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// My Pokédex / Full Pokédex toggle (Milestone 40)
+// ---------------------------------------------------------------------------
+
+/**
+ * Gated behind an account the same way setSheetMode() is -- this only
+ * ever affects Generate Dream Team, which itself already requires
+ * sign-in, so there's no real "signed-out full-dex" state to support.
+ */
+function setPoolScope(newScope) {
+  if (!wcRequireAccount((msg) => { teamsHint.textContent = msg; }, "switch the candidate pool")) return;
+  poolScope = newScope === "full" ? "full" : "obtained";
+  const active = getActiveTeam();
+  if (active) {
+    active.poolScope = poolScope;
+    wcSaveTeamState(teamState);
+  }
+  renderPoolScopeToggle();
+  saveStatus.textContent =
+    poolScope === "full"
+      ? "Candidate pool set to Full Pokédex — Generate Dream Team can now pick from every species, not just what you've marked obtained."
+      : "Candidate pool set to My Pokédex — Generate Dream Team is back to picking from what you've marked obtained.";
+}
+
+function renderPoolScopeToggle() {
+  poolScopeToggleEl.querySelectorAll(".format-option").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.pool === poolScope);
   });
 }
 
@@ -2418,7 +2464,38 @@ function effectiveMemberFor(baseName, baseTypes, baseStats, learnableNames, buil
   return { name: effective.name, slotName: baseName, types: effective.types, baseStats: effectiveBaseStats, learnableNames };
 }
 
+/**
+ * Milestone 40: "My Pokédex" mode (poolScope === "obtained", the default
+ * and the only behavior that existed before this milestone) -- every
+ * species marked obtained on the Pokédex tracker with confirmed
+ * base-stat/learnset data, exactly as before. "Full Pokédex" mode
+ * (poolScope === "full") drops the ownership filter entirely and returns
+ * every Base-form species in the game with that same data, so a newer
+ * player can see (and Generate Dream Team can build) a genuinely
+ * competitive team before they've caught/trained a single one of these
+ * six in-game -- the point raised alongside Phoenix's reference-team
+ * request: "the aim is to help beginners be able to build a competitive
+ * team." Mega forms are excluded the same way buildRivalPool() (Your
+ * Rival's own full-roster pool, elsewhere in this file) already excludes
+ * them -- they're never independently picked, only opted into per-slot
+ * via wcPickAutoMegaForm. wcPickDreamTeam and every scoring/archetype
+ * function downstream are handed the exact same shape of pool either way
+ * and have no idea which mode built it.
+ */
 function eligibleObtainedMembers() {
+  if (poolScope === "full") {
+    const eligible = [];
+    data.pokemon.forEach((pokemon) => {
+      if (wcIsMegaForm(pokemon)) return;
+      const baseStats = data.baseStats.find((b) => b.name === pokemon.name);
+      const learnableNames = data.learnsets[pokemon.name];
+      if (baseStats && learnableNames) {
+        eligible.push({ name: pokemon.name, types: pokemon.types, baseStats, learnableNames, megaForms: megaFormsFor(pokemon.name) });
+      }
+    });
+    return eligible;
+  }
+
   const obtained = getObtainedNames();
   const eligible = [];
   obtained.forEach((name) => {
@@ -2449,8 +2526,10 @@ function generateDreamTeam() {
     dreamTeamNoteEl.innerHTML = "";
     const p = document.createElement("p");
     p.textContent =
-      `Generate Dream Team needs at least 6 obtained Pokémon with confirmed base-stat/learnset data — you have ${eligible.length} right now. ` +
-      `Mark more as obtained on the Pokédex tracker (or, for the newest Reg M-B additions, that data isn't confirmed yet — see README.md).`;
+      poolScope === "full"
+        ? `Generate Dream Team needs at least 6 Pokémon with confirmed base-stat/learnset data — only ${eligible.length} exist in the full Pokédex right now (the newest Reg M-B additions don't have confirmed data yet — see README.md).`
+        : `Generate Dream Team needs at least 6 obtained Pokémon with confirmed base-stat/learnset data — you have ${eligible.length} right now. ` +
+          `Mark more as obtained on the Pokédex tracker (or, for the newest Reg M-B additions, that data isn't confirmed yet — see README.md), or switch to Full Pokédex above.`;
     dreamTeamNoteEl.appendChild(p);
     return;
   }
@@ -2549,6 +2628,18 @@ function generateDreamTeam() {
 function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes, antiSynergyWarnings) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
+
+  // Milestone 40: built from poolScope directly (module-level, not
+  // threaded through as a parameter) -- the one caveat that matters most
+  // when this team came from the full roster instead of what's actually
+  // obtained: some of these six may not be caught/trained yet.
+  if (poolScope === "full") {
+    const fullDexP = document.createElement("p");
+    fullDexP.className = "hint dream-team-excluded-note";
+    fullDexP.textContent =
+      "Built from the full Pokédex, not just what you've marked obtained — some of these six may still need catching or training in-game before you can actually use this build. Switch back to \u201cMy Pokédex\u201d above once you're ready to build from what you actually own.";
+    dreamTeamNoteEl.appendChild(fullDexP);
+  }
 
   if (antiSynergyWarnings && antiSynergyWarnings.length) {
     antiSynergyWarnings.forEach((text) => {
@@ -3039,6 +3130,7 @@ function applyAmendments(strategy, target) {
     newTeam.format = WINCON_BUILDER_FORMAT;
     newTeam.notes = notes;
     newTeam.sheetMode = sheetMode;
+    newTeam.poolScope = poolScope;
     teamState.teams.push(newTeam);
     activeId = newTeam.id;
     teamState.activeId = activeId;
@@ -3046,6 +3138,7 @@ function applyAmendments(strategy, target) {
     loadActiveIntoWorkingState();
     renderTeamTabs();
     renderSheetToggle();
+    renderPoolScopeToggle();
     renderTeamNotes();
     renderMatchRecord();
     renderPicker();

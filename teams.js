@@ -47,7 +47,7 @@ function wcEmptyTeamState() {
 }
 
 function wcEmptyTeam(name) {
-  return { id: wcNewTeamId(), name, format: "doubles", sheetMode: "closed", chosen: [], builds: {}, notes: "", matchLog: [] };
+  return { id: wcNewTeamId(), name, format: "doubles", sheetMode: "closed", poolScope: "obtained", chosen: [], builds: {}, notes: "", matchLog: [] };
 }
 
 /** A team saved before Milestone 4 has no `format` field — default it to Doubles (Champions' ranked ladder format) rather than requiring a migration pass. */
@@ -87,6 +87,18 @@ function wcComputeLineupKey(lineupNames) {
  */
 function wcGetSheetMode(team) {
   return team && team.sheetMode === "open" ? "open" : "closed";
+}
+
+/**
+ * Milestone 40: "My Pokédex" vs. "Full Pokédex" -- which candidate pool
+ * Generate Dream Team draws from. Defaults to "obtained" (today's exact
+ * behavior, and what a team saved before this milestone has no field
+ * for) so nothing changes for existing saved teams; "full" is the only
+ * other real value, same defensive fallback pattern as wcGetTeamFormat/
+ * wcGetSheetMode above.
+ */
+function wcGetPoolScope(team) {
+  return team && team.poolScope === "full" ? "full" : "obtained";
 }
 
 // ---------------------------------------------------------------------------

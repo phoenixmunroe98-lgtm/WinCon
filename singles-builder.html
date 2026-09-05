@@ -147,13 +147,25 @@
         <div>
           <h2 class="section-title">Or, let WinCon build the whole team</h2>
           <p class="hint">
-            Picks the best 6 from your obtained Pokémon, builds all 6, and analyzes a shared strategy — one click,
-            start to finish. Keeps anything you've already picked below and builds the rest around it, honors any
-            Pokémon your team notes ask to include or leave out (e.g. "built around Greninja and Feraligatr" or
+            Picks the best 6 from your candidate pool below, builds all 6, and analyzes a shared strategy — one
+            click, start to finish. Keeps anything you've already picked below and builds the rest around it, honors
+            any Pokémon your team notes ask to include or leave out (e.g. "built around Greninja and Feraligatr" or
             "no Tinkaton"), and re-picks/rebuilds everything else.
           </p>
         </div>
         <button id="dream-team-btn" class="btn-primary">Generate Dream Team</button>
+      </div>
+      <div class="field format-field pool-scope-field">
+        <span class="field-label">Candidate pool</span>
+        <div id="pool-scope-toggle" class="format-toggle" role="group" aria-label="My Pokédex or Full Pokédex">
+          <button type="button" class="format-option" data-pool="obtained">My Pokédex</button>
+          <button type="button" class="format-option" data-pool="full">Full Pokédex</button>
+        </div>
+        <p class="hint">
+          "My Pokédex" picks only from what you've marked obtained on the Pokédex tracker. "Full Pokédex" opens up
+          every species in the game — good for seeing what a genuinely competitive team looks like before you've
+          caught or trained the Pokémon in it.
+        </p>
       </div>
       <div id="dream-team-note" class="callout-box" hidden></div>
     </section>

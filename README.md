@@ -1879,6 +1879,55 @@ Six new test files (`tools/test-terrain-archetypes.mjs`,
 green alongside the full existing suite (24 files, zero regressions).
 
 
+## "My Pokédex" vs. "Full Pokédex" -- a candidate-pool toggle for Generate Dream Team (Milestone 40)
+
+The first phase of a larger diversity/explainability roadmap (the rest is
+tracked outside this repo, not built yet). Generate Dream Team has always
+picked its 6 from `eligibleObtainedMembers()` -- whatever's marked
+obtained on the Pokédex tracker, and only that. Right for "build me a team
+from what I actually own," but it meant a newer player with a thin
+Pokédex could never see what a genuinely good team looks like, and there
+was no way to theorycraft with the full roster. WinCon's whole point is
+helping beginners learn to build a competitive team -- gating that behind
+"catch a bunch of Pokémon first" got in the way of the very thing it's
+supposed to teach.
+
+**The fix is a single toggle, not a new picking system.** A new
+`poolScope` field on each saved team -- `"obtained"` (default, today's
+exact behavior, and what a team saved before this milestone gets since it
+has no field for it at all) or `"full"` -- saved/loaded through
+`wcGetPoolScope()`/`wcEmptyTeam()` in teams.js, exactly the way
+`format`/`sheetMode` already are. `eligibleObtainedMembers()` in
+builder.js becomes a thin branch: `"obtained"` is untouched, byte-for-byte
+the same code as before; `"full"` drops the ownership filter and returns
+every Base-form species in `data/pokemon.json` with confirmed
+base-stat/learnset data, excluding Mega forms the same way `buildRivalPool()`
+(Your Rival's own full-roster pool) already does -- they're never
+independently picked, only opted into per-slot.
+
+Nothing downstream had to change. `wcPickDreamTeam` and every
+scoring/archetype function it calls are handed the exact same shape of
+pool either way and have no idea which mode built it -- this was a clean,
+single-chokepoint change plus a UI toggle and a per-team field, exactly as
+scoped. When Full Pokédex is active, Dream Team's own note says plainly
+that some of these six may still need catching or training in-game --
+never presented as if they're already on the roster. Auto-build team
+didn't need this: it builds movesets for whatever's already in your 6
+chosen slots, it never selects the pool itself, so there was nothing there
+for this toggle to change.
+
+One new test file (`tools/test-pool-scope-toggle.mjs`, 10 checks): direct
+coverage of `wcGetPoolScope`'s defensive fallbacks (legacy team, null,
+garbage value, real "full"), plus a mirror of `eligibleObtainedMembers()`'s
+"full" predicate checked straight against the real data files -- every
+Mega form excluded, Phoenix's own reference-team roster (Staraptor,
+Primarina, Sneasler, Sceptile, Steelix, Charizard) included, and the full
+pool genuinely dwarfing a small hand-picked "obtained" list. (Builder.js
+itself has never been unit-tested in this project -- its top-level code
+reaches for real DOM elements the instant it loads, so every test file,
+this one included, tests the pure logic underneath rather than loading
+the page glue.) All 25 files green, zero regressions.
+
 ## Running it
 
 
