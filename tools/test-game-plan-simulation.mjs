@@ -441,4 +441,91 @@ check("wcBuildGamePlans now genuinely lets team notes override which real setter
   assert.equal(notedSetterName, otherCandidate, "team notes naming a real Tailwind-capable teammate should override the default (fastest) setter pick");
 });
 
+// ---------------------------------------------------------------------------
+// 7. Milestone 49 follow-up: Phoenix caught a real, pre-existing bug --
+// "using sceptile and charizard in a team would mean only one is a mega,
+// this means you should take into account sceptiles base stats not its
+// mega evolved and vice versa". wcBuildMegaScenarios already forced
+// exactly one Mega per scenario for the FINAL reported result, but the
+// lineup SEARCH phase before it (wcSelectBestLineupBySuccessiveHalving,
+// via wcSimulatePlan's specsByName) had no such discipline -- any search
+// candidate holding both Sceptile and Charizard (both real Mega Stone
+// holders in Phoenix's own fixture) got simulated as though BOTH were
+// simultaneously Mega-evolved, an impossible real-game state. Fixed via
+// wcMegaOverridesForSearch, wired into wcSimulatePlan's specsByName loop.
+// ---------------------------------------------------------------------------
+
+check("wcMegaOverridesForSearch forces exactly one Mega-eligible member to \"mega\" and every other one to \"base\", preferring the named carry", () => {
+  const forSceptileCarry = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, BUILDS, pokemonList, "Sceptile")));
+  assert.deepEqual(forSceptileCarry, { Sceptile: "mega", Charizard: "base" });
+
+  const forCharizardCarry = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, BUILDS, pokemonList, "Charizard")));
+  assert.deepEqual(forCharizardCarry, { Sceptile: "base", Charizard: "mega" });
+});
+
+check("wcMegaOverridesForSearch falls back to the first Mega-eligible member in roster order when no carry is named (the \"Standard\" no-plan case)", () => {
+  // CHOSEN_SIX order is Staraptor, Primarina, Incineroar, Steelix,
+  // Sceptile, Charizard -- Sceptile appears first among the two real
+  // Mega-eligible members, so it's the one legal, consistent choice here.
+  const noCarry = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, BUILDS, pokemonList, undefined)));
+  assert.deepEqual(noCarry, { Sceptile: "mega", Charizard: "base" });
+});
+
+check("wcMegaOverridesForSearch returns {} when the team has no real Mega-eligible member at all", () => {
+  const noMegaBuilds = { ...BUILDS, Sceptile: { ...BUILDS.Sceptile, item: "Leftovers" }, Charizard: { ...BUILDS.Charizard, item: "Leftovers" } };
+  const result49c = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, noMegaBuilds, pokemonList, "Sceptile")));
+  assert.deepEqual(result49c, {});
+});
+
+check("wcBattlerSpecForSlot's forced \"base\" view genuinely resolves Sceptile's real base (non-Mega) typing, not Mega Sceptile's Grass/Dragon", () => {
+  const forcedBase = JSON.parse(JSON.stringify(context.wcBattlerSpecForSlot("Sceptile", BUILDS.Sceptile, pokemonList, baseStatsData, abilitiesData, "base")));
+  assert.deepEqual([...forcedBase.types].sort(), ["Grass"], "base Sceptile is pure Grass -- forcing \"base\" must not carry over Mega Sceptile's real second Dragon type");
+
+  const forcedMega = JSON.parse(JSON.stringify(context.wcBattlerSpecForSlot("Sceptile", BUILDS.Sceptile, pokemonList, baseStatsData, abilitiesData, "mega")));
+  assert.deepEqual([...forcedMega.types].sort(), ["Dragon", "Grass"], "forcing \"mega\" must still resolve the real Mega Sceptile Grass/Dragon typing when explicitly asked for");
+});
+
+check("wcSimulatePlan never resolves two Mega-eligible members as Mega simultaneously during the search phase, for any of Phoenix's real detected plans", () => {
+  const capturedForcedViews = [];
+  const realBattlerSpecForSlot = context.wcBattlerSpecForSlot;
+  context.wcBattlerSpecForSlot = function spyBattlerSpecForSlot(baseName, build, pl, bsd, ad, forcedMegaView) {
+    capturedForcedViews.push({ baseName, forcedMegaView });
+    return realBattlerSpecForSlot(baseName, build, pl, bsd, ad, forcedMegaView);
+  };
+
+  try {
+    const plans49b = JSON.parse(JSON.stringify(context.wcBuildGamePlans(CHOSEN_SIX, BUILDS, pokemonList, baseStatsData, abilitiesData)));
+    const format = "doubles";
+    const n = 4;
+    const oppPool = [{ id: "test-reference-a", members: metaBaseline.doubles[0].members }];
+    const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode: "open", format };
+
+    plans49b.forEach((plan) => {
+      capturedForcedViews.length = 0;
+      context.wcSimulatePlan(plan, CHOSEN_SIX, BUILDS, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, null);
+
+      // wcSimulatePlan builds specsByName for the SEARCH phase exactly
+      // once, one wcBattlerSpecForSlot call per chosenSix member, in
+      // chosenSix's own order, before wcBuildMegaScenarios runs -- so the
+      // first CHOSEN_SIX.length captured calls are that one search-phase
+      // build. wcBuildMegaScenarios afterwards legitimately builds several
+      // MORE specsByName sets, one per real Mega candidate scenario
+      // (Sceptile-mega-alone, Charizard-mega-alone, etc.) -- correctly
+      // trying each candidate separately, never simultaneously, which is
+      // the whole reason this test must not also flatten those later
+      // calls into the same "were they both mega" check.
+      const searchPhaseCalls = capturedForcedViews.slice(0, CHOSEN_SIX.length);
+      const sceptileCall = searchPhaseCalls.find((c) => c.baseName === "Sceptile");
+      const charizardCall = searchPhaseCalls.find((c) => c.baseName === "Charizard");
+      assert.ok(sceptileCall && charizardCall, `expected both Sceptile and Charizard to be resolved in the search-phase specsByName build for plan ${plan.key}`);
+      assert.ok(
+        !(sceptileCall.forcedMegaView === "mega" && charizardCall.forcedMegaView === "mega"),
+        `plan ${plan.key}: Sceptile and Charizard were both forced to "mega" in the search-phase specsByName build -- an impossible real Doubles state`
+      );
+    });
+  } finally {
+    context.wcBattlerSpecForSlot = realBattlerSpecForSlot;
+  }
+});
+
 console.log(`\nAll ${checksRun} checks passed.`);

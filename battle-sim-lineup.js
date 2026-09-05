@@ -421,6 +421,44 @@ function wcCarryPlanBonus(plan, specsByName, typeChart) {
 }
 
 /**
+ * Milestone 49 correctness fix (Phoenix: "using sceptile and charizard in
+ * a team would mean only one is a mega... you should take into account
+ * sceptile's base stats not its mega evolved and vice versa"). Real
+ * Doubles rules allow only one Mega per battle, and wcBuildMegaScenarios
+ * already respects that for the FINAL reported result -- but the lineup
+ * SEARCH phase before it (wcSelectBestLineupBySuccessiveHalving) used to
+ * build every member's spec with no Mega/base override at all, so a
+ * candidate lineup holding two Mega Stones (Sceptile + Charizard, say)
+ * got simulated as though BOTH were simultaneously Mega-evolved -- an
+ * impossible battle state that artificially inflates exactly the
+ * "bring your two biggest hitters together" combinations this milestone
+ * is otherwise trying to stop rewarding by default. This was a real,
+ * pre-existing bug (present since Milestone 35's search was first
+ * written, well before this session), not something introduced by
+ * wcCarryPlanBonus -- it just needed fixing here too, since that
+ * function reads the same specsByName.
+ *
+ * Fix: exactly one Mega-eligible member of the lineup search's shared
+ * roster gets to resolve as its Mega form -- the plan's own designated
+ * carry when one exists (a plan already specifies which member is
+ * MEANT to Mega Evolve; simulating anything else during ITS search
+ * would be simulating a different plan), or the first Mega-eligible
+ * member in roster order otherwise (the "Standard" fallback plan has no
+ * carry role -- any single consistent, legal choice is fine here, since
+ * wcBuildMegaScenarios tries every real candidate separately for the
+ * actual reported result regardless). Every other Mega-eligible member
+ * is forced to its real base form for the whole search.
+ */
+function wcMegaOverridesForSearch(chosenSix, builds, pokemonList, preferredMegaName) {
+  const eligible = chosenSix.filter((name) => wcIsMegaEligible(name, builds[name], pokemonList));
+  if (!eligible.length) return {};
+  const primary = preferredMegaName && eligible.includes(preferredMegaName) ? preferredMegaName : eligible[0];
+  const overrides = {};
+  eligible.forEach((name) => { overrides[name] = name === primary ? "mega" : "base"; });
+  return overrides;
+}
+
+/**
  * Simulates one detected game plan end to end: filters the candidate
  * lineups down to only those containing every one of the plan's
  * requiredNames (a real efficiency win, not just a correctness one --
@@ -442,9 +480,24 @@ function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseSta
 
   const orderedLineups = eligibleLineups.map((names) => wcOrderLineupForPlan(names, plan));
 
+  // Correctness fix (Phoenix, Milestone 49 follow-up): real Doubles rules
+  // allow only one Mega per battle. Without this, a lineup search candidate
+  // holding two Mega Stones (e.g. Sceptile + Charizard) got simulated here
+  // as though BOTH were simultaneously Mega-evolved -- an impossible state
+  // that inflated exactly the "bring your two biggest hitters" lineups this
+  // milestone's whole point is to stop rewarding by default. The plan's own
+  // designated carry (when one exists) is who's actually meant to Mega
+  // Evolve for this plan, so it -- not roster order -- decides who gets
+  // forced to "mega" here; every other Mega-eligible member is forced to
+  // its real base form for the whole search. wcBuildMegaScenarios still
+  // tries every real candidate separately afterwards for the actual
+  // reported result, so this only affects which lineup the search picks.
+  const carryName = Object.keys(plan.roleByName).find((name) => plan.roleByName[name] === "carry");
+  const megaOverrides = wcMegaOverridesForSearch(chosenSix, builds, pokemonList, carryName);
+
   const specsByName = {};
   chosenSix.forEach((name) => {
-    const base = wcBattlerSpecForSlot(name, builds[name], pokemonList, baseStatsData, abilitiesData);
+    const base = wcBattlerSpecForSlot(name, builds[name], pokemonList, baseStatsData, abilitiesData, megaOverrides[name]);
     const roleWeights = wcRoleWeightsFor(plan.roleByName[name] || "neutral");
     specsByName[name] = roleWeights ? { ...base, roleWeights } : base;
   });
