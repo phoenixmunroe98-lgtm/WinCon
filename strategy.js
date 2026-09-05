@@ -1990,6 +1990,11 @@ function wcMegaMatchupAdvice(effectiveMembers, threats, typeChart) {
  *       Trick Room. Choice Scarf's Speed boost works directly against
  *       Trick Room's reversed turn order for that Pokemon specifically --
  *       it'd move LAST instead of first while Trick Room is up.
+ *
+ * Both of the above are genuinely hand-picked -- real, specific
+ * ability/item/move combinations, not a general rule. wcSharedWeaknessWarnings
+ * (below) is the fully-computable counterpart: no curated list at all, just
+ * type-chart math run over every pair on the team.
  */
 function wcAntiSynergyWarnings(members, builds, abilitiesData) {
   const warnings = [];
@@ -2024,6 +2029,65 @@ function wcAntiSynergyWarnings(members, builds, abilitiesData) {
         );
       }
     });
+  }
+
+  return warnings;
+}
+
+/**
+ * Shared-weakness audit (Milestone 41 -- the "identify hidden
+ * anti-synergies" methodology review's item 4). wcAntiSynergyWarnings
+ * above only ever catches two specific, hand-picked ability/item
+ * conflicts -- nothing checks the more general, and arguably more common,
+ * case the methodology doc actually asked for: two team members with
+ * genuinely DIFFERENT typings that still both take real damage from the
+ * same attacking type. wcSameTypingPenalty (used during Dream Team
+ * picking, elsewhere in this file) only ever catches an exact type-combo
+ * duplicate; it says nothing about two differently-typed Pokemon that
+ * still share a real weakness.
+ *
+ * Unlike every check in wcAntiSynergyWarnings, this one needs no curated
+ * list at all -- it's pure type-chart math, run over every pair on the
+ * team against every real attacking type in typeChart.types (via the same
+ * wcEffectivenessOf helper wcDefenseCoverageBonus/wcTeamNetScoreForType
+ * already use). That means it can honestly claim to catch EVERY shared
+ * 2x-or-worse weakness between any two members, not just a hand-picked
+ * subset -- worth being explicit about, since every other advisory note
+ * in this file up to this point (WINCON_SPREAD_MOVES, starter-threats.json,
+ * both checks in wcAntiSynergyWarnings) is deliberately "hand-picked, not
+ * exhaustive."
+ *
+ * Checks every unordered pair once (i < j), and every real type in
+ * typeChart.types against each -- with 19 types and 6 team members that's
+ * a fixed, small 19 * 15 = 285 effectiveness lookups, not something that
+ * needs memoizing. A pair sharing an identical typing (already flagged
+ * elsewhere as a straight duplicate) still gets caught here too if it's
+ * a real shared weakness -- this function isn't trying to avoid that
+ * overlap, just to report every genuine shared weakness it finds.
+ */
+function wcSharedWeaknessWarnings(members, typeChart) {
+  const warnings = [];
+  if (!members || members.length < 2 || !typeChart || !Array.isArray(typeChart.types)) return warnings;
+
+  for (let i = 0; i < members.length; i += 1) {
+    const a = members[i];
+    if (!a || !Array.isArray(a.types) || a.types.length === 0) continue;
+    for (let j = i + 1; j < members.length; j += 1) {
+      const b = members[j];
+      if (!b || !Array.isArray(b.types) || b.types.length === 0) continue;
+
+      typeChart.types.forEach((attackType) => {
+        const multA = wcEffectivenessOf(typeChart, attackType, a.types);
+        const multB = wcEffectivenessOf(typeChart, attackType, b.types);
+        if (multA >= 2 && multB >= 2) {
+          const tagA = multA >= 4 ? `${a.name} (a brutal 4x)` : a.name;
+          const tagB = multB >= 4 ? `${b.name} (a brutal 4x)` : b.name;
+          warnings.push(
+            `${attackType} is a shared weakness: it hits both ${tagA} and ${tagB} for 2x damage or more -- a single well-placed ${attackType}-type move threatens both of them at once.`
+          );
+        }
+      });
+    }
   }
 
   return warnings;

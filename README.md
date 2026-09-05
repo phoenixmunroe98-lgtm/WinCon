@@ -1928,6 +1928,53 @@ reaches for real DOM elements the instant it loads, so every test file,
 this one included, tests the pure logic underneath rather than loading
 the page glue.) All 25 files green, zero regressions.
 
+## A genuine shared-weakness audit, computed rather than hand-picked (Milestone 41)
+
+Phase 2 of the same diversity/explainability roadmap. `wcAntiSynergyWarnings`
+(Milestone 38) only ever checked two specific, hand-picked conflicts --
+a teammate's own Sandstorm chipping an unprotected Focus Sash holder, and
+a Choice Scarf holder fighting a real Trick Room build. Both real, both
+worth flagging -- but neither is the more general case the methodology
+review actually asked about: two team members with genuinely DIFFERENT
+typings that still both take a real hit from the same attacking type.
+`wcSameTypingPenalty` (used during Dream Team picking) only ever catches
+an exact type-combo duplicate; nothing said anything when, say, a
+Grass/Poison and a Dragon/Flying Pokémon both turned out to be sitting on
+a real Ice weakness.
+
+**`wcSharedWeaknessWarnings(members, typeChart)`** (strategy.js) closes
+that gap, and it's a genuinely different kind of check from the two it
+sits alongside: it needs no curated list at all. It's pure type-chart
+math -- every unordered pair on the team, checked against every real
+attacking type in `typeChart.types` via the same `wcEffectivenessOf`
+helper `wcDefenseCoverageBonus`/`wcTeamNetScoreForType` already use (19
+types x 15 pairs for a full 6-member team, nothing that needs memoizing).
+Any type that deals 2x or more to BOTH members gets named in plain
+English, calling out a 4x hit explicitly since that's a materially worse
+number than a plain 2x. Because it's fully computable rather than
+hand-picked, it can honestly claim to catch *every* shared weakness on
+the finished team -- worth stating plainly, since every other advisory
+note in this file up to now (`WINCON_SPREAD_MOVES`, `data/starter-threats.json`,
+both of `wcAntiSynergyWarnings`' own checks) is deliberately "hand-picked,
+not exhaustive," and this one just isn't.
+
+Its output renders in the exact same slot the existing anti-synergy
+warnings already had in builder.js (`renderDreamTeamNote`/`renderStrategyNote`)
+-- both call sites (`generateDreamTeam()`, `autoBuildStrategy()`) now just
+concatenate `wcAntiSynergyWarnings`' and `wcSharedWeaknessWarnings`' output
+into one combined list before it's rendered; neither render function's
+own signature had to change.
+
+New test file (`tools/test-shared-weakness-warnings.mjs`, real fixtures
+pulled straight from `data/pokemon.json`): Venusaur (Grass/Poison) and
+Beedrill (Bug/Poison) -- two genuinely different typings that both take a
+real 2x hit from Fire, Flying, and Psychic; Venusaur and Dragonite
+(Dragon/Flying) for the 4x case (Ice hits Dragonite for a full 4x);
+Venusaur and Charizard (Fire/Flying) as the honest negative case -- no
+shared 2x-or-worse weakness between them, so no warning fires. 12 checks
+total, all green alongside the full existing suite (26 files, zero
+regressions).
+
 ## Running it
 
 

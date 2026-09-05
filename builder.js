@@ -2608,7 +2608,14 @@ function generateDreamTeam() {
   const strategyResult = wcAnalyzeTeamStrategy(strategyMembers, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   applyAmendmentsToBuilds(strategyResult.amendments);
   const megaAdvice = wcMegaMatchupAdvice(strategyMembers, threatsWithTypes, data.typeChart);
-  const antiSynergyWarnings = wcAntiSynergyWarnings(strategyMembers, builds, data.abilities);
+  // Milestone 41: the hand-picked ability/item checks and the fully-
+  // computable shared-weakness audit render in the exact same slot
+  // (renderDreamTeamNote/renderStrategyNote below never had to change) --
+  // they're just two sources feeding one combined warnings list.
+  const antiSynergyWarnings = [
+    ...wcAntiSynergyWarnings(strategyMembers, builds, data.abilities),
+    ...wcSharedWeaknessWarnings(strategyMembers, data.typeChart),
+  ];
 
   invalidateComputedNotes();
   pendingStrategy = strategyResult;
@@ -2911,7 +2918,12 @@ function autoBuildStrategy() {
   const result = wcAnalyzeTeamStrategy(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   pendingStrategy = result;
   autogenHint.textContent = "";
-  renderStrategyNote(result, false, wcMegaMatchupAdvice(members, threatsWithTypes, data.typeChart), wcAntiSynergyWarnings(members, builds, data.abilities));
+  // Milestone 41: same combined warnings list as generateDreamTeam() above.
+  const antiSynergyWarnings = [
+    ...wcAntiSynergyWarnings(members, builds, data.abilities),
+    ...wcSharedWeaknessWarnings(members, data.typeChart),
+  ];
+  renderStrategyNote(result, false, wcMegaMatchupAdvice(members, threatsWithTypes, data.typeChart), antiSynergyWarnings);
 }
 
 function renderStrategyOption(container, option, headingText, metaSynergy) {
