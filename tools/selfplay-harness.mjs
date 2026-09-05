@@ -81,7 +81,7 @@ const ROOT = path.resolve(__dirname, "..");
  * move a 0 anyway, so this exists to document the exclusion explicitly
  * rather than leave it as an accidental side effect of the perturbation math.
  */
-export const WC_NON_PERTURBABLE_AI_WEIGHT_KEYS = new Set(["tailwindAlreadyUpScore", "trickRoomAlreadyUpScore", "statusUntargetableScore"]);
+export const WC_NON_PERTURBABLE_AI_WEIGHT_KEYS = new Set(["tailwindAlreadyUpScore", "trickRoomAlreadyUpScore", "statusUntargetableScore", "screensAlreadyUpScore"]);
 
 /**
  * The searchable subset of a weights object's own keys — every key except

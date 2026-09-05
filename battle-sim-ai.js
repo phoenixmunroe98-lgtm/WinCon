@@ -86,6 +86,16 @@ var WC_DEFAULT_AI_WEIGHTS = {
   statusUntargetableScore: 0,
   hazardScore: 20,
   defaultSupportScore: 10,
+  // Milestone 48: Light Screen/Reflect/Aurora Veil previously fell through
+  // to defaultSupportScore like any uncovered status move -- no different
+  // from, say, an unremarkable stat-drop move -- even though mechanically
+  // they're now a real damage-halving field effect (see battle-sim-
+  // engine.js's field.screens). screensAlreadyUpScore is pinned at 0 for
+  // the same reason tailwindAlreadyUpScore/trickRoomAlreadyUpScore are --
+  // recasting an already-active screen is a wasted turn, not a discovery
+  // a weight search should be able to learn to reward.
+  screensUpScore: 40,
+  screensAlreadyUpScore: 0,
 };
 
 function wcEstimateRng() {
@@ -166,6 +176,18 @@ function wcSupportMoveScore(move, battler, allies, foes, field, weights) {
   }
   if (move.fieldEffect && move.fieldEffect.type === "tailwind") return field.tailwindTurns[battler.side] > 0 ? w.tailwindAlreadyUpScore : w.tailwindUpScore;
   if (move.fieldEffect && move.fieldEffect.type === "trick-room") return field.trickRoomTurns > 0 ? w.trickRoomAlreadyUpScore : w.trickRoomUpScore;
+  if (move.name === "Light Screen" || move.name === "Reflect" || move.name === "Aurora Veil") {
+    const screens = field.screens && field.screens[battler.side];
+    const alreadyCoversThis = Boolean(
+      screens &&
+        (move.name === "Aurora Veil"
+          ? screens.physical > 0 && screens.special > 0
+          : move.name === "Light Screen"
+          ? screens.special > 0
+          : screens.physical > 0)
+    );
+    return alreadyCoversThis ? w.screensAlreadyUpScore : w.screensUpScore;
+  }
   if (move.name === "Follow Me" || move.name === "Rage Powder") {
     const alliesLow = allies.some((a) => a !== battler && !a.fainted && a.hp / a.maxHp < 0.4);
     return alliesLow ? w.redirectAllyLowScore : w.redirectDefaultScore;
@@ -201,6 +223,17 @@ function wcChooseAiMove(battler, allies, foes, context) {
   const { data, field, rng, sheetMode, isFirstTurn, mySide } = context;
   if (battler.fainted) return { move: null, targets: [] };
   const restrictInfo = mySide === "opp" && isFirstTurn && sheetMode === "closed";
+  // Milestone 48: a battler built for a specific detected game plan (see
+  // wcBuildGamePlans/wcRoleWeightsFor, battle-sim-lineup.js) carries its
+  // own roleWeights -- e.g. a Tailwind setter's own tailwindUpScore
+  // boosted well above the generic default. Undefined for every battler
+  // that isn't part of a plan (every reference/baseline opponent, every
+  // existing Team-vs-Team or self-play-harness battler), in which case
+  // every weights= argument below stays undefined and each helper falls
+  // back to WC_DEFAULT_AI_WEIGHTS exactly as before -- this is a strict,
+  // additive change to wcChooseAiMove, never a behavior change for a
+  // battler with no roleWeights attached.
+  const weights = battler.roleWeights || undefined;
 
   let legalMoves = battler.moves;
   const itemEffect = wcItemEffect(battler, data.itemEffects);
@@ -226,19 +259,19 @@ function wcChooseAiMove(battler, allies, foes, context) {
 
     if (move.target === "self" || move.target === "self-side" || move.name === "Follow Me" || move.name === "Rage Powder") {
       targets = move.target === "self" ? [battler] : [];
-      score = wcSupportMoveScore(move, battler, allies, foes, field);
+      score = wcSupportMoveScore(move, battler, allies, foes, field, weights);
     } else if (move.target === "ally") {
       const target = liveAllies[0];
       if (!target) return;
       targets = [target];
-      score = wcSupportMoveScore(move, battler, allies, foes, field);
+      score = wcSupportMoveScore(move, battler, allies, foes, field, weights);
     } else if (move.category === "Status" && move.power === 0) {
       targets = move.target === "any-adjacent" || move.target === "all-adjacent-foes" ? liveFoes : [wcPickWeakestHp(liveFoes)];
-      score = wcSupportMoveScore(move, battler, allies, foes, field);
+      score = wcSupportMoveScore(move, battler, allies, foes, field, weights);
     } else {
       const isSpread = move.target === "all-adjacent-foes" || move.target === "all-adjacent";
-      targets = isSpread ? liveFoes : [wcBestSingleTarget(battler, move, liveFoes, field, data, restrictInfo)];
-      const evaluated = wcEvaluateDamagingMove(battler, move, targets, field, data, restrictInfo);
+      targets = isSpread ? liveFoes : [wcBestSingleTarget(battler, move, liveFoes, field, data, restrictInfo, weights)];
+      const evaluated = wcEvaluateDamagingMove(battler, move, targets, field, data, restrictInfo, weights);
       score = evaluated.score;
       guaranteedKO = evaluated.guaranteedKO;
     }

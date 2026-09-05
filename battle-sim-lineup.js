@@ -195,6 +195,224 @@ function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, fo
   return round2[0].names;
 }
 
+
+// ---------------------------------------------------------------------------
+// Milestone 48 -- game plans (Phoenix: "look at how an individual team's
+// strategy would actually be played, then sim the battles after looking at
+// how the strategy is implemented, including alternate strategies").
+//
+// A "game plan" is a concrete, real answer to "how would this team's real
+// synergy actually be played" -- which member sets up first, who's along
+// for support, and who's the payoff (the carry) -- built from exactly the
+// same archetype detection already trusted for the Meta Analyst
+// (wcActiveArchetypesForBuiltTeam, wcAntiTrickRoomAudit -- strategy.js).
+// wcSimulateTeamWinRate below simulates EVERY detected plan separately and
+// reports a win rate for each, instead of one blended number from a single
+// generic-AI battle -- so a team that can genuinely run more than one real
+// line (Phoenix's example team can lead Tailwind into either Mega Sceptile
+// or Mega Charizard Y) gets both reported side by side.
+//
+// This deliberately does NOT give the simulator any new "on purpose"
+// switching mid-battle (no scripted U-turn pivot, no mid-battle Mega-evolve
+// decision) -- Phoenix's own scope choice for this milestone. What it DOES
+// change: (1) which two Pokemon actually lead (wcOrderLineupForPlan sorts a
+// plan's lineup so its setter/screener go out first, its carry only enters
+// once a lead has fainted -- the engine's only real switch mechanism), and
+// (2) how much each battler's own AI values the moves that make its role
+// real (wcRoleWeightsFor -- a Tailwind setter now actually prioritizes
+// casting Tailwind well above the generic default, a screener actually
+// prioritizes screens now that screens do something mechanically, see
+// battle-sim-ai.js/battle-sim-engine.js's own Milestone 48 comments).
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-role AI weight overlays, merged onto WC_DEFAULT_AI_WEIGHTS. Kept
+ * small and conservative -- same "hand-picked, not exhaustive" convention
+ * as the rest of this project -- rather than trying to retune every
+ * situational score for every role.
+ */
+const WC_GAME_PLAN_ROLE_WEIGHT_OVERRIDES = {
+  setter: { tailwindUpScore: 90, trickRoomUpScore: 70, screensUpScore: 60, protectLowHpScore: 75, protectHighHpScore: 45 },
+  screener: { screensUpScore: 75, protectLowHpScore: 75, protectHighHpScore: 45 },
+  carry: { selfBoostHealthyScore: 45, selfBoostLowScore: 20 },
+  support: {},
+  neutral: {},
+};
+
+/** Merged { ...WC_DEFAULT_AI_WEIGHTS, ...override } for a role, or null for a role with no override (so the spec doesn't carry a pointless identical-to-default weights object). */
+function wcRoleWeightsFor(role) {
+  const overrides = WC_GAME_PLAN_ROLE_WEIGHT_OVERRIDES[role];
+  if (!overrides || Object.keys(overrides).length === 0) return null;
+  return { ...WC_DEFAULT_AI_WEIGHTS, ...overrides };
+}
+
+/** Lead-priority rank (lower = sent out first) for a plan's roles -- setter/screener need to act turn 1, the carry is the payoff that should only come in once the field's actually set (or a lead has fainted -- the engine's only real switch mechanism, see this file's header comment). */
+const WC_GAME_PLAN_ROLE_LEAD_RANK = { setter: 0, screener: 1, support: 2, carry: 3, neutral: 4 };
+
+/** Reorders one candidate lineup's names so wcRunOneBattle's `.slice(0, activeCount)` leads with this plan's setter/screener first, its carry last -- a stable sort, so members sharing a role (or a team with no plan at all) keep their original relative order. */
+function wcOrderLineupForPlan(lineupNames, plan) {
+  return [...lineupNames].sort((a, b) => {
+    const rankA = WC_GAME_PLAN_ROLE_LEAD_RANK[plan.roleByName[a] || "neutral"];
+    const rankB = WC_GAME_PLAN_ROLE_LEAD_RANK[plan.roleByName[b] || "neutral"];
+    return rankA - rankB;
+  });
+}
+
+/**
+ * Detects the concrete game plans a built 6 can genuinely run. Always
+ * returns at least one plan -- a team with no real speed-control
+ * archetype and no real anti-Trick-Room tooling gets exactly one back
+ * (the "Standard" fallback, every role "neutral", no lineup filtering),
+ * never a fabricated one, matching this project's honesty convention.
+ *
+ * Offensive plans (one per real Tailwind/Trick Room setter x each real
+ * carry candidate on the team): the setter is whoever actually knows the
+ * archetype's move (wcPreferredSetter picks among them exactly like the
+ * Auto-build-strategy UI does); a teammate that also knows Light Screen
+ * or Reflect joins as "screener" and leads alongside the setter; every
+ * Mega-eligible member is a real carry candidate (falling back to any
+ * hard hitter, Atk or SpA >= 100, if the team has no Mega at all) --
+ * Phoenix's own example team gets a separate plan per Mega (Sceptile,
+ * Charizard Y), not one plan that arbitrarily picks a single carry.
+ *
+ * Defensive plan ("Trick Room defence"): reuses wcAntiTrickRoomAudit's
+ * existing four-tool check (Taunt/Fake Out/a real 0-Speed pivot/Safety
+ * Goggles) directly -- a plan is only built when the team genuinely has
+ * at least two of those four real answers, since one alone is a single
+ * move on a single set, not a coherent defensive game plan. Leads with
+ * whoever can Taunt and/or set screens; the 0-Speed pivot and a real
+ * carry follow.
+ */
+function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData) {
+  const members = chosenSix.map((name) => ({ name }));
+  const activeArchetypes = wcActiveArchetypesForBuiltTeam(members, builds, abilitiesData);
+  const plans = [];
+
+  const hardHitters = chosenSix.filter((name) => {
+    const stats = baseStatsData.find((b) => b.name === name);
+    return stats && Math.max(stats.atk || 0, stats.spa || 0) >= 100;
+  });
+  const megaEligible = chosenSix.filter((name) => wcIsMegaEligible(name, builds[name], pokemonList));
+  const carryCandidates = megaEligible.length ? megaEligible : hardHitters;
+
+  ["tailwind", "trickroom"].forEach((archetypeKey) => {
+    if (!activeArchetypes.includes(archetypeKey)) return;
+    const definingMove = WINCON_STRATEGY_MOVES[archetypeKey][0];
+    const setterPool = chosenSix.filter((name) => (builds[name].moves || []).includes(definingMove));
+    if (!setterPool.length) return;
+    const { setter } = wcPreferredSetter(setterPool.map((name) => ({ name })), "", (pool) => pool[0]);
+
+    const screenerPool = chosenSix.filter(
+      (name) => name !== setter.name && (builds[name].moves || []).some((mv) => WINCON_STRATEGY_MOVES.screens.includes(mv))
+    );
+    const screener = screenerPool[0] || null;
+    const archetypeLabel = archetypeKey === "tailwind" ? "Tailwind" : "Trick Room";
+
+    carryCandidates
+      .filter((name) => name !== setter.name && name !== screener)
+      .forEach((carryName) => {
+        const roleByName = {};
+        roleByName[setter.name] = "setter";
+        if (screener) roleByName[screener] = "screener";
+        roleByName[carryName] = "carry";
+        chosenSix.forEach((name) => { if (!roleByName[name]) roleByName[name] = "support"; });
+        plans.push({
+          key: `${archetypeKey}__${carryName}`,
+          label: `${archetypeLabel} (carry: ${carryName})`,
+          archetypeKeys: [archetypeKey],
+          roleByName,
+          requiredNames: [setter.name, carryName],
+        });
+      });
+  });
+
+  const primaryArchetype = activeArchetypes.includes("trickroom") ? "trickroom" : activeArchetypes[0] || null;
+  const audit = wcAntiTrickRoomAudit(members, builds, primaryArchetype);
+  if (audit.audited && audit.confirmations.length >= 2) {
+    const tauntUser = chosenSix.find((name) => (builds[name].moves || []).includes("Taunt"));
+    const screenerPool = chosenSix.filter((name) => (builds[name].moves || []).some((mv) => WINCON_STRATEGY_MOVES.screens.includes(mv)));
+    const screener = screenerPool[0] || null;
+    const fakeOutUser = chosenSix.find((name) => (builds[name].moves || []).includes("Fake Out"));
+    const minSpeedPivot = chosenSix.find((name) => builds[name].sp && builds[name].sp.speed === 0);
+
+    const leads = [tauntUser, screener].filter(Boolean);
+    if (leads.length) {
+      const roleByName = {};
+      leads.forEach((name) => { roleByName[name] = name === screener ? "screener" : "setter"; });
+      if (fakeOutUser && !roleByName[fakeOutUser]) roleByName[fakeOutUser] = "setter";
+      if (minSpeedPivot && !roleByName[minSpeedPivot]) roleByName[minSpeedPivot] = "support";
+      const carryName = carryCandidates.find((name) => !roleByName[name]);
+      if (carryName) roleByName[carryName] = "carry";
+      chosenSix.forEach((name) => { if (!roleByName[name]) roleByName[name] = "support"; });
+
+      plans.push({
+        key: "trickroomdefense",
+        label: "Trick Room defence",
+        archetypeKeys: ["trickroomdefense"],
+        roleByName,
+        requiredNames: [...new Set(leads)],
+      });
+    }
+  }
+
+  if (!plans.length) {
+    const roleByName = {};
+    chosenSix.forEach((name) => { roleByName[name] = "neutral"; });
+    plans.push({ key: "default", label: "Standard", archetypeKeys: [], roleByName, requiredNames: [] });
+  }
+
+  return plans;
+}
+
+/**
+ * Simulates one detected game plan end to end: filters the candidate
+ * lineups down to only those containing every one of the plan's
+ * requiredNames (a real efficiency win, not just a correctness one --
+ * with 2 required names fixed, a Doubles search is only C(4,2)=6 lineups
+ * instead of the full C(6,4)=15), reorders each survivor so the plan's
+ * setter/screener lead (wcOrderLineupForPlan), attaches each member's
+ * role-derived AI weights (wcRoleWeightsFor) to its spec, then runs the
+ * exact same successive-halving search + Mega-scenario branching
+ * wcSimulateTeamWinRate always has. Returns null (never a fabricated
+ * result) if this plan's required pieces genuinely can't all fit in one
+ * lineup for this format -- callers filter those out.
+ */
+function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, comboLookup) {
+  const allLineups = wcEnumerateLineups(chosenSix, n);
+  const eligibleLineups = plan.requiredNames.length
+    ? allLineups.filter((names) => plan.requiredNames.every((req) => names.includes(req)))
+    : allLineups;
+  if (!eligibleLineups.length) return null;
+
+  const orderedLineups = eligibleLineups.map((names) => wcOrderLineupForPlan(names, plan));
+
+  const specsByName = {};
+  chosenSix.forEach((name) => {
+    const base = wcBattlerSpecForSlot(name, builds[name], pokemonList, baseStatsData, abilitiesData);
+    const roleWeights = wcRoleWeightsFor(plan.roleByName[name] || "neutral");
+    specsByName[name] = roleWeights ? { ...base, roleWeights } : base;
+  });
+
+  const bestLineup = wcSelectBestLineupBySuccessiveHalving(orderedLineups, specsByName, oppPool, format, simData, comboLookup);
+
+  // wcBuildMegaScenarios rebuilds specs from scratch (it needs to force
+  // each scenario's Mega/base identity), so it never sees specsByName's
+  // roleWeights above -- reattach them here the same way.
+  const scenarios = wcBuildMegaScenarios(bestLineup, builds, pokemonList, baseStatsData, abilitiesData).map((scenario) => ({
+    megaName: scenario.megaName,
+    specs: scenario.specs.map((spec) => {
+      const roleWeights = wcRoleWeightsFor(plan.roleByName[spec.name] || "neutral");
+      return roleWeights ? { ...spec, roleWeights } : spec;
+    }),
+  }));
+  const scenarioResults = scenarios.map((scenario) => ({
+    megaName: scenario.megaName,
+    ...wcRunMonteCarlo(scenario.specs, oppPool, WC_REFERENCE_RUNS_PER_OPPONENT, format, simData),
+  }));
+
+  return { key: plan.key, label: plan.label, archetypeKeys: plan.archetypeKeys, lineup: bestLineup, scenarios: scenarioResults };
+}
+
 /**
  * Top-level entry point for the Builder's Simulated Win Rate. `payload`
  * carries the user's built 6 (`chosenSix` + `builds`), format/sheetMode,
@@ -204,12 +422,17 @@ function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, fo
  * live_tier_stats lookup that already augments the threats list
  * (wcFetchLiveTierStats in teams.js), used here to weight how often each
  * reference team gets sampled, never to add a new one (see
- * wcLiveUsageWeightForTeam in strategy.js). Picks the best lineup via a real-engine successive-
- * halving search (wcSelectBestLineupBySuccessiveHalving, Milestone 35
- * Task 1 -- see its own doc comment for why), then runs the real Monte
- * Carlo simulation at full accuracy on it once per Mega scenario — see
- * the plan's "Bring-N lineup selection" section for why only the
- * winning combo gets the expensive full simulation.
+ * wcLiveUsageWeightForTeam in strategy.js).
+ *
+ * Milestone 48: rather than picking one lineup for the whole built 6 and
+ * running one generic-AI simulation, this now detects every real game
+ * plan the team can run (wcBuildGamePlans) and simulates each separately
+ * (wcSimulatePlan -- same real-engine successive-halving search
+ * (Milestone 35 Task 1) + Mega-scenario branching as always, just scoped
+ * to that plan's own lineups and role-weighted AI). A team with no real
+ * archetype/anti-Trick-Room signal still gets exactly one plan back
+ * ("Standard", see wcBuildGamePlans), so `plans` is never empty and the
+ * return shape below is uniform regardless of how many real plans exist.
  */
 function wcSimulateTeamWinRate(payload) {
   const {
@@ -219,12 +442,6 @@ function wcSimulateTeamWinRate(payload) {
     metaBaseline, comboLookup, liveTierStats,
   } = payload;
   const n = format === "singles" ? 3 : 4;
-  const lineups = wcEnumerateLineups(chosenSix, n);
-
-  const specsByName = {};
-  chosenSix.forEach((name) => {
-    specsByName[name] = wcBattlerSpecForSlot(name, builds[name], pokemonList, baseStatsData, abilitiesData);
-  });
 
   const referenceTeamDefs = (metaBaseline && metaBaseline[format]) || [];
   const referenceTeams = referenceTeamDefs.map((team) => wcResolveBaselineTeam(team, pokemonList, baseStatsData, abilitiesData));
@@ -241,17 +458,16 @@ function wcSimulateTeamWinRate(payload) {
     specs: referenceTeams[i],
     weight: wcLiveUsageWeightForTeam(team.members, liveTierStats),
   }));
-  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode };
+  // format included so screens (Light Screen/Reflect/Aurora Veil) apply
+  // the real Doubles/Singles-correct damage reduction -- see
+  // wcResolveOneHit/wcScreensModifierFor, battle-sim-engine.js.
+  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode, format };
 
-  const bestLineup = wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup);
+  const plans = wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData)
+    .map((plan) => wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, comboLookup))
+    .filter(Boolean);
 
-  const scenarios = wcBuildMegaScenarios(bestLineup, builds, pokemonList, baseStatsData, abilitiesData);
-  const scenarioResults = scenarios.map((scenario) => ({
-    megaName: scenario.megaName,
-    ...wcRunMonteCarlo(scenario.specs, oppPool, WC_REFERENCE_RUNS_PER_OPPONENT, format, simData),
-  }));
-
-  return { lineup: bestLineup, format, scenarios: scenarioResults };
+  return { format, plans };
 }
 
 /** Picks a team's own best lineup using the OTHER team's real built 6 as the reference set — a real head-to-head, not the general meta-baseline field. Used by wcSimulateTeamVsTeam (Battle Tracker). */
@@ -290,7 +506,12 @@ function wcSimulateTeamVsTeam(payload) {
   const scenariosA = wcBuildMegaScenarios(lineupA, teamA.builds, pokemonList, baseStatsData, abilitiesData);
   const scenariosB = wcBuildMegaScenarios(lineupB, teamB.builds, pokemonList, baseStatsData, abilitiesData);
 
-  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode };
+  // Milestone 48: `format` is threaded through so screens (Light Screen/
+  // Reflect/Aurora Veil) apply the real Doubles/Singles-correct damage
+  // reduction here too, not just in the new game-plan-aware Simulated Win
+  // Rate below -- see wcResolveOneHit/wcScreensModifierFor, battle-sim-
+  // engine.js.
+  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode, format };
   const grid = [];
   scenariosA.forEach((sa) => {
     scenariosB.forEach((sb) => {

@@ -3887,6 +3887,19 @@ async function runSimulatedWinRate() {
   }
 }
 
+/**
+ * Milestone 48: `result.plans` is now always an array (see
+ * wcSimulateTeamWinRate's own doc comment, battle-sim-lineup.js) -- one
+ * entry for a team with no detected real archetype/anti-Trick-Room
+ * signal ("Standard", rendered exactly like the old single-lineup
+ * layout below with no plan heading, so a typical team's card looks
+ * unchanged), or one entry PER real game plan the team can run (e.g.
+ * Phoenix's own example team gets a separate "Tailwind (carry: Mega
+ * Sceptile)" section and a separate "Tailwind (carry: Mega Charizard Y)"
+ * section, each with its own best lineup and its own win rate) -- a
+ * plan heading only appears at all once there's more than one plan to
+ * tell apart.
+ */
 function renderSimulatedWinRateResult(result) {
   simwinrateHintEl.hidden = true;
   simwinrateLoadingEl.hidden = true;
@@ -3895,15 +3908,35 @@ function renderSimulatedWinRateResult(result) {
   simwinrateRerunBtn.hidden = false;
   simwinrateRerunBtn.textContent = simWinRateNeedsRerun ? "Re-run simulation (your team has changed)" : "Re-run simulation";
 
-  const lineupNote = document.createElement("p");
-  lineupNote.className = "hint simwinrate-lineup-note";
-  lineupNote.textContent =
-    `WinCon's own best bring-${result.lineup.length}-of-6 lineup for this team: ${result.lineup.join(", ")}.` +
-    (sheetMode === "open" ? " Scored under your Open Team Sheet — the opponent AI gets full information from turn 1." : "");
-  simwinrateScenariosEl.appendChild(lineupNote);
+  const plans = result.plans || [];
+  const showPlanLabels = plans.length > 1;
 
-  result.scenarios.forEach((scenario) => {
-    simwinrateScenariosEl.appendChild(renderSimwinrateCard(scenario));
+  plans.forEach((plan) => {
+    const group = document.createElement("div");
+    group.className = "simwinrate-plan-group";
+
+    if (showPlanLabels) {
+      const planHeading = document.createElement("h3");
+      planHeading.className = "section-title simwinrate-plan-heading";
+      planHeading.textContent = plan.label;
+      group.appendChild(planHeading);
+    }
+
+    const lineupNote = document.createElement("p");
+    lineupNote.className = "hint simwinrate-lineup-note";
+    lineupNote.textContent =
+      `WinCon's own best bring-${plan.lineup.length}-of-6 lineup for this${showPlanLabels ? " plan" : " team"}: ${plan.lineup.join(", ")}.` +
+      (sheetMode === "open" ? " Scored under your Open Team Sheet — the opponent AI gets full information from turn 1." : "");
+    group.appendChild(lineupNote);
+
+    const cardsGrid = document.createElement("div");
+    cardsGrid.className = "simwinrate-cards-grid";
+    plan.scenarios.forEach((scenario) => {
+      cardsGrid.appendChild(renderSimwinrateCard(scenario));
+    });
+    group.appendChild(cardsGrid);
+
+    simwinrateScenariosEl.appendChild(group);
   });
 }
 

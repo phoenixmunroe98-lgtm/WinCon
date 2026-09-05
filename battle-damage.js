@@ -54,6 +54,18 @@ function wcCalcDamage(opts) {
     level = 50, power, attackStat, defenseStat, category,
     moveType, attackerTypes, defenderTypes, typeChart,
     isSpread = false, weatherModifier = 1, extraModifiers = [],
+    // Milestone 48: Light Screen/Reflect/Aurora Veil's real damage-halving
+    // effect (0.5x Singles / 0.66x Doubles per the real move text) --
+    // resolved by the caller (wcResolveOneHit, battle-sim-engine.js) from
+    // field.screens and passed in already fully decided, same pattern as
+    // weatherModifier above. Applied below only when the hit isn't a
+    // crit -- "Critical hits ignore this effect" is part of the real move
+    // text for all three moves, so it's handled the same principled way
+    // burnHalves/critStage already are: as a fact this formula itself
+    // must respect, not something a caller could get wrong by forgetting
+    // to check isCrit first (isCrit is only known once rng() is drawn
+    // below, which the caller can't see in advance).
+    screensModifier = 1,
     burnHalves = false, critStage = 0, rng = Math.random,
   } = opts;
 
@@ -68,10 +80,11 @@ function wcCalcDamage(opts) {
   const stabMod = wcStabMultiplier(attackerTypes, moveType);
   const burnMod = burnHalves && category === "Physical" ? 0.5 : 1;
   const extraMod = extraModifiers.reduce((mult, m) => mult * (m || 1), 1);
+  const screensMod = isCrit ? 1 : screensModifier;
 
   const damage = Math.max(
     1,
-    Math.floor(base * targetsMod * weatherModifier * critMod * randMod * stabMod * typeMod * burnMod * extraMod)
+    Math.floor(base * targetsMod * weatherModifier * critMod * randMod * stabMod * typeMod * burnMod * extraMod * screensMod)
   );
   return { damage, isCrit, typeMod };
 }

@@ -1153,6 +1153,10 @@
       "contact": false,
       "highCrit": false,
       "sound": false
+    },
+    "fieldEffect": {
+      "type": "aurora-veil",
+      "duration": 5
     }
   },
   "Light Screen": {

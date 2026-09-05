@@ -1721,10 +1721,31 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 /* ---------------------------------------------------------------------- */
 
 .simwinrate-scenarios {
+  margin: 12px 0 16px;
+}
+
+/* Milestone 48: one .simwinrate-plan-group per detected game plan (see
+   renderSimulatedWinRateResult() in builder.js) -- the grid that used to
+   live directly on .simwinrate-scenarios now lives on the inner
+   .simwinrate-cards-grid instead, so a plan's own heading/lineup note sit
+   above its own grid of Mega-scenario cards rather than everything from
+   every plan being interleaved into one grid. */
+.simwinrate-plan-group {
+  margin-bottom: 24px;
+}
+
+.simwinrate-plan-group:last-child {
+  margin-bottom: 0;
+}
+
+.simwinrate-plan-heading {
+  margin: 0 0 4px;
+}
+
+.simwinrate-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
-  margin: 12px 0 16px;
 }
 
 .simwinrate-card {

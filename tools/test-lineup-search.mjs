@@ -205,10 +205,22 @@ context.wcRunMonteCarlo = function fakeMonteCarlo(myLineupSpecs, oppLineupPool, 
 // ---------------------------------------------------------------------------
 
 const result = context.wcSimulateTeamWinRate(payload);
-const resultKey = keyOf(result.lineup);
 
+// Milestone 48: wcSimulateTeamWinRate now returns { format, plans } --
+// one plan per real detected game plan the team can run, always at
+// least one. This fixture's builds (BUILD_OVERRIDES above) have no
+// Tailwind/Trick Room/screens moves and no real anti-Trick-Room tooling,
+// so wcBuildGamePlans falls back to exactly one "Standard" plan -- this
+// test's own concern (does the successive-halving search beat the cheap
+// heuristic) is unaffected by that change, just addressed through
+// result.plans[0] instead of the old flat result.lineup/result.scenarios.
 assert.equal(result.format, "doubles");
-assert.equal(result.lineup.length, 4);
+assert.equal(result.plans.length, 1, "a team with no detected archetype should get exactly one (Standard) plan back");
+const plan = result.plans[0];
+assert.equal(plan.key, "default");
+const resultKey = keyOf(plan.lineup);
+
+assert.equal(plan.lineup.length, 4);
 assert.equal(
   resultKey,
   heuristicWorstKey,
@@ -220,8 +232,8 @@ assert.notEqual(
   "search settled for the cheap heuristic's #1 pick instead of the real-engine best — the bug this task fixes"
 );
 
-assert.ok(result.scenarios.length >= 1, "expected at least one Mega scenario");
-result.scenarios.forEach((scenario) => {
+assert.ok(plan.scenarios.length >= 1, "expected at least one Mega scenario");
+plan.scenarios.forEach((scenario) => {
   assert.ok(
     Math.abs(scenario.winRate - 0.95) < 1e-9,
     `final full-accuracy stage should report the true (stubbed) win rate 0.95 for the winning lineup, got ${scenario.winRate}`

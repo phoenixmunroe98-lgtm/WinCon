@@ -107,6 +107,14 @@ function wcMakeBattler(spec, movesData, moveEffects, natures) {
     },
     moves,
     fainted: false,
+    // Milestone 48: optional per-battler AI weight override for a
+    // detected game plan role (setter/screener/carry/support -- see
+    // wcBuildGamePlans/wcRoleWeightsFor, battle-sim-lineup.js). null for
+    // every battler outside that new feature (every reference/baseline
+    // opponent, every Team-vs-Team/self-play-harness battler), in which
+    // case wcChooseAiMove's helper calls fall back to WC_DEFAULT_AI_WEIGHTS
+    // exactly as before.
+    roleWeights: spec.roleWeights || null,
   };
 }
 
@@ -167,6 +175,24 @@ function wcWeatherModifierFor(moveType, field) {
   return 1;
 }
 
+/**
+ * Milestone 48: Light Screen/Reflect/Aurora Veil's real damage-halving
+ * effect -- 0.5x in Singles, 0.66x in Doubles per the real move text
+ * ("or 0.66x damage if in a Double Battle"), gated on whichever half
+ * (physical/special) the incoming move actually is. `format` falling
+ * through as anything other than exactly "singles" (undefined, from a
+ * caller that's never touched Milestone 48's format threading -- see
+ * wcResolveOneHit's own doc comment) defaults to the Doubles number,
+ * matching this project's Doubles-first convention elsewhere.
+ */
+function wcScreensModifierFor(isPhysical, side, field, format) {
+  const screens = field.screens && field.screens[side];
+  if (!screens) return 1;
+  const active = isPhysical ? screens.physical > 0 : screens.special > 0;
+  if (!active) return 1;
+  return format === "singles" ? 0.5 : 0.66;
+}
+
 /** True if `defenderTypes` are immune to `moveType` via a curated ability (Levitate/Ground, Water Absorb/Water, etc.). */
 function wcHasTypeImmunity(defender, moveType, abilityEffects) {
   const ae = wcAbilityEffect(defender, abilityEffects);
@@ -174,7 +200,7 @@ function wcHasTypeImmunity(defender, moveType, abilityEffects) {
 }
 
 function wcResolveOneHit(attacker, move, defender, field, data, rng) {
-  const { typeChart, abilityEffects, itemEffects } = data;
+  const { typeChart, abilityEffects, itemEffects, format } = data;
   if (wcHasTypeImmunity(defender, move.type, abilityEffects)) return { damage: 0, isCrit: false, immune: true };
 
   const attackerAbility = wcAbilityEffect(attacker, abilityEffects);
@@ -223,6 +249,10 @@ function wcResolveOneHit(attacker, move, defender, field, data, rng) {
     typeChart,
     isSpread: move.target === "all-adjacent-foes" || move.target === "all-adjacent",
     weatherModifier: wcWeatherModifierFor(effectiveMoveType, field),
+    // Milestone 48: real screens damage reduction (0.5x Singles / 0.66x
+    // Doubles per the real move text) -- see wcCalcDamage's own comment
+    // for why the crit exemption lives there instead of here.
+    screensModifier: wcScreensModifierFor(isPhysical, defender.side, field, format),
     extraModifiers,
     burnHalves,
     critStage: move.flags && move.flags.highCrit ? 1 : 0,
@@ -328,6 +358,20 @@ function wcExecuteMove(actor, choice, context, foeSide) {
     if (move.fieldEffect.type === "trick-room") field.trickRoomTurns = field.trickRoomTurns > 0 ? 0 : move.fieldEffect.duration || 5;
     if (move.fieldEffect.type === "weather-sun") { field.weather = "sun"; field.weatherTurns = move.fieldEffect.duration || 5; }
     if (move.fieldEffect.type === "weather-rain") { field.weather = "rain"; field.weatherTurns = move.fieldEffect.duration || 5; }
+    // Milestone 48: Light Screen/Reflect/Aurora Veil's real "for N turns,
+    // halve incoming physical/special damage" effect -- previously
+    // absent entirely (these three fell through with no fieldEffect
+    // handling at all, so setting a screen used to do literally nothing
+    // mechanically). See wcResolveOneHit below for where this state
+    // actually reduces damage, and wcSupportMoveScore (battle-sim-ai.js)
+    // for the AI now scoring these properly instead of as a generic
+    // uncovered status move.
+    if (move.fieldEffect.type === "light-screen") field.screens[actor.side].special = move.fieldEffect.duration || 5;
+    if (move.fieldEffect.type === "reflect") field.screens[actor.side].physical = move.fieldEffect.duration || 5;
+    if (move.fieldEffect.type === "aurora-veil") {
+      field.screens[actor.side].special = move.fieldEffect.duration || 5;
+      field.screens[actor.side].physical = move.fieldEffect.duration || 5;
+    }
     return;
   }
   if (move.name === "Follow Me" || move.name === "Rage Powder") {
@@ -438,7 +482,15 @@ function wcApplyEndOfTurn(battler, field, side, abilityEffects, itemEffects) {
   battler.volatiles.protectedThisTurn = false;
   battler.volatiles.helpingHandThisTurn = false;
   battler.volatiles.redirectingThisTurn = false;
-  if (field.tailwindTurns[side] > 0) field.tailwindTurns[side] -= 1;
+  // Milestone 48: Tailwind's per-side turn counter used to decrement here
+  // too -- but wcApplyEndOfTurn is called once per ACTIVE BATTLER on a
+  // side, not once per side, so in Doubles (2 active battlers/side) that
+  // silently decremented it twice a turn, halving Tailwind's real 4-turn
+  // duration to ~2. Fixed by decrementing tailwindTurns/screens exactly
+  // once per side per turn instead, in wcRunOneBattle's main loop
+  // alongside weatherTurns/trickRoomTurns (which were already correct,
+  // since weather/Trick Room are single global/one-counter state, not
+  // per-active-battler like this used to be).
 }
 
 // ---------------------------------------------------------------------------
@@ -463,7 +515,17 @@ function wcRunOneBattle(mySideSpecs, oppSideSpecs, format, data, rng) {
   myTeam.forEach((b) => (b.side = "me"));
   oppTeam.forEach((b) => (b.side = "opp"));
 
-  const field = { weather: null, weatherTurns: 0, trickRoomTurns: 0, tailwindTurns: { me: 0, opp: 0 } };
+  const field = {
+    weather: null,
+    weatherTurns: 0,
+    trickRoomTurns: 0,
+    tailwindTurns: { me: 0, opp: 0 },
+    // Milestone 48: turns remaining for each side's own Light Screen
+    // (special)/Reflect (physical)/Aurora Veil (both at once) -- see
+    // wcExecuteMove's fieldEffect handling above and wcResolveOneHit
+    // below for where this actually reduces damage.
+    screens: { me: { physical: 0, special: 0 }, opp: { physical: 0, special: 0 } },
+  };
 
   const bench = { me: myTeam.slice(activeCount), opp: oppTeam.slice(activeCount) };
   const active = { me: myTeam.slice(0, activeCount), opp: oppTeam.slice(0, activeCount) };
@@ -510,6 +572,14 @@ function wcRunOneBattle(mySideSpecs, oppSideSpecs, format, data, rng) {
     });
     if (field.weatherTurns > 0) { field.weatherTurns -= 1; if (field.weatherTurns === 0) field.weather = null; }
     if (field.trickRoomTurns > 0) field.trickRoomTurns -= 1;
+    // Milestone 48: Tailwind/screens decrement here, once per side per
+    // turn -- see wcApplyEndOfTurn's own comment for why they don't live
+    // there any more.
+    ["me", "opp"].forEach((side) => {
+      if (field.tailwindTurns[side] > 0) field.tailwindTurns[side] -= 1;
+      if (field.screens[side].physical > 0) field.screens[side].physical -= 1;
+      if (field.screens[side].special > 0) field.screens[side].special -= 1;
+    });
 
     ["me", "opp"].forEach((side) => {
       active[side].forEach((b, i) => {
