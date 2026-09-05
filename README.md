@@ -2042,6 +2042,100 @@ and saturation, and a real-matchup regression guard (same established
 still beats even a maximally-saturated experience penalty. All 27 test
 files green, zero regressions.
 
+## Auto-build strategy now bakes multiple compatible archetypes straight into the first build (Milestone 43)
+
+Phase 4 of the Team Diversity Roadmap. Before this, Auto-build strategy
+(`wcAnalyzeTeamStrategy`) only ever surfaced a single winning archetype
+plus one alternative, and neither ever touched a real build until the
+player clicked "Make changes" by hand — even when a team genuinely
+supported two or three non-conflicting strategies at once (a Trick Room
+setter AND a Wide Guard user AND a screens user, say). This milestone
+makes that automatic, for all three of `wcGenerateTeamBuilds`'s real call
+sites (Dream Team, Auto-build team, Your Rival) at once, with zero
+call-site changes.
+
+**`wcBuildStrategyCandidates`** is `wcAnalyzeTeamStrategy`'s own
+candidate-construction logic (all ~15 archetype blocks — Trick Room,
+Tailwind, weather, redirect/hazards, screens, Wide Guard, Quick Guard,
+terrain, Safeguard, Helping Hand), pulled out into its own function that
+returns the FULL list instead of just the top 2.
+`wcAnalyzeTeamStrategy` itself calls this helper and is otherwise
+byte-identical to before the split — same single winner, same one
+alternative, same "balanced" fallback text, verified directly in the new
+test file.
+
+**`wcAssignTeamSynergy`** resolves that full list into a set of
+non-conflicting assignments: walk candidates from highest `fitScore`
+down, accept one per still-open "conflict group," and cap any one setter
+at a single forced role. Speed control (Trick Room and Tailwind flip turn
+order in opposite directions) and the four terrains (only one can ever be
+active) are real either/or groups; every other archetype — screens, Wide
+Guard, Quick Guard, Safeguard, redirect, hazards, Helping Hand, and each
+weather — is independent and stackable, so a team can genuinely end up
+with a Tailwind setter, a Wide Guard user, and a Safeguard user all baked
+in from one generate.
+
+**Setter selection also got smarter.** Every archetype block that used to
+default to "first eligible learner" when the team notes didn't name
+anyone (`(pool) => pool[0]`) now falls back to `wcStrongestPick` — a
+composite of BST, best offensive stat, and physical+special bulk — so a
+genuinely strong attacker or wall wins the tie over whichever species
+happened to be built first. Blocks that already had a real criterion
+(Trick Room's slowest, Tailwind's fastest, hazards' most-hazard-moves-
+learnable) are untouched; only the "no real reason, just took #1" cases
+changed.
+
+**Applying an accepted assignment reuses the existing machinery**, not
+new code: `wcProposeSetterAmendment` diffs the wanted moves/role against
+the setter's current build exactly as it already does for the manual
+"Make changes" flow, and the new `wcApplyAmendmentToBuild` mutates the
+real build in place (the automatic counterpart to the read-only
+`wcApplyAmendmentToFields` builder.js's locked-build preview already
+used), keeping the shared Item Clause set in sync.
+
+**Auto-Mega suppression fixes a real bug**: a Tailwind lead could
+auto-evolve into a Mega form that changes its ability — the concrete case
+that surfaced this was Staraptor (base ability Reckless, real Tailwind
+learner, real curated Mega Staraptor set) auto-evolving into Mega
+Staraptor (Contrary) the moment it was picked, even when the team actually
+wanted it running support, not its Mega. Since `wcGenerateBuild`'s
+auto-Mega decision happens during the very first build pass — before any
+synergy assignment can even be computed, since that assignment needs a
+real, finished build to read roles from — this needed two passes: build
+everyone once as before, compute the assignment, then re-generate (with
+a new `opts.skipAutoMega` flag) just the build of any member whose first
+pass auto-Mega'd and who ended up assigned a forced role. A build now
+reports `autoMegaApplied` so the second pass knows who actually needs it;
+a slot that's a direct Mega already (its own name IS the Mega form) is
+never touched, since there's no base form to fall back to.
+
+**A deliberate, honestly-documented scope limit**: teammates built
+*before* an amended member in `wcGenerateTeamBuilds`'s left-to-right pass
+already scored their own moves against that member's pre-amendment build
+(see `teamSoFar`/`teamContext`). Retroactively re-scoring every earlier
+teammate against every later automatic amendment would be a much bigger
+re-optimization pass than this milestone is — the amendment still lands
+correctly on the assigned member itself, just without cascading back
+through teammates that were already finished.
+
+New test file (`tools/test-strategy-synergy-assignment.mjs`, 18 checks):
+`wcStrongestPick`/`wcAttackerOrWallScore` in isolation; `wcAssignTeamSynergy`
+against hand-built candidates covering the speed-control conflict, the
+terrain conflict, independent stacking, the same-setter cap, a combined
+realistic pass, and purity (never mutates its input); `wcApplyAmendmentToBuild`'s
+real mutation (moves/nature/sp/item, Item Clause bookkeeping); `wcBuildStrategyCandidates`
+returning 3+ real archetypes for one team (Farigiraf/Steelix/Slowbro) where
+`wcAnalyzeTeamStrategy` itself still only surfaces one winner + one
+alternative; `wcGenerateBuild`'s new `skipAutoMega`/`autoMegaApplied`
+in isolation (including the direct-Mega-slot edge case); and two real
+end-to-end `wcGenerateTeamBuilds` runs — Staraptor gets Tailwind baked in
+and loses its Mega Stone automatically, and (with tailwind/sun/rain
+suppressed via notes) both Staraptor and Charizard keep their real Mega
+sets when neither ends up assigned anything. The existing
+`tools/test-team-move-synergy.mjs` regression case (Slowbro/Gengar, no
+forming archetype) still passes unchanged. All 28 test files green, zero
+regressions.
+
 ## Running it
 
 

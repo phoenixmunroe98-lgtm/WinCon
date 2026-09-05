@@ -858,7 +858,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   let effectivePokemon = pokemon;
   let effectiveBaseStats = baseStats;
   let forcedStoneItem = WINCON_MEGA_STONES[pokemon.name] || null;
-  if (!forcedStoneItem) {
+  if (!forcedStoneItem && !opts.skipAutoMega) {
     const autoMega = wcPickAutoMegaForm(opts.megaForms, used, pokemon.name, opts.liveMetaBuilds, opts.notes);
     if (autoMega) {
       effectivePokemon = autoMega;
@@ -985,7 +985,12 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   // which are already meta staples regardless) lean away from pure
   // surprise coverage — see wcScoreMove's sheetMode handling.
   const moves = wcPickMoves(effectivePokemon, learnableNames, movesData, primaryCategory, threats, typeChart, forcedMoves, format, ability, opts.sheetMode, teamContext);
-  return { nature, item, moves, sp };
+  // Milestone 43: additive -- true only when this build actually auto-
+  // opted into a Mega form THIS call (never for a slot that's directly a
+  // Mega species already, see isBaseForm above), so wcGenerateTeamBuilds
+  // can tell whether a rebuild with opts.skipAutoMega is needed once a
+  // synergy assignment is known.
+  return { nature, item, moves, sp, autoMegaApplied: !isBaseForm };
 }
 
 /**
@@ -1029,8 +1034,14 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
   // see wcGenerateBuild's opts.teamSoFar handling and wcScoreMove's
   // teamContext param for what this actually feeds.
   const teamSoFar = [];
+  // Milestone 43: the exact opts each member's first build was made
+  // with, keyed by name -- kept so a member whose first build auto-
+  // Mega'd (see build.autoMegaApplied) can be rebuilt below with auto-
+  // Mega suppressed, using the identical teamSoFar snapshot/format/etc.
+  // it originally saw, if it ends up assigned a forced support role.
+  const buildOptsByName = {};
   members.forEach((m) => {
-    const build = wcGenerateBuild(m, m.baseStats, m.learnableNames, movesData, threats, typeChart, {
+    const buildOpts = {
       format: fmt,
       usedItems,
       megaForms: m.megaForms,
@@ -1038,12 +1049,93 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
       sheetMode,
       liveMetaBuilds,
       lockedBuild: lockedBuildsLookup && lockedBuildsLookup[m.name],
-      teamSoFar,
+      teamSoFar: teamSoFar.slice(),
       notes,
-    });
+    };
+    const build = wcGenerateBuild(m, m.baseStats, m.learnableNames, movesData, threats, typeChart, buildOpts);
     builds[m.name] = build;
+    buildOptsByName[m.name] = buildOpts;
     teamSoFar.push({ name: m.name, moves: build.moves });
   });
+
+  // Milestone 43: Auto-build strategy now bakes every non-conflicting
+  // archetype it can find straight into this initial build, instead of
+  // only ever surfacing a single manual "Make changes" suggestion the
+  // way wcAnalyzeTeamStrategy's own single-best-pick result still does
+  // for the DOM's "Make changes" flow (unchanged, see wcAnalyzeTeamStrategy
+  // itself). wcActualRole (read inside wcBuildStrategyCandidates) needs a
+  // build's ACTUAL Stat Point spread, so this can only run now that every
+  // member above has a real, finished build to judge -- the same
+  // ordering constraint wcAnalyzeTeamStrategy has always had. Because
+  // this lives inside wcGenerateTeamBuilds, every one of its 3 real call
+  // sites (Dream Team, Auto-build team, Your Rival) benefits with zero
+  // call-site changes.
+  const rawCandidates = wcBuildStrategyCandidates(members, builds, movesData, threats, typeChart, fmt, notes, abilitiesData);
+  const biasedCandidates = wcApplyNotesBias(rawCandidates, notes);
+  const assignments = wcAssignTeamSynergy(biasedCandidates);
+
+  assignments.forEach((candidate) => {
+    const member = candidate.setter;
+    const slotName = member.slotName || member.name;
+
+    // Skip auto-Mega-evolution for any member assigned a forced role, so
+    // it keeps the ability/moveset that made it the right pick in the
+    // first place -- a real bug this fixes: a Tailwind lead auto-
+    // evolving into a Mega form that loses Intimidate. A member's first
+    // build only ever auto-Mega'd if build.autoMegaApplied is true (a
+    // slot that's already a direct Mega -- i.e. its OWN name is a Mega
+    // form -- is left untouched, since there's no non-Mega version of
+    // that slot to fall back to). The rebuild reuses the exact opts this
+    // member's first build was made with, just with auto-Mega suppressed,
+    // so nothing else about how it was built changes.
+    if (builds[slotName] && builds[slotName].autoMegaApplied) {
+      const oldItem = builds[slotName].item;
+      if (Object.values(WINCON_MEGA_STONES).includes(oldItem)) {
+        usedItems.delete(oldItem);
+      }
+      builds[slotName] = wcGenerateBuild(member, member.baseStats, member.learnableNames, movesData, threats, typeChart, {
+        ...buildOptsByName[slotName],
+        skipAutoMega: true,
+      });
+    }
+
+    // Apply the accepted assignment via the existing wcProposeSetterAmendment
+    // (diffs the wanted moves/role against this member's CURRENT build) /
+    // wcApplyAmendmentToBuild (mutates the real build in place) machinery --
+    // the same amendment computation wcBuildStrategyOption already uses for
+    // the single manual "Make changes" suggestion, just applied immediately
+    // and automatically here instead of waiting for a click.
+    const usedItemsExcludingSelf = new Set(
+      Object.entries(builds)
+        .filter(([name]) => name !== slotName)
+        .map(([, b]) => b.item)
+        .filter(Boolean)
+    );
+    const amendment = wcProposeSetterAmendment(
+      member,
+      builds[slotName],
+      candidate.wantMoves,
+      candidate.wantRole,
+      movesData,
+      threats,
+      typeChart,
+      fmt,
+      usedItemsExcludingSelf,
+      abilitiesData
+    );
+    const hasChanges = Boolean(amendment.moves || amendment.role || amendment.item);
+    if (hasChanges) {
+      wcApplyAmendmentToBuild(builds[slotName], amendment, usedItems);
+    }
+    // Note: teamSoFar isn't retroactively updated for teammates built
+    // BEFORE this member in the original left-to-right pass -- they
+    // already scored their own moves against this member's PRE-amendment
+    // build. Re-scoring every earlier teammate against every later
+    // amendment would cascade into a much bigger re-optimization pass;
+    // this is a deliberate, honestly documented scope limit (see the
+    // README's Milestone 43 section), not an oversight.
+  });
+
   return { builds };
 }
 
@@ -1345,7 +1437,31 @@ function wcBuildStrategyOption(candidate, builds, movesData, threats, typeChart,
  *   recommended via a learnable Sunny Day/Rain Dance/etc. move, just not
  *   via an ability that sets it for free.
  */
-function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline) {
+/** Composite "is this a genuinely strong attacker or wall" score (Milestone 43) -- BST, its best offensive stat, and its physical+special bulk, all summed. Used ONLY as a tie-break when several real learners are otherwise equally eligible to run an archetype's setter move (replacing a plain "first eligible" default) -- never as a replacement for a real criterion an archetype block already has (Trick Room's slowest, Tailwind's fastest, hazards' most-hazard-moves-learnable, etc. are untouched). */
+function wcAttackerOrWallScore(m) {
+  const bs = (m && m.baseStats) || {};
+  const bst = (bs.hp || 0) + (bs.atk || 0) + (bs.def || 0) + (bs.spa || 0) + (bs.spd || 0) + (bs.spe || 0);
+  const bestOffense = Math.max(bs.atk || 0, bs.spa || 0);
+  const bulk = (bs.hp || 0) + (bs.def || 0) + (bs.spd || 0);
+  return bst + bestOffense + bulk;
+}
+function wcStrongestPick(pool) {
+  return pool.reduce((a, b) => (wcAttackerOrWallScore(b) > wcAttackerOrWallScore(a) ? b : a));
+}
+
+/**
+ * Milestone 43: the candidate-construction half of wcAnalyzeTeamStrategy,
+ * extracted into its own function so wcGenerateTeamBuilds can reuse the
+ * exact same archetype-detection logic to bake MULTIPLE compatible
+ * archetypes into a team's first build (see wcAssignTeamSynergy below),
+ * not just the single best one wcAnalyzeTeamStrategy itself still
+ * surfaces. Returns the FULL, unbiased candidate list in construction
+ * order -- wcAnalyzeTeamStrategy applies wcApplyNotesBias/sorting itself
+ * afterward (unchanged from before this split), so this function's own
+ * behavior/signature has no bearing on wcAnalyzeTeamStrategy's own
+ * output.
+ */
+function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChart, format, notes, abilitiesData) {
   const fmt = wcNormalizeFormat(format);
   const canLearn = (m, moveName) => m.learnableNames.includes(moveName);
   const roleOf = (m) => wcActualRole(builds[m.slotName || m.name]);
@@ -1463,7 +1579,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     };
 
     if (abilitySetters.length > 0) {
-      const { setter, mentioned } = wcPreferredSetter(abilitySetters, notes, (pool) => pool[0]);
+      const { setter, mentioned } = wcPreferredSetter(abilitySetters, notes, (pool) => wcStrongestPick(pool));
       candidates.push({
         archetype: key,
         setterName: setter.name,
@@ -1479,7 +1595,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     }
 
     const { setter, mentioned } = wcPreferredSetter(moveCandidates, notes, (pool) =>
-      pool.find((m) => !beneficiaries.some((b) => b.name === m.name)) || pool[0]
+      pool.find((m) => !beneficiaries.some((b) => b.name === m.name)) || wcStrongestPick(pool)
     );
     candidates.push({
       archetype: key,
@@ -1523,7 +1639,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     if (beneficiaries.length === 0) return;
 
     const settersPool = abilitySetters.length > 0 ? abilitySetters : moveSetters;
-    const { setter, mentioned } = wcPreferredSetter(settersPool, notes, (pool) => pool[0]);
+    const { setter, mentioned } = wcPreferredSetter(settersPool, notes, (pool) => wcStrongestPick(pool));
     const usesChillyReception = abilitySetters.length === 0 && moveSetters.some((m) => m.name === setter.name);
     const parts = [];
     if (bulkBeneficiaries.length > 0) {
@@ -1559,7 +1675,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
         Math.max(b.baseStats.atk, b.baseStats.spa) > Math.max(a.baseStats.atk, a.baseStats.spa) ? b : a
       );
       const { setter: redirector, mentioned } = wcPreferredSetter(redirectCandidates, notes, (pool) =>
-        pool.find((m) => m.name !== sweeper.name) || pool[0]
+        pool.find((m) => m.name !== sweeper.name) || wcStrongestPick(pool)
       );
       const move = canLearn(redirector, "Follow Me") ? "Follow Me" : "Rage Powder";
       candidates.push({
@@ -1617,7 +1733,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     );
     const prankster = screensCandidates.filter((m) => wcAbilityOf(abilitiesData, m.name) === "Prankster");
     const pool = auroraVeilSelfSnow.length > 0 ? auroraVeilSelfSnow : prankster.length > 0 ? prankster : screensCandidates;
-    const { setter, mentioned } = wcPreferredSetter(pool, notes, (p) => p[0]);
+    const { setter, mentioned } = wcPreferredSetter(pool, notes, (p) => wcStrongestPick(p));
     const usesAuroraVeil = auroraVeilSelfSnow.some((m) => m.name === setter.name);
     const learnableScreens = usesAuroraVeil ? ["Aurora Veil"] : ["Light Screen", "Reflect"].filter((mv) => canLearn(setter, mv));
     const isPrankster = wcAbilityOf(abilitiesData, setter.name) === "Prankster";
@@ -1644,7 +1760,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
   // notes name one, prefer that one via wcPreferredSetter.
   const wideguardCandidates = members.filter((m) => canLearn(m, "Wide Guard"));
   if (wideguardCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(wideguardCandidates, notes, (p) => p[0]);
+    const { setter, mentioned } = wcPreferredSetter(wideguardCandidates, notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "wideguard",
       setterName: setter.name,
@@ -1663,7 +1779,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
   // blocking priority moves instead of spread moves.
   const quickguardCandidates = members.filter((m) => canLearn(m, "Quick Guard"));
   if (quickguardCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(quickguardCandidates, notes, (p) => p[0]);
+    const { setter, mentioned } = wcPreferredSetter(quickguardCandidates, notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "quickguard",
       setterName: setter.name,
@@ -1692,7 +1808,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     const terrainCandidates = members.filter((m) => canLearn(m, moveName));
     if (terrainCandidates.length === 0) return;
     const beneficiaries = members.filter((m) => m.types && m.types.includes(boostedType));
-    const { setter, mentioned } = wcPreferredSetter(terrainCandidates, notes, (p) => p[0]);
+    const { setter, mentioned } = wcPreferredSetter(terrainCandidates, notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: key,
       setterName: setter.name,
@@ -1711,7 +1827,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
 
   const mistyTerrainCandidates = members.filter((m) => canLearn(m, "Misty Terrain"));
   if (mistyTerrainCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(mistyTerrainCandidates, notes, (p) => p[0]);
+    const { setter, mentioned } = wcPreferredSetter(mistyTerrainCandidates, notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "mistyterrain",
       setterName: setter.name,
@@ -1730,7 +1846,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
   // status/confusion immunity, mirrors Misty Terrain's defensive role).
   const safeguardCandidates = members.filter((m) => canLearn(m, "Safeguard"));
   if (safeguardCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(safeguardCandidates, notes, (p) => p[0]);
+    const { setter, mentioned } = wcPreferredSetter(safeguardCandidates, notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "safeguard",
       setterName: setter.name,
@@ -1768,7 +1884,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
         (m) => canLearn(m, "Helping Hand") && !hardHitters.some((h) => h.name === m.name)
       );
       if (helpingHandCandidates.length > 0) {
-        const { setter, mentioned } = wcPreferredSetter(helpingHandCandidates, notes, (p) => p[0]);
+        const { setter, mentioned } = wcPreferredSetter(helpingHandCandidates, notes, (p) => wcStrongestPick(p));
         const beneficiary = hardHitters[0];
         candidates.push({
           archetype: "helpinghand",
@@ -1785,6 +1901,16 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     }
   }
 
+  return candidates;
+}
+
+function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline) {
+  const fmt = wcNormalizeFormat(format);
+  const roleOf = (m) => wcActualRole(builds[m.slotName || m.name]);
+  const fastMembers = members.filter((m) => roleOf(m) === "fast");
+  const bulkyMembers = members.filter((m) => roleOf(m) === "bulky");
+
+  const candidates = wcBuildStrategyCandidates(members, builds, movesData, threats, typeChart, format, notes, abilitiesData);
   const biasedCandidates = wcApplyNotesBias(candidates, notes);
 
   if (biasedCandidates.length === 0) {
@@ -1814,6 +1940,84 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
     alternative: alternativeOption,
   };
+}
+
+// Milestone 43: which archetypes can never coexist on the same team, for
+// wcAssignTeamSynergy's automatic multi-archetype baking below. Speed
+// control is a real either/or (Trick Room and Tailwind flip turn order in
+// opposite directions), and only one of the four terrains can ever be
+// active at once (setting a new one overwrites whichever was up). Every
+// archetype NOT listed here — screens, Wide Guard, Quick Guard,
+// Safeguard, redirect, hazards, Helping Hand, and each weather — is its
+// own independent, stackable group (falls through to its own archetype
+// name in wcConflictGroupFor below), since none of those actually
+// conflict with each other or with speed control/terrain.
+const WC_SYNERGY_CONFLICT_GROUPS = {
+  trickroom: "speedcontrol",
+  tailwind: "speedcontrol",
+  electricterrain: "terrain",
+  grassyterrain: "terrain",
+  mistyterrain: "terrain",
+  psychicterrain: "terrain",
+};
+function wcConflictGroupFor(archetype) {
+  return WC_SYNERGY_CONFLICT_GROUPS[archetype] || archetype;
+}
+
+/**
+ * Milestone 43: resolves a full (already notes-biased) strategy-candidate
+ * list — see wcBuildStrategyCandidates — into a set of NON-conflicting
+ * role assignments, instead of wcAnalyzeTeamStrategy's own "just the
+ * single best one" result. Walks candidates from highest fitScore down,
+ * accepting one per still-unclaimed conflict group (see
+ * WC_SYNERGY_CONFLICT_GROUPS/wcConflictGroupFor) and capping any one
+ * setter at a single forced role (a Pokémon that happens to be the top
+ * candidate for two independent archetypes only ever actually runs the
+ * higher-scoring one — running both would fight over the same 4 move
+ * slots and one Nature/Stat Point spread). Pure: never mutates its input,
+ * returns a new array of accepted candidates in acceptance order.
+ */
+function wcAssignTeamSynergy(candidates) {
+  const sorted = [...(candidates || [])].sort((a, b) => b.fitScore - a.fitScore);
+  const claimedGroups = new Set();
+  const usedSetters = new Set();
+  const assignments = [];
+  sorted.forEach((candidate) => {
+    const group = wcConflictGroupFor(candidate.archetype);
+    if (claimedGroups.has(group)) return;
+    if (usedSetters.has(candidate.setterName)) return;
+    claimedGroups.add(group);
+    usedSetters.add(candidate.setterName);
+    assignments.push(candidate);
+  });
+  return assignments;
+}
+
+/**
+ * Milestone 43: mutates a real (non-locked) build in place with an
+ * amendment from wcProposeSetterAmendment — the automatic counterpart to
+ * builder.js's applyAmendmentsToBuilds, which does the equivalent thing
+ * for a locked-build PREVIEW (build.recommendedBuild) via the read-only
+ * wcApplyAmendmentToFields. This one is for wcGenerateTeamBuilds baking
+ * an accepted wcAssignTeamSynergy assignment straight into a member's
+ * actual, already-generated build. Reuses wcApplyAmendmentToFields for
+ * the moves/nature/sp overlay (the one part that function already does),
+ * then additionally applies the item swap wcApplyAmendmentToFields
+ * intentionally leaves alone (item is never locked, so builder.js's own
+ * preview path applies it separately too — see the comment above
+ * wcApplyAmendmentToFields). Keeps the shared usedItems Set (Item Clause)
+ * in sync when an item actually changes.
+ */
+function wcApplyAmendmentToBuild(build, amendment, usedItems) {
+  const next = wcApplyAmendmentToFields(build, amendment);
+  build.nature = next.nature;
+  build.sp = next.sp;
+  build.moves = next.moves;
+  if (amendment.item) {
+    if (usedItems && build.item) usedItems.delete(build.item);
+    build.item = amendment.item.to;
+    if (usedItems) usedItems.add(build.item);
+  }
 }
 
 // ---------------------------------------------------------------------------
