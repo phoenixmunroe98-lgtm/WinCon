@@ -176,14 +176,21 @@ function wcBuildMegaScenarios(lineupNames, buildsByName, pokemonList, baseStatsD
  * the low thousands of simulated battles, not the ~15,000-20,000 a true
  * brute force over every candidate at full accuracy would take.
  */
-function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup, rng) {
+function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup, rng, planBonusFn) {
   const scoreRound = (candidateLineups, runsPerOpponent) =>
     candidateLineups
       .map((names) => {
         const specs = names.map((name) => specsByName[name]);
         const result = wcRunMonteCarlo(specs, oppPool, runsPerOpponent, format, simData, rng);
         const synergyBonus = comboLookup && typeof wcComboSynergyBonus === "function" ? wcComboSynergyBonus(names, comboLookup) : 0;
-        return { names, score: result.winRate + synergyBonus };
+        // Milestone 49: an optional real-synergy nudge (wcCarryPlanBonus,
+        // this file) toward whichever free-slot teammate genuinely covers
+        // the plan's carry -- see that function's own doc comment. Small
+        // and additive, same spirit as synergyBonus above; undefined for
+        // every caller that hasn't opted in (none currently do besides
+        // wcSimulatePlan), so this is a strictly additive parameter.
+        const planBonus = typeof planBonusFn === "function" ? planBonusFn(names) : 0;
+        return { names, score: result.winRate + synergyBonus + planBonus };
       })
       .sort((a, b) => b.score - a.score);
 
@@ -283,7 +290,7 @@ function wcOrderLineupForPlan(lineupNames, plan) {
  * whoever can Taunt and/or set screens; the 0-Speed pivot and a real
  * carry follow.
  */
-function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData) {
+function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData, notes) {
   const members = chosenSix.map((name) => ({ name }));
   const activeArchetypes = wcActiveArchetypesForBuiltTeam(members, builds, abilitiesData);
   const plans = [];
@@ -300,7 +307,13 @@ function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abiliti
     const definingMove = WINCON_STRATEGY_MOVES[archetypeKey][0];
     const setterPool = chosenSix.filter((name) => (builds[name].moves || []).includes(definingMove));
     if (!setterPool.length) return;
-    const { setter } = wcPreferredSetter(setterPool.map((name) => ({ name })), "", (pool) => pool[0]);
+    // Milestone 49: team notes now genuinely influence which real setter
+    // candidate gets the role, same mechanism (wcPreferredSetter) the
+    // Auto-build-strategy UI already trusts elsewhere in this project --
+    // this used to hardcode "" here, so a user's own notes had zero
+    // effect on the new game-plan simulation specifically (a real gap,
+    // now closed).
+    const { setter } = wcPreferredSetter(setterPool.map((name) => ({ name })), notes, (pool) => pool[0]);
 
     const screenerPool = chosenSix.filter(
       (name) => name !== setter.name && (builds[name].moves || []).some((mv) => WINCON_STRATEGY_MOVES.screens.includes(mv))
@@ -365,6 +378,49 @@ function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abiliti
 }
 
 /**
+ * Milestone 49: builds the per-lineup synergy nudge wcSimulatePlan passes
+ * to wcSelectBestLineupBySuccessiveHalving as `planBonusFn` -- the fix for
+ * Phoenix's real observation that every plan's free slots kept
+ * converging on the same two hardest hitters (Sceptile, Charizard)
+ * regardless of which plan was asking, since raw simulated win rate alone
+ * doesn't know or reward "this teammate specifically covers the carry's
+ * real weaknesses." Computed once per candidate lineup from real type-
+ * chart/ability data (wcTypeCoverBonus/wcStatCoverBonus, strategy.js) --
+ * never a hardcoded pairing. Deliberately small (0.02 per covered
+ * weakness, 0.05 for a genuine Intimidate-style stat cover) relative to
+ * win rate's own 0..1 scale -- enough to break a close call in favor of
+ * real synergy, never enough to override a lineup that's actually much
+ * stronger in simulated battle. Returns a no-op (always 0) function if
+ * this plan has no carry role assigned (the "Standard" fallback plan).
+ */
+function wcCarryPlanBonus(plan, specsByName, typeChart) {
+  const carryName = Object.keys(plan.roleByName).find((name) => plan.roleByName[name] === "carry");
+  const carrySpec = carryName && specsByName[carryName];
+  if (!carrySpec) return () => 0;
+
+  return (names) => {
+    let bonus = 0;
+    names.forEach((name) => {
+      if (name === carryName) return;
+      const spec = specsByName[name];
+      if (!spec) return;
+      // specsByName[name]/carrySpec are already resolved to each member's
+      // real EFFECTIVE identity (wcBattlerSpecForSlot -- Mega form and
+      // its real types/stats/ability when that build actually holds its
+      // Mega Stone, same resolution the Mega-scenario branching already
+      // trusts) -- crucial here, since a Mega's real types/stats can
+      // differ substantially from its base form (Mega Sceptile gains a
+      // real second Dragon type over base Sceptile's pure Grass, for
+      // instance), and comparing against the base form's weaknesses
+      // instead would credit the wrong coverage entirely.
+      bonus += wcTypeCoverBonus(carrySpec.types, spec.types, typeChart) * 0.08;
+      bonus += wcStatCoverBonus(carrySpec.baseStats, spec.ability) * 0.15;
+    });
+    return bonus;
+  };
+}
+
+/**
  * Simulates one detected game plan end to end: filters the candidate
  * lineups down to only those containing every one of the plan's
  * requiredNames (a real efficiency win, not just a correctness one --
@@ -393,7 +449,8 @@ function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseSta
     specsByName[name] = roleWeights ? { ...base, roleWeights } : base;
   });
 
-  const bestLineup = wcSelectBestLineupBySuccessiveHalving(orderedLineups, specsByName, oppPool, format, simData, comboLookup);
+  const planBonusFn = wcCarryPlanBonus(plan, specsByName, simData.typeChart);
+  const bestLineup = wcSelectBestLineupBySuccessiveHalving(orderedLineups, specsByName, oppPool, format, simData, comboLookup, undefined, planBonusFn);
 
   // wcBuildMegaScenarios rebuilds specs from scratch (it needs to force
   // each scenario's Mega/base identity), so it never sees specsByName's
@@ -436,7 +493,7 @@ function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseSta
  */
 function wcSimulateTeamWinRate(payload) {
   const {
-    chosenSix, builds, format, sheetMode,
+    chosenSix, builds, format, sheetMode, notes,
     pokemonList, baseStatsData, abilitiesData, movesData,
     moveEffects, abilityEffects, itemEffects, typeChart, natures,
     metaBaseline, comboLookup, liveTierStats,
@@ -463,7 +520,7 @@ function wcSimulateTeamWinRate(payload) {
   // wcResolveOneHit/wcScreensModifierFor, battle-sim-engine.js.
   const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode, format };
 
-  const plans = wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData)
+  const plans = wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData, notes)
     .map((plan) => wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, comboLookup))
     .filter(Boolean);
 

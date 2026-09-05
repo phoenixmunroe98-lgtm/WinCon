@@ -3847,6 +3847,11 @@ function buildSimulatedWinRatePayload() {
     builds: effectiveBuilds,
     format: WINCON_BUILDER_FORMAT,
     sheetMode,
+    // Milestone 49: team notes now genuinely influence which real
+    // candidate gets a plan's setter role (wcBuildGamePlans ->
+    // wcPreferredSetter, same mechanism Auto-build strategy already
+    // trusts) -- this used to not be sent to the Worker at all.
+    notes,
     pokemonList: data.pokemon,
     baseStatsData: data.baseStats,
     abilitiesData: data.abilities,

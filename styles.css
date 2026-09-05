@@ -1724,6 +1724,15 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   margin: 12px 0 16px;
 }
 
+/* Milestone 49: the framing note at the top of the (now-last) Simulated
+   Win Rate section, explaining why it's the least-weighted signal on the
+   page for now -- deliberately quieter than a normal .hint (smaller,
+   italic) so the de-emphasis reads visually, not just in the wording. */
+.simwinrate-weight-note {
+  font-style: italic;
+  font-size: 0.82rem;
+}
+
 /* Milestone 48: one .simwinrate-plan-group per detected game plan (see
    renderSimulatedWinRateResult() in builder.js) -- the grid that used to
    live directly on .simwinrate-scenarios now lives on the inner

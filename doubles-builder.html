@@ -245,31 +245,6 @@
          battle-tracker.html -- so this page only keeps the compact
          win/loss percentage above (#match-record-note). -->
 
-    <!-- Simulated Win Rate: replaces the old Matchup Score ring + win/loss
-         pill + full matrix (all retired -- see wcScoreMatchup's remaining
-         uses below, now scoped to Your Rival only) with a real mechanical
-         battle simulator -- turn order, damage formula, ability/item
-         effects, stat stages -- run in a Web Worker (battle-sim-worker.js)
-         so it never blocks this page. Strictly gated on isTeamComplete()
-         (every field on all 6 filled in, not just "6 picked"), since the
-         engine needs a real Nature/item/moveset/Stat-Point spread to build
-         a battler from. One simulation auto-runs the moment your team
-         crosses from incomplete to complete; further edits mark the shown
-         numbers out of date rather than silently re-running (Monte Carlo
-         is a few hundred simulated battles per Mega scenario, not
-         instant) -- "Re-run simulation" covers those. See
-         wcRunSimulatedWinRate()/renderSimulatedWinRateResult() in
-         builder.js and the plan behind battle-sim-lineup.js. -->
-    <section id="simulated-winrate-section" hidden>
-      <h2 class="section-title">Simulated Win Rate</h2>
-      <p id="simwinrate-hint" class="hint"></p>
-      <p id="simwinrate-loading" class="hint" hidden>
-        Simulating hundreds of battles against the Worlds-grounded reference field… this can take a few seconds.
-      </p>
-      <div id="simwinrate-scenarios" class="simwinrate-scenarios" hidden></div>
-      <button type="button" id="simwinrate-rerun-btn" class="btn-secondary" hidden>Re-run simulation</button>
-          </section>
-
     <section id="rival-header-row" hidden>
       <div class="slots-header">
         <div>
@@ -279,7 +254,7 @@
             current team its hardest possible matchup. Uses the same greedy pick logic as Generate Dream Team, run in
             reverse: instead of picking your best 6 against a reference list, it picks 6 that best answer YOUR team's
             typing and stats — with a real nudge toward whatever's actually winning in live Regulation M-B
-            tournaments right now, same as Auto-build gets. Unlike Simulated Win Rate above, this stays a fast
+            tournaments right now, same as Auto-build gets. Unlike Simulated Win Rate below, this stays a fast
             explainable heuristic (Matchup Score's own type/Speed comparison), not a full battle simulation — see
             its own note below.
           </p>
@@ -336,7 +311,7 @@
         Named Pokémon from WinCon's Worlds-2026-grounded reference data — plus anything you've actually faced
         often enough in your own logged battles — that hit a real chunk of your six hard. Type match-ups only,
         using each threat's own typing: a fast gut check, not a simulated battle. For an actual predicted win
-        rate, see Simulated Win Rate above.
+        rate, see Simulated Win Rate below -- see its own note there on how much weight it deserves right now.
       </p>
       <ul id="team-threats-list" class="coverage-list"></ul>
     </section>
@@ -351,12 +326,49 @@
       <h3 class="section-title">Speed tiers</h3>
       <p class="hint">
         Your six, fastest to slowest, plus what each reaches under Tailwind (×2) — a quick reference for turn
-        order before you dig into the full simulation above.
+        order before you dig into the full simulation below -- see its own note there on how much weight it deserves right now.
       </p>
       <div class="table-scroll">
         <table id="speed-tiers-table" class="matrix speed-tiers-table"></table>
       </div>
     </section>
+    <!-- Simulated Win Rate: replaces the old Matchup Score ring + win/loss
+         pill + full matrix (all retired -- see wcScoreMatchup's remaining
+         uses below, now scoped to Your Rival only) with a real mechanical
+         battle simulator -- turn order, damage formula, ability/item
+         effects, stat stages -- run in a Web Worker (battle-sim-worker.js)
+         so it never blocks this page. Strictly gated on isTeamComplete()
+         (every field on all 6 filled in, not just "6 picked"), since the
+         engine needs a real Nature/item/moveset/Stat-Point spread to build
+         a battler from. One simulation auto-runs the moment your team
+         crosses from incomplete to complete; further edits mark the shown
+         numbers out of date rather than silently re-running (Monte Carlo
+         is a few hundred simulated battles per Mega scenario, not
+         instant) -- "Re-run simulation" covers those. See
+         wcRunSimulatedWinRate()/renderSimulatedWinRateResult() in
+         builder.js and the plan behind battle-sim-lineup.js.
+         Milestone 49: moved to the bottom of the analysis stack and
+         labeled accordingly -- Phoenix's own call, since this is WinCon's
+         own small in-house simulation against a hand-picked reference
+         field, not real community-tournament-scale data (that's what the
+         Limitless pipeline is for -- see the README's own section on it),
+         so it shouldn't visually outrank the analysis above it. -->
+    <section id="simulated-winrate-section" hidden>
+      <h2 class="section-title">Simulated Win Rate</h2>
+      <p class="hint simwinrate-weight-note">
+        Treat this as the least important signal on this page for now. It's WinCon's own small in-house battle
+        simulation against a hand-picked reference field -- not real tournament-scale data. The Meta Analyst,
+        Threats to this team, and Your Rival above are worth weighing more heavily until WinCon's live Limitless
+        pipeline has enough real logged community battles for this to be genuinely representative.
+      </p>
+      <p id="simwinrate-hint" class="hint"></p>
+      <p id="simwinrate-loading" class="hint" hidden>
+        Simulating hundreds of battles against the Worlds-grounded reference field… this can take a few seconds.
+      </p>
+      <div id="simwinrate-scenarios" class="simwinrate-scenarios" hidden></div>
+      <button type="button" id="simwinrate-rerun-btn" class="btn-secondary" hidden>Re-run simulation</button>
+          </section>
+
   </main>
 
   <footer class="foot-note">

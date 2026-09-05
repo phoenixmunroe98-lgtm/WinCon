@@ -360,4 +360,85 @@ check("wcApplyEndOfTurn no longer decrements tailwindTurns itself (that used to 
   assert.equal(field.tailwindTurns.me, 4, "tailwindTurns must be untouched by wcApplyEndOfTurn regardless of how many active battlers call it");
 });
 
+// ---------------------------------------------------------------------------
+// 6. Milestone 49: real, computed carry-synergy scoring for a plan's free
+// lineup slots -- the fix for Phoenix's observation that every plan's
+// free slots kept converging on the same two hardest hitters (Sceptile,
+// Charizard) regardless of which plan was asking. All values below were
+// independently verified against the real type chart/base stats before
+// writing these assertions (see this session's own scratch verification).
+// ---------------------------------------------------------------------------
+
+check("wcTypeCoverBonus counts real covered weaknesses using each side's real types, nothing hand-picked", () => {
+  // Mega Charizard Y stays Fire/Flying (Y doesn't add a type) -- real
+  // weaknesses Rock/Electric/Water. Steelix (Steel/Ground) resists/blocks
+  // Rock and Electric (Ground is immune to Electric) but not Water.
+  assert.equal(context.wcTypeCoverBonus(["Fire", "Flying"], ["Steel", "Ground"], typeChart), 2);
+  // Mega Sceptile is Grass/Dragon (a real second type gained on Mega
+  // Evolution, not just base Sceptile's pure Grass) -- a huge, genuinely
+  // different weakness profile from its base form. Steelix covers 5 of
+  // those real weaknesses.
+  assert.equal(context.wcTypeCoverBonus(["Grass", "Dragon"], ["Steel", "Ground"], typeChart), 5);
+});
+
+check("wcStatCoverBonus only credits a real Intimidate-style cover when the carry's own real stats are genuinely lopsided toward weak Physical", () => {
+  // Mega Sceptile's real base Defense (75) is genuinely below its real
+  // base Special Defense (85) -- Intimidate is a real, relevant cover.
+  assert.equal(context.wcStatCoverBonus({ def: 75, spd: 85 }, "Intimidate"), 1);
+  assert.equal(context.wcStatCoverBonus({ def: 75, spd: 85 }, "Blaze"), 0, "no bonus for an ability that isn't the curated Intimidate cover");
+  assert.equal(context.wcStatCoverBonus({ def: 200, spd: 65 }, "Intimidate"), 0, "no bonus when the carry's weaker real side is Special, not Physical");
+});
+
+check("wcCarryPlanBonus resolves the carry's real EFFECTIVE (Mega) identity, not its base form, when scoring candidates", () => {
+  const plans49 = JSON.parse(JSON.stringify(context.wcBuildGamePlans(CHOSEN_SIX, BUILDS, pokemonList, baseStatsData, abilitiesData)));
+  const sceptilePlan = plans49.find((p) => p.key === "tailwind__Sceptile");
+  const specsByName = {};
+  CHOSEN_SIX.forEach((name) => {
+    specsByName[name] = context.wcBattlerSpecForSlot(name, BUILDS[name], pokemonList, baseStatsData, abilitiesData);
+  });
+  // wcBuildGamePlans itself only returns plain role data (JSON-safe), but
+  // wcCarryPlanBonus needs the real vm-context function/specs -- rebuild
+  // the plan object's roleByName is already plain data, safe to pass in.
+  const rawPlan = { roleByName: sceptilePlan.roleByName };
+  const bonusFn = context.wcCarryPlanBonus(rawPlan, specsByName, typeChart);
+  const steelixBonus = bonusFn(["Staraptor", "Primarina", "Steelix", "Sceptile"]);
+  const charizardBonus = bonusFn(["Staraptor", "Primarina", "Charizard", "Sceptile"]);
+  assert.ok(
+    steelixBonus > charizardBonus,
+    `Steelix should score a real, higher synergy bonus for the Sceptile carry (its Grass/Dragon typing has real, substantial weaknesses Steelix's Steel/Ground genuinely covers) -- got Steelix ${steelixBonus} vs Charizard ${charizardBonus}`
+  );
+});
+
+check("wcBuildGamePlans now genuinely lets team notes override which real setter candidate gets the role (previously hardcoded to \"\", a real gap this milestone closes)", () => {
+  // A small dedicated fixture: two real, legal Tailwind learners on one
+  // team, so there's an actual choice for notes to influence.
+  const twoSetterSix = ["Staraptor", "Whimsicott", "Primarina", "Incineroar", "Steelix", "Sceptile"];
+  const twoSetterBuilds = {
+    ...BUILDS,
+    Whimsicott: {
+      nature: "Timid",
+      item: "Focus Sash",
+      moves: ["Tailwind", "Moonblast", "Encore", "Protect"],
+      sp: { hp: 0, attack: 0, defense: 0, sp_attack: 20, sp_defense: 4, speed: 32 },
+    },
+  };
+  delete twoSetterBuilds.Charizard;
+
+  const noNotesPlans = JSON.parse(
+    JSON.stringify(context.wcBuildGamePlans(twoSetterSix, twoSetterBuilds, pokemonList, baseStatsData, abilitiesData, ""))
+  );
+  const defaultSetter = noNotesPlans.find((p) => p.key.startsWith("tailwind__")).roleByName;
+  const defaultSetterName = Object.keys(defaultSetter).find((name) => defaultSetter[name] === "setter");
+
+  const otherCandidate = defaultSetterName === "Staraptor" ? "Whimsicott" : "Staraptor";
+  const notedPlans = JSON.parse(
+    JSON.stringify(
+      context.wcBuildGamePlans(twoSetterSix, twoSetterBuilds, pokemonList, baseStatsData, abilitiesData, `Always lead with ${otherCandidate} to set Tailwind.`)
+    )
+  );
+  const notedSetterRoles = notedPlans.find((p) => p.key.startsWith("tailwind__")).roleByName;
+  const notedSetterName = Object.keys(notedSetterRoles).find((name) => notedSetterRoles[name] === "setter");
+  assert.equal(notedSetterName, otherCandidate, "team notes naming a real Tailwind-capable teammate should override the default (fastest) setter pick");
+});
+
 console.log(`\nAll ${checksRun} checks passed.`);
