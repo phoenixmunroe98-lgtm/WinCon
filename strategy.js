@@ -3731,11 +3731,19 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
   const megaAlreadyOnTeam = team.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds)).length;
   const eligibleInPool = remaining.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
   const guaranteedMegaCount = Math.max(0, Math.min(2 - megaAlreadyOnTeam, eligibleInPool.length, size - team.length));
+  // Milestone 45: which names THIS loop specifically picked (not just
+  // "any Mega-capable pick that happens to be on the final team," which
+  // could also include a forced/already-selected name) -- exposed so a
+  // caller building a genuinely different second option (see
+  // wcPickDreamTeamOptions below) knows exactly which picks defined this
+  // team's actual Mega core.
+  const guaranteedMegaNames = [];
   for (let g = 0; g < guaranteedMegaCount; g++) {
     const best = bestFromRemaining((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
     if (!best) break;
     const archetypeNote = wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData);
     team.push(best);
+    guaranteedMegaNames.push(best.name);
     remaining.splice(remaining.indexOf(best), 1);
     reasoning.push(
       `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.` +
@@ -3797,5 +3805,77 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     keepSelectedNames,
     droppedForcedNames,
     weatherInfo,
+    guaranteedMegaNames,
+  };
+}
+
+/**
+ * Milestone 45: "give me multiple team options" -- the feature
+ * topCandidatesFromRemaining/wcWeightedPickFromTop's own doc comments
+ * were built ahead of (Milestone 42) and wcAssignTeamSynergy's baked-in
+ * strategy assignment (Milestone 43) both existed specifically to
+ * support. Runs wcPickDreamTeam once normally to get Option 1, exactly
+ * as a plain single generate would (no diversify sampling needed here --
+ * excluding Option 1's own mechanism-defining picks from the pool below
+ * is what forces real structural difference, not randomness). Then
+ * re-runs it with Option 1's guaranteed-Mega picks (the actual Mega CORE
+ * this team was built around, not just any Mega-capable name that
+ * happened to land on it -- see wcPickDreamTeam's own guaranteedMegaNames)
+ * plus whichever setter wcAssignTeamSynergy chose for Option 1's primary
+ * archetype (the same setterName wcAnalyzeTeamStrategy itself surfaces,
+ * since its own winner is always wcAssignTeamSynergy's first accepted
+ * candidate) excluded from the candidate pool entirely -- so Option 2 is
+ * forced to find a genuinely different Mega core and a different
+ * mechanism, not just reshuffle whichever flex slots were left over.
+ *
+ * Returns { option1, option2, mechanismDefiningNames }. option1 is
+ * always populated ({ pick, builds, strategy }); option2 is the same
+ * shape or `null` when there simply aren't enough remaining eligible
+ * Pokemon after the exclusion to build a genuinely different full team
+ * -- an honest null rather than forcing a worse, incomplete option.
+ * `sheetMode`/`lockedBuildsLookup` are passed straight through to
+ * wcGenerateTeamBuilds exactly like every real call site already does;
+ * both fully optional.
+ */
+function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup, sheetMode, lockedBuildsLookup) {
+  const option1Pick = wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup);
+
+  if (option1Pick.chosen.length < size) {
+    // Mirrors wcPickDreamTeam's own real failure case (too few eligible
+    // after notes exclusions) -- nothing to build a second option from.
+    return { option1: { pick: option1Pick, builds: {}, strategy: null }, option2: null, mechanismDefiningNames: [] };
+  }
+
+  const option1Members = option1Pick.chosen.map((name) => pool.find((c) => c.name === name)).filter(Boolean);
+  const { builds: option1Builds } = wcGenerateTeamBuilds(option1Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes);
+  const option1Strategy = wcAnalyzeTeamStrategy(option1Members, option1Builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline);
+
+  const mechanismDefiningNames = [
+    ...new Set([
+      ...(option1Pick.guaranteedMegaNames || []),
+      ...(option1Strategy.setterName ? [option1Strategy.setterName] : []),
+    ]),
+  ];
+
+  const option1 = { pick: option1Pick, builds: option1Builds, strategy: option1Strategy };
+
+  const poolForOption2 = pool.filter((c) => !mechanismDefiningNames.includes(c.name));
+  if (poolForOption2.length < size) {
+    return { option1, option2: null, mechanismDefiningNames };
+  }
+
+  const option2Pick = wcPickDreamTeam(poolForOption2, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup);
+  if (option2Pick.chosen.length < size) {
+    return { option1, option2: null, mechanismDefiningNames };
+  }
+
+  const option2Members = option2Pick.chosen.map((name) => poolForOption2.find((c) => c.name === name)).filter(Boolean);
+  const { builds: option2Builds } = wcGenerateTeamBuilds(option2Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes);
+  const option2Strategy = wcAnalyzeTeamStrategy(option2Members, option2Builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline);
+
+  return {
+    option1,
+    option2: { pick: option2Pick, builds: option2Builds, strategy: option2Strategy },
+    mechanismDefiningNames,
   };
 }

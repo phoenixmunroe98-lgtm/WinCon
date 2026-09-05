@@ -1494,6 +1494,70 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 
 .pilot-guide-counter strong { color: var(--mediocre); }
 
+/* Milestone 45: the "Option 1 / Option 2" segmented control at the top
+   of a freshly-generated Dream Team card. Hidden entirely when there's
+   no genuinely different second option to offer -- see
+   renderDreamTeamOptionsControl in builder.js. Card-style rather than
+   the pill-shaped .format-toggle/.format-option control used elsewhere
+   (My Pokedex/Full Pokedex, etc.) because each "segment" here carries a
+   few lines of real content (mechanism, setter, stated counter), not
+   just a short label. */
+.dream-team-options {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--surface-muted);
+}
+
+.dream-team-options-intro { margin: 0 0 10px; }
+
+.dream-team-options-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .dream-team-options-row { grid-template-columns: 1fr; }
+}
+
+.dream-team-option-card {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.dream-team-option-card:hover { border-color: var(--accent); }
+
+.dream-team-option-card.is-active {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.option-label {
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.option-mechanism {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.option-counter {
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+}
+
 /* Milestone 12: same treatment as .meta-synergy-note above, for the
    "guaranteed Mega pick(s)" line under Generate Dream Team's "Why these
    six" list — a distinct signal from the numbered picks above it, not a

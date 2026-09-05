@@ -2199,6 +2199,102 @@ correct), the `helpinghand` display-name fix, safe defaults when
 `megaAdvice`/warnings are omitted, and that it never mutates the
 caller's own warnings array. All 29 test files green, zero regressions.
 
+## Generate Dream Team now produces two genuinely different options (Milestone 45)
+
+Phase 6 of the Team Diversity Roadmap, and its capstone: Generate Dream
+Team used to hand back exactly one team, full stop. This milestone makes
+it hand back two genuinely different ones -- a different Mega core and a
+different primary mechanism, not just a reshuffled flex slot or two --
+with a small UI control to compare them side by side before committing
+either one to your saved team.
+
+**The core idea is exclusion, not randomness.** `wcPickDreamTeam` has no
+randomness at all unless `diversify: true` is explicitly passed (see
+Milestone 42), and this feature deliberately never passes it -- rerolling
+with randomness could easily hand back a team that's 90% the same six
+names in a different order. Instead, the new `wcPickDreamTeamOptions`
+(strategy.js) runs `wcPickDreamTeam` once, completely normally, to get
+Option 1. It then identifies Option 1's own *mechanism-defining* picks --
+the specific Pokemon that made it the team it is, not just whoever
+happened to fill a flex slot -- and excludes exactly those names from the
+pool before running `wcPickDreamTeam` a second time for Option 2. With
+the team's actual backbone gone from the pool, Option 2 is structurally
+forced to build around a different Mega and a different strategy, not
+just rearrange what's left.
+
+"Mechanism-defining" means two things, unioned together: `wcPickDreamTeam`'s
+own guaranteed-Mega picks (the up-to-two Mega-capable species its closing
+loop specifically chose, now surfaced via a new `guaranteedMegaNames`
+field on its return value -- previously computed internally and
+discarded) and whichever setter Milestone 43's `wcAssignTeamSynergy`
+picked for Option 1's primary archetype (read from `wcAnalyzeTeamStrategy`'s
+own `setterName`, since its winning candidate is always
+`wcAssignTeamSynergy`'s first accepted one -- calling `wcAssignTeamSynergy`
+a second time directly would just recompute the same answer). If Option 2's
+pool doesn't leave at least six eligible Pokemon after that exclusion, it
+honestly returns `option2: null` rather than forcing a worse, incomplete
+team on the player -- confirmed with a dedicated deterministic test using
+a small controlled 7-member pool where excluding 2-3 mechanism names
+always leaves fewer than six, regardless of which archetype wins.
+
+**Both options are fully real, not previews**: each gets its own complete
+`wcGenerateTeamBuilds` run (so Milestone 43's baked-in synergy assignment
+and auto-Mega suppression both apply independently to each) and its own
+`wcAnalyzeTeamStrategy` pass, exactly like a normal single-option Dream
+Team always has.
+
+**builder.js wiring**: `generateDreamTeam` now calls
+`wcPickDreamTeamOptions` instead of `wcPickDreamTeam` directly, and a new
+`buildDreamTeamOptionRenderData` factors out everything that used to
+happen inline for the single result (team-notes trade-off/exclusion
+notes, converting to each member's actual Mega form via
+`effectiveMemberFor` so strategy analysis and Mega-matchup advice see
+what the build really is, Milestone 44's pilot-guide assembly) so it can
+run once per option. A new `#dream-team-options` control at the top of
+the generated team card -- a two-card segmented layout, hidden entirely
+when there's no real Option 2 -- shows each option's mechanism, setter,
+and a condensed stated-counter preview (built from the same
+`wcAssemblePilotGuide` Milestone 44 introduced) so the two are genuinely
+comparable before committing. Clicking a card (`selectDreamTeamOption`)
+swaps the working `chosen`/`builds` over to that option and renders it
+through the exact same `renderDreamTeamNote`/`renderStrategyNote` pipeline
+a single-option Dream Team always has -- including Milestone 44's full
+"how to pilot this team" bubble -- so switching options is genuinely a
+full swap, not a partial one. One real implementation wrinkle worth
+documenting honestly: `applyAmendmentsToBuilds` mutates the module-level
+`builds` global directly rather than taking one as a parameter, so
+amendments for a given option are only ever applied *after* `builds` has
+actually been pointed at that option's own build set (inside
+`selectDreamTeamOption`), never during the earlier per-option
+data-assembly pass -- applying them at the wrong time would either mutate
+the wrong object or silently no-op.
+
+New test file (`tools/test-dream-team-options.mjs`, 10 checks), run
+against real game data (moves/type chart/base stats/learnsets/abilities/
+species, the same real full ~290+ species pool `eligibleObtainedMembers`'s
+"Full Pokédex" mode itself builds from) rather than small hand-built
+fixtures, since `wcPickDreamTeam`'s determinism (no `diversify`) makes a
+full-pool integration test fully reproducible, not flaky: confirms the
+Milestone 42 (`topCandidatesFromRemaining`/`wcWeightedPickFromTop`) and
+Milestone 43 (`wcAssignTeamSynergy`/`wcBuildStrategyCandidates`) dependencies
+this phase builds on both actually exist; `wcPickDreamTeam`'s new
+`guaranteedMegaNames` field; two full, genuinely different 6-member
+rosters from the real full pool; the core disjointness guarantee (Option
+2's roster contains none of Option 1's `guaranteedMegaNames`/`setterName`
+union, and that union is computed exactly as documented); Option 1 and
+Option 2 never share a guaranteed-Mega pick and differ in primary setter
+when both exist; both options carry a real strategy and a full build for
+every member; and the `option2: null` honest-failure edge case. All 30
+test files green, zero regressions.
+
+This closes out the Team Diversity Roadmap's six phases: real diversity
+in Dream Team's own scoring (Phase 3/Milestone 42), automatic multi-
+archetype synergy baked into the first build instead of a single manual
+suggestion (Phase 4/Milestone 43), a "how to pilot this team" explainer
+with a stated counter (Phase 5/Milestone 44), and now two genuinely
+different Dream Team options to choose between before ever committing
+one (Phase 6/Milestone 45).
+
 ## Running it
 
 

@@ -144,6 +144,10 @@ let poolScope = "obtained";
 
 /** The last strategy analysis result from "Auto-build strategy", or null if none is showing / it's gone stale since a field changed. */
 let pendingStrategy = null;
+// Milestone 45: holds both generated Dream Team candidates -- 
+// { option1, option2 (or null), activeOption } -- see
+// generateDreamTeam/selectDreamTeamOption/renderDreamTeamOptionsControl.
+let dreamTeamOptionsState = null;
 
 /** The last "Find Your Rival" result, or null if none is showing / it's gone stale since the team changed. See findYourRival() below. */
 let pendingRival = null;
@@ -184,6 +188,7 @@ const matchRecordEl = document.getElementById("match-record-note");
 
 const dreamTeamBtn = document.getElementById("dream-team-btn");
 const dreamTeamNoteEl = document.getElementById("dream-team-note");
+const dreamTeamOptionsEl = document.getElementById("dream-team-options");
 const pickerHint = document.getElementById("picker-hint");
 const pickerGrid = document.getElementById("picker-grid");
 const slotsSection = document.getElementById("slots-section");
@@ -2575,14 +2580,84 @@ function generateDreamTeam() {
   // see buildExperienceLookup's own comment above.
   const experienceLookup = buildExperienceLookup();
 
-  const {
-    chosen: picked,
-    reasoning,
-    megaNote,
-    excludedNames,
-    notesIncludedNames,
-    droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup, liveMetaBuildsLookup, experienceLookup);
+  // Milestone 45: two genuinely different candidate teams instead of one.
+  // wcPickDreamTeamOptions runs wcPickDreamTeam once normally to get
+  // Option 1, then re-runs it with Option 1's own mechanism-defining
+  // picks excluded from the pool -- its guaranteed-Mega core plus
+  // whichever setter Milestone 43's baked-in wcAssignTeamSynergy chose
+  // for its primary archetype -- so Option 2 is forced to find a
+  // genuinely different Mega core and a different mechanism, not just
+  // reshuffle whichever flex slots were left over. See
+  // wcPickDreamTeamOptions's own doc comment in strategy.js for the full
+  // reasoning, and buildDreamTeamOptionRenderData/selectDreamTeamOption
+  // below for how each option becomes a real, fully-built, fully-
+  // strategized team a click away from the other.
+  const dreamOptions = wcPickDreamTeamOptions(
+    eligible,
+    threatsWithTypes,
+    data.typeChart,
+    6,
+    notes,
+    keepFromCurrentPick,
+    data.natures,
+    data.moves,
+    data.abilities,
+    metaUsageLookup,
+    metaBaselineData,
+    WINCON_BUILDER_FORMAT,
+    liveMetaLookup,
+    liveMetaBuildsLookup,
+    experienceLookup,
+    sheetMode,
+    lockedBuildsLookup
+  );
+
+  const option1Pick = dreamOptions.option1.pick;
+
+  if (option1Pick.chosen.length < 6) {
+    dreamTeamNoteEl.hidden = false;
+    dreamTeamNoteEl.innerHTML = "";
+    const p = document.createElement("p");
+    const excludedText =
+      option1Pick.excludedNames && option1Pick.excludedNames.length
+        ? ` after leaving out ${option1Pick.excludedNames.join(", ")} per your team notes`
+        : "";
+    p.textContent =
+      `Generate Dream Team needs at least 6 eligible Pokémon${excludedText} -- only ${option1Pick.chosen.length} ${option1Pick.chosen.length === 1 ? "is" : "are"} left. ` +
+      `Mark more as obtained, or adjust your notes.`;
+    dreamTeamNoteEl.appendChild(p);
+    return;
+  }
+
+  const option1Data = buildDreamTeamOptionRenderData(option1Pick, dreamOptions.option1.builds, eligible, threatsWithTypes);
+  const option2Data = dreamOptions.option2
+    ? buildDreamTeamOptionRenderData(dreamOptions.option2.pick, dreamOptions.option2.builds, eligible, threatsWithTypes)
+    : null;
+
+  dreamTeamOptionsState = { option1: option1Data, option2: option2Data, activeOption: 1 };
+
+  selectDreamTeamOption(1);
+}
+
+/**
+ * Milestone 45: everything that used to happen inline in
+ * generateDreamTeam for its single result, now factored out so it can run
+ * once per candidate option -- the team-notes trade-off/exclusion notes,
+ * the effectiveMemberFor conversion (so a member's ACTUAL Mega form, if
+ * any, is what strategy analysis and Mega-matchup advice see -- consistent
+ * with every other real call site), Milestone 43/44's strategy analysis
+ * and pilot-guide assembly. Deliberately does NOT call
+ * applyAmendmentsToBuilds here (that function reads/mutates the MODULE-
+ * LEVEL `builds` global directly by design -- see its own definition --
+ * so calling it against an option that isn't the currently-committed one
+ * would either mutate the wrong object or silently no-op); the amendments
+ * for whichever option gets selected are applied in
+ * selectDreamTeamOption below, once `builds` actually points at that
+ * option's own build set.
+ */
+function buildDreamTeamOptionRenderData(pickResult, optionBuilds, eligible, threatsWithTypes) {
+  const picked = pickResult.chosen;
+  const members = picked.map((name) => eligible.find((m) => m.name === name));
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
@@ -2590,29 +2665,14 @@ function generateDreamTeam() {
   // explain the gap in the note below rather than silently ignoring it.
   const mentionedAnywhere = wcNotesMentionedSpecies(notes, data.pokemon.map((p) => p.name));
   const mentionedButNotEligible = mentionedAnywhere.filter(
-    (name) => !notesIncludedNames.includes(name) && !excludedNames.includes(name)
+    (name) => !pickResult.notesIncludedNames.includes(name) && !pickResult.excludedNames.includes(name)
   );
-
-  if (picked.length < 6) {
-    dreamTeamNoteEl.hidden = false;
-    dreamTeamNoteEl.innerHTML = "";
-    const p = document.createElement("p");
-    const excludedText = excludedNames && excludedNames.length ? ` after leaving out ${excludedNames.join(", ")} per your team notes` : "";
-    p.textContent =
-      `Generate Dream Team needs at least 6 eligible Pokémon${excludedText} -- only ${picked.length} ${picked.length === 1 ? "is" : "are"} left. ` +
-      `Mark more as obtained, or adjust your notes.`;
-    dreamTeamNoteEl.appendChild(p);
-    return;
-  }
-
-  const members = picked.map((name) => eligible.find((m) => m.name === name));
 
   // Milestone (Phoenix's Tailwind/Staraptor/screens request): a Pokemon
   // you just mentioned by name in your notes -- not necessarily hard
   // "must include" -- that carried a real archetype signal but didn't
-  // make the final team gets an honest trade-off note instead of silence,
-  // see wcSoftPreferenceTradeoffNote. Only checked against names actually
-  // eligible (need real baseStats/learnableNames to evaluate a signal).
+  // make this particular option's final team gets an honest trade-off
+  // note instead of silence, see wcSoftPreferenceTradeoffNote.
   const softMentionedNotIncluded = wcNotesPlainMentionedNames(notes, eligible.map((m) => m.name)).filter(
     (name) => !picked.includes(name)
   );
@@ -2620,52 +2680,159 @@ function generateDreamTeam() {
     .map((name) => wcSoftPreferenceTradeoffNote(eligible.find((m) => m.name === name), members, WINCON_BUILDER_FORMAT, data.abilities))
     .filter(Boolean);
 
-  chosen = picked;
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup, notes);
-  builds = generated;
-
-  // Milestone 36: "the dream team is providing a full strategised team for
-  // the user to try out" -- Dream Team no longer stops at "picked and
-  // built." It now auto-runs the same analysis "Auto-build strategy"
-  // offers as a separate manual step (wcAnalyzeTeamStrategy), and applies
-  // its recommended move/role change immediately (applyAmendmentsToBuilds)
-  // rather than waiting for a second click -- one click now produces a
-  // complete, already-strategized team. The standalone "Auto-build
-  // strategy" button below still works exactly as before for re-running
-  // or re-checking this later.
   const strategyMembers = picked.map((name) => {
     const pokemon = data.pokemon.find((p) => p.name === name);
     const baseStats = data.baseStats.find((b) => b.name === name);
     const learnableNames = data.learnsets[name];
-    return effectiveMemberFor(name, pokemon.types, baseStats, learnableNames, builds[name]);
+    return effectiveMemberFor(name, pokemon.types, baseStats, learnableNames, optionBuilds[name]);
   });
-  const strategyResult = wcAnalyzeTeamStrategy(strategyMembers, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
-  applyAmendmentsToBuilds(strategyResult.amendments);
+  const strategyResult = wcAnalyzeTeamStrategy(strategyMembers, optionBuilds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
   const megaAdvice = wcMegaMatchupAdvice(strategyMembers, threatsWithTypes, data.typeChart);
   // Milestone 41: the hand-picked ability/item checks and the fully-
-  // computable shared-weakness audit render in the exact same slot
-  // (renderDreamTeamNote/renderStrategyNote below never had to change) --
-  // they're just two sources feeding one combined warnings list.
+  // computable shared-weakness audit render in the exact same slot -- two
+  // sources feeding one combined warnings list.
   const antiSynergyWarnings = [
-    ...wcAntiSynergyWarnings(strategyMembers, builds, data.abilities),
+    ...wcAntiSynergyWarnings(strategyMembers, optionBuilds, data.abilities),
     ...wcSharedWeaknessWarnings(strategyMembers, data.typeChart),
   ];
+  // Milestone 44's "how to pilot this team" data, reused here in
+  // condensed form for this option's own mini strategy-bubble preview
+  // card (renderDreamTeamOptionsControl) so the two mechanisms are
+  // genuinely comparable before either one is committed.
+  const guide = wcAssemblePilotGuide(strategyResult, megaAdvice, antiSynergyWarnings);
+
+  return {
+    chosen: picked,
+    builds: optionBuilds,
+    reasoning: pickResult.reasoning,
+    megaNote: pickResult.megaNote,
+    excludedNames: pickResult.excludedNames,
+    droppedForcedNames: pickResult.droppedForcedNames,
+    mentionedButNotEligible,
+    tradeoffNotes,
+    strategyResult,
+    megaAdvice,
+    antiSynergyWarnings,
+    guide,
+  };
+}
+
+/**
+ * Milestone 45: swaps the working chosen/builds over to one of the two
+ * generated options and renders it exactly the way a single-option Dream
+ * Team result always has (renderDreamTeamNote/renderStrategyNote, which
+ * itself ends with Milestone 44's full pilot-guide bubble) -- the two
+ * options only ever differ in WHICH pre-computed data they commit, never
+ * in how that data gets displayed once committed. Safe to call again for
+ * the option that's already active (e.g. re-clicking the same card):
+ * applyAmendmentsToBuilds is idempotent (it sets fields to their target
+ * values, it doesn't toggle them), so nothing double-applies.
+ */
+function selectDreamTeamOption(n) {
+  if (!dreamTeamOptionsState) return;
+  const optionData = n === 1 ? dreamTeamOptionsState.option1 : dreamTeamOptionsState.option2;
+  if (!optionData) return;
+
+  dreamTeamOptionsState.activeOption = n;
+
+  chosen = optionData.chosen;
+  builds = optionData.builds;
+  // Milestone 36's established sequencing: builds must already point at
+  // THIS option's own build set before applying its amendments, since
+  // applyAmendmentsToBuilds mutates the module-level `builds` global
+  // directly rather than taking one as a parameter.
+  applyAmendmentsToBuilds(optionData.strategyResult.amendments);
 
   invalidateComputedNotes();
-  pendingStrategy = strategyResult;
+  pendingStrategy = optionData.strategyResult;
 
   renderPicker();
   renderSlots();
-  renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes, antiSynergyWarnings);
-  renderStrategyNote(strategyResult, true, megaAdvice, antiSynergyWarnings);
+  renderDreamTeamOptionsControl();
+  renderDreamTeamNote(
+    optionData.reasoning,
+    optionData.megaNote,
+    optionData.excludedNames,
+    optionData.droppedForcedNames,
+    optionData.mentionedButNotEligible,
+    optionData.tradeoffNotes,
+    optionData.antiSynergyWarnings
+  );
+  renderStrategyNote(optionData.strategyResult, true, optionData.megaAdvice, optionData.antiSynergyWarnings);
 
   autogenHint.textContent = "";
   saveStatus.textContent =
-    strategyResult.archetype === "balanced"
+    optionData.strategyResult.archetype === "balanced"
       ? "Dream Team picked and built — no single shared strategy stood out for this roster, so it's playing as six strong independent attackers. Save team when you're happy with it."
-      : `Dream Team picked, built, and strategized around ${archetypeLabel(strategyResult.archetype)} — Save team when you're happy with it.`;
+      : `Dream Team picked, built, and strategized around ${archetypeLabel(optionData.strategyResult.archetype)} — Save team when you're happy with it.`;
 }
 
+/**
+ * Milestone 45: the small "Option 1 / Option 2" UI control at the top of
+ * the generated team card. Hidden entirely when there's no genuinely
+ * different Option 2 to offer (wcPickDreamTeamOptions returned option2:
+ * null -- an honest "there wasn't room for a second real mechanism after
+ * excluding the first one's core" rather than forcing a worse option).
+ * Each card is a condensed preview built from that option's own
+ * wcAssemblePilotGuide data -- deliberately NOT the full pilot-guide
+ * bubble (that's reserved for whichever option is actually committed,
+ * rendered via the existing renderStrategyNote/renderPilotGuideNote
+ * pipeline in selectDreamTeamOption above) -- just enough of a "mini
+ * version" to tell the two mechanisms apart before committing one.
+ */
+function renderDreamTeamOptionsControl() {
+  if (!dreamTeamOptionsEl) return;
+  if (!dreamTeamOptionsState || !dreamTeamOptionsState.option2) {
+    dreamTeamOptionsEl.hidden = true;
+    dreamTeamOptionsEl.innerHTML = "";
+    return;
+  }
+
+  dreamTeamOptionsEl.innerHTML = "";
+  dreamTeamOptionsEl.hidden = false;
+
+  const intro = document.createElement("p");
+  intro.className = "hint dream-team-options-intro";
+  intro.textContent = "Two genuinely different builds came out of this generation — pick whichever mechanism you'd rather play, then Save team when you're happy.";
+  dreamTeamOptionsEl.appendChild(intro);
+
+  const row = document.createElement("div");
+  row.className = "dream-team-options-row";
+
+  [1, 2].forEach((n) => {
+    const optionData = n === 1 ? dreamTeamOptionsState.option1 : dreamTeamOptionsState.option2;
+    const guide = optionData.guide;
+
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "dream-team-option-card" + (dreamTeamOptionsState.activeOption === n ? " is-active" : "");
+    card.addEventListener("click", () => selectDreamTeamOption(n));
+
+    const label = document.createElement("div");
+    label.className = "option-label";
+    label.textContent = `Option ${n}`;
+    card.appendChild(label);
+
+    const mechanism = document.createElement("div");
+    mechanism.className = "option-mechanism";
+    mechanism.textContent =
+      guide && guide.archetypeLabel
+        ? `${guide.archetypeLabel}${guide.setterName ? ` — ${guide.setterName}` : ""}`
+        : "Balanced — no single shared mechanism";
+    card.appendChild(mechanism);
+
+    if (guide && guide.counterNote) {
+      const counter = document.createElement("div");
+      counter.className = "option-counter";
+      counter.textContent = `Countered by: ${guide.counterNote}`;
+      card.appendChild(counter);
+    }
+
+    row.appendChild(card);
+  });
+
+  dreamTeamOptionsEl.appendChild(row);
+}
 function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes, antiSynergyWarnings) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
