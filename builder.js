@@ -195,6 +195,7 @@ const autostrategyBtn = document.getElementById("autostrategy-btn");
 const autogenHint = document.getElementById("autogen-hint");
 const autostrategyHint = document.getElementById("autostrategy-hint");
 const strategyNoteEl = document.getElementById("strategy-note");
+const pilotGuideNoteEl = document.getElementById("pilot-guide-note");
 const modalOverlay = document.getElementById("changes-modal");
 const modalTitle = document.getElementById("changes-modal-title");
 const modalBody = document.getElementById("changes-modal-body");
@@ -3054,6 +3055,77 @@ function renderStrategyNote(strategy, alreadyApplied, megaAdvice, antiSynergyWar
     });
     altBox.appendChild(switchBtn);
     strategyNoteEl.appendChild(altBox);
+  }
+
+  renderPilotGuideNote(strategy, megaAdvice, antiSynergyWarnings);
+}
+
+/**
+ * Milestone 44: "how to pilot this team" -- a single explainer bubble
+ * combining everything already computed elsewhere: the team's actual
+ * primary mechanism and its setter (genuinely applied to the build since
+ * Milestone 43, not just suggested), wcMegaMatchupAdvice's existing
+ * guidance on which Mega to bring, the combined anti-synergy/shared-
+ * weakness warnings, and the new stated-counter line. Called as the last
+ * step of renderStrategyNote above so it's always in sync with whichever
+ * strategy is currently active -- including after "Use this instead"
+ * swaps to the alternative. All the real logic (what to say, in what
+ * order) lives in strategy.js's wcAssemblePilotGuide -- this is a thin
+ * DOM renderer over that pure object.
+ */
+function renderPilotGuideNote(strategy, megaAdvice, antiSynergyWarnings) {
+  if (!pilotGuideNoteEl) return;
+  const guide = wcAssemblePilotGuide(strategy, megaAdvice, antiSynergyWarnings);
+  if (!guide) {
+    pilotGuideNoteEl.hidden = true;
+    return;
+  }
+
+  pilotGuideNoteEl.innerHTML = "";
+  pilotGuideNoteEl.hidden = false;
+
+  const heading = document.createElement("h3");
+  heading.textContent = "How to pilot this team";
+  pilotGuideNoteEl.appendChild(heading);
+
+  const mechanismP = document.createElement("p");
+  if (!guide.archetypeLabel) {
+    mechanismP.textContent =
+      "No single shared mechanism stands out for this roster -- play it as six strong independent attackers and lean on individual matchups.";
+  } else {
+    const strong = document.createElement("strong");
+    strong.textContent = `${guide.archetypeLabel}${guide.setterName ? ` (${guide.setterName})` : ""}: `;
+    mechanismP.appendChild(strong);
+    mechanismP.appendChild(document.createTextNode(guide.mechanismNote));
+  }
+  pilotGuideNoteEl.appendChild(mechanismP);
+
+  if (guide.megaAdviceNote) {
+    const megaP = document.createElement("p");
+    const megaLabel = document.createElement("strong");
+    megaLabel.textContent = "Which Mega to bring: ";
+    megaP.appendChild(megaLabel);
+    megaP.appendChild(document.createTextNode(guide.megaAdviceNote));
+    pilotGuideNoteEl.appendChild(megaP);
+  }
+
+  if (guide.warnings && guide.warnings.length) {
+    const warnP = document.createElement("p");
+    const warnLabel = document.createElement("strong");
+    warnLabel.textContent = "Watch for: ";
+    warnP.appendChild(warnLabel);
+    warnP.appendChild(document.createTextNode(guide.warnings.join(" ")));
+    pilotGuideNoteEl.appendChild(warnP);
+  }
+
+  if (guide.counterNote) {
+    const counterP = document.createElement("p");
+    counterP.className = "pilot-guide-counter";
+    const counterLabel = document.createElement("strong");
+    counterLabel.textContent = "How an opponent might counter this: ";
+    counterP.appendChild(counterLabel);
+    counterP.appendChild(document.createTextNode(guide.counterNote));
+    pilotGuideNoteEl.appendChild(counterP);
   }
 }
 

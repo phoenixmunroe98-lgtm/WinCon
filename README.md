@@ -2136,6 +2136,69 @@ sets when neither ends up assigned anything. The existing
 forming archetype) still passes unchanged. All 28 test files green, zero
 regressions.
 
+## "How to pilot this team" explainer bubble, and a stated counter for every strategy (Milestone 44)
+
+Phase 5 of the Team Diversity Roadmap. Dream Team and Auto-build strategy
+already computed four genuinely useful pieces of advice about a team's
+strategy -- its primary mechanism and setter (`wcAnalyzeTeamStrategy`,
+now actually *applied* to the build since Milestone 43, not just
+suggested), which Mega to bring (`wcMegaMatchupAdvice`), and two
+different anti-synergy warning sources (`wcAntiSynergyWarnings`,
+`wcSharedWeaknessWarnings`) -- but they rendered as separate pieces in
+the existing strategy callout, with nothing tying them into one
+"here's how to actually play this team" read, and nothing about how an
+opponent might beat it back.
+
+**`WINCON_ARCHETYPE_COUNTERS`** (strategy.js) is the one genuinely new
+piece of content: a hand-picked, real, well-known counter-mechanism and
+the reason it works for every archetype key this app can surface as a
+team's strategy (Trick Room, Tailwind, all four weathers, screens, Wide
+Guard, Quick Guard, Safeguard, redirection, hazards, all four terrains,
+and Helping Hand) -- 17 entries, same "hand-picked, not exhaustive"
+honesty convention as `WINCON_SPREAD_MOVES`/`starter-threats.json`/
+`wcAntiSynergyWarnings`' two checks, and said so directly in the code
+comment. A few examples: Trick Room's real answer is a priority Taunt
+(silences the setter before Trick Room even goes up); the four terrains
+all share the same real answer (anything ungrounded is untouched by any
+of them); Helping Hand's is Protect on the boosted target (wastes the
+one-turn boost outright). `wcStatedCounterNote(archetypeType)` returns
+that line, or `null` for `"balanced"` -- there's nothing specific to
+counter when no single mechanism won out.
+
+**`wcAssemblePilotGuide(strategy, megaAdvice, antiSynergyWarnings)`**
+(strategy.js) is the actual synthesis: a small, pure, DOM-free function
+that pulls the primary archetype's display label and setter, its
+mechanism note, the Mega matchup note, the combined warnings list, and
+the new stated-counter line into one plain object. It's deliberately
+*just* assembly -- every field already existed somewhere else in this
+file, reused as-is rather than recomputed. (One small real gap fixed
+along the way: `WC_ARCHETYPE_DISPLAY_NAMES` never had a `helpinghand`
+entry, since Milestone 36 deliberately excluded Helping Hand from the
+pick-time archetype-signals system -- but it can still win as
+`wcAnalyzeTeamStrategy`'s own top candidate, so it needed a real label
+too.)
+
+**The new panel itself** (builder.js's `renderPilotGuideNote`, a new
+`#pilot-guide-note` callout below the existing strategy note in both
+Builder pages) is a thin DOM renderer over that object -- a heading
+("How to pilot this team"), the mechanism + setter, "Which Mega to
+bring," "Watch for" (the combined warnings), and a visually distinct
+"How an opponent might counter this" line, styled with the same
+caution-colored accent used elsewhere for mixed/moderate signals. It's
+called as the very last step of the existing `renderStrategyNote`, so it
+renders right after Dream Team generation, right after Auto-build
+strategy, and stays in sync automatically if the player switches to the
+alternative strategy -- no new call sites needed anywhere.
+
+New test file (`tools/test-pilot-guide.mjs`, 13 checks): every real
+archetype key gets a genuine, non-empty stated counter;
+`"balanced"`/an invalid key correctly return `null`;
+`wcAssemblePilotGuide`'s handling of a `"balanced"` strategy, a real
+archetype (label/setter/mega-advice/warnings/counter all present and
+correct), the `helpinghand` display-name fix, safe defaults when
+`megaAdvice`/warnings are omitted, and that it never mutates the
+caller's own warnings array. All 29 test files green, zero regressions.
+
 ## Running it
 
 

@@ -2297,6 +2297,127 @@ function wcSharedWeaknessWarnings(members, typeChart) {
   return warnings;
 }
 
+/**
+ * Milestone 44: one well-known, honest real counter-mechanism per
+ * archetype key this app can pick as a team's primary or alternative
+ * strategy (see WC_ARCHETYPE_DISPLAY_NAMES) -- the single most commonly
+ * cited real answer competitive VGC/Champions players reach for against
+ * each archetype, NOT an exhaustive "how to beat every team" engine.
+ * Same "hand-picked, not exhaustive" honesty convention as
+ * WINCON_SPREAD_MOVES/starter-threats.json/wcAntiSynergyWarnings' two
+ * checks -- said here too, since a stated counter that sounds
+ * authoritative but only covers one angle is exactly the kind of thing
+ * this project is careful to flag rather than present as complete.
+ * "balanced" (no single mechanism detected) deliberately has no entry --
+ * there's nothing specific here to counter.
+ */
+const WINCON_ARCHETYPE_COUNTERS = {
+  trickroom: {
+    counter: "A priority Taunt (a Prankster user goes first even against a slower setter)",
+    reason:
+      "Taunt blocks status moves outright, so it silences the setter before Trick Room ever goes up -- and priority means it lands regardless of who's actually faster that turn.",
+  },
+  tailwind: {
+    counter: "Taunt on the setter before it moves, or simply weathering the 4 turns",
+    reason: "Tailwind doesn't stack and only lasts 4 turns -- denying the setter its first cast, or just surviving until it expires, neutralizes it entirely.",
+  },
+  sun: {
+    counter: "Setting Rain instead, or a Utility Umbrella holder",
+    reason: "a newly-set weather always overwrites the old one outright, and Utility Umbrella specifically blocks Sun's move-power boost and Chlorophyll's Speed double while its holder keeps acting normally.",
+  },
+  rain: {
+    counter: "Setting Sun instead, or a Utility Umbrella holder",
+    reason: "the same overwrite rule applies in reverse, and Utility Umbrella blocks Rain's Water-move boost and Swift Swim's Speed double.",
+  },
+  sand: {
+    counter: "A Rock/Ground/Steel-type (immune to the chip), an Overcoat/Magic Guard holder, or setting a different weather",
+    reason: "those three types take zero sandstorm residual damage outright, Overcoat/Magic Guard ignore weather damage entirely, and any new weather ends Sand the instant it's set.",
+  },
+  snow: {
+    counter: "Outdamaging the setter before Blizzard's guaranteed accuracy matters, or setting a different weather",
+    reason: "Snow's real competitive value is enabling a perfect-accuracy Blizzard and Aurora Veil/Ice Defense -- removing the setter early or overwriting the weather denies both before they matter.",
+  },
+  screens: {
+    counter: "Brick Break, Raging Bull, or Defog",
+    reason: "these specifically shatter Light Screen/Reflect/Aurora Veil the instant they connect, undoing several turns of setup in one move.",
+  },
+  wideguard: {
+    counter: "Single-target attacks instead of spread moves",
+    reason: "Wide Guard only blocks moves that hit multiple targets at once -- a move aimed at just one Pokemon goes through completely unaffected.",
+  },
+  quickguard: {
+    counter: "A normal-priority attack instead of a priority move",
+    reason: "Quick Guard only blocks moves with increased priority -- an ordinary-priority attack is never affected by it at all.",
+  },
+  safeguard: {
+    counter: "Direct damage or stat-lowering effects (not a status condition)",
+    reason: "Safeguard only blocks status conditions (burn/paralysis/poison/sleep/freeze) and confusion -- it does nothing against raw damage or stat drops like Intimidate.",
+  },
+  redirect: {
+    counter: "A spread move that already targets both opposing Pokemon",
+    reason: "Follow Me/Rage Powder can only reroute a move aimed at one specific target -- a move already hitting the whole field ignores them completely.",
+  },
+  hazards: {
+    counter: "Rapid Spin, Defog, or a Heavy-Duty Boots holder",
+    reason: "the first two clear hazards from the field outright, and Boots lets its holder ignore any hazards already down without removing them.",
+  },
+  electricterrain: {
+    counter: "A Flying-type, a Levitate holder, or anything else ungrounded",
+    reason: "every terrain's effect only applies to Pokemon actually touching the ground -- something ungrounded gets none of the boost and keeps its full moveset available.",
+  },
+  grassyterrain: {
+    counter: "A Flying-type, a Levitate holder, or anything else ungrounded",
+    reason: "Grassy Terrain's healing and its weakening of Earthquake-style moves only apply to grounded Pokemon -- an ungrounded one gets neither the help nor the protection, and takes full damage from those moves.",
+  },
+  mistyterrain: {
+    counter: "A Flying-type, a Levitate holder, or anything else ungrounded",
+    reason: "Misty Terrain's status/confusion immunity and its halved Dragon damage only protect grounded Pokemon -- an ungrounded one is fully exposed to both.",
+  },
+  psychicterrain: {
+    counter: "A Flying-type, a Levitate holder, or anything else ungrounded",
+    reason: "Psychic Terrain's priority-move block only protects grounded Pokemon -- an ungrounded target can still be hit by priority moves normally.",
+  },
+  helpinghand: {
+    counter: "Protect on the target Helping Hand is about to boost",
+    reason: "Helping Hand's +50% power only applies to the very next move -- if that attack gets Protected against, the boost (and the turn spent on it) is wasted entirely.",
+  },
+};
+
+/** Returns WINCON_ARCHETYPE_COUNTERS' single stated counter line for an archetype key, or null if this archetype (e.g. "balanced") has no real, specific counter to state. */
+function wcStatedCounterNote(archetypeType) {
+  const entry = WINCON_ARCHETYPE_COUNTERS[archetypeType];
+  if (!entry) return null;
+  return `${entry.counter} -- ${entry.reason}`;
+}
+
+/**
+ * Milestone 44: "how to pilot this team" -- pure data assembly (no DOM)
+ * for builder.js's new explainer panel, combining everything already
+ * computed elsewhere in one place: the team's actual primary mechanism
+ * and its setter (genuinely APPLIED to the build since Milestone 43's
+ * automatic synergy baking, not just suggested), wcMegaMatchupAdvice's
+ * existing guidance on which Mega to bring, the combined anti-synergy/
+ * shared-weakness warnings, and the new stated-counter line above. This
+ * is deliberately synthesis of data computed elsewhere, not new
+ * analysis -- the only genuinely new content here is
+ * WINCON_ARCHETYPE_COUNTERS itself. Kept DOM-free and pure so it's
+ * directly testable the same way every other advisory function in this
+ * file is; builder.js's renderPilotGuideNote is a thin renderer over
+ * this object's fields.
+ */
+function wcAssemblePilotGuide(strategy, megaAdvice, antiSynergyWarnings) {
+  if (!strategy) return null;
+  return {
+    archetype: strategy.archetype,
+    archetypeLabel: strategy.archetype === "balanced" ? null : wcArchetypeDisplayName(strategy.archetype),
+    setterName: strategy.setterName || null,
+    mechanismNote: strategy.note,
+    megaAdviceNote: (megaAdvice && megaAdvice.note) || null,
+    warnings: (antiSynergyWarnings || []).slice(),
+    counterNote: wcStatedCounterNote(strategy.archetype),
+  };
+}
+
 function wcBaseStatTotal(baseStats) {
   return baseStats.hp + baseStats.atk + baseStats.def + baseStats.spa + baseStats.spd + baseStats.spe;
 }
@@ -3096,6 +3217,7 @@ const WC_ARCHETYPE_DISPLAY_NAMES = {
   grassyterrain: "Grassy Terrain",
   mistyterrain: "Misty Terrain",
   psychicterrain: "Psychic Terrain",
+  helpinghand: "Helping Hand",
 };
 
 function wcArchetypeDisplayName(type) {

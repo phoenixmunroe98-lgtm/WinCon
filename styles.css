@@ -1454,6 +1454,46 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 
 .meta-synergy-note strong { color: var(--accent); }
 
+/* Milestone 44: "how to pilot this team" explainer bubble -- a whole
+   panel synthesizing the team's already-applied strategy, Mega matchup
+   advice, and known warnings/counters into one read, right after Dream
+   Team or Auto-build strategy runs. Same accent-border family as
+   .meta-synergy-note above, just applied to the whole callout instead of
+   one line inside it. */
+.pilot-guide-note {
+  border-left: 4px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.pilot-guide-note h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.pilot-guide-note p {
+  margin: 8px 0 0;
+}
+
+.pilot-guide-note p:first-of-type {
+  margin-top: 0;
+}
+
+/* The stated-counter line gets its own distinct tint (the same
+   "caution" color used elsewhere for moderate/mixed signals) so it
+   reads as "here's how an opponent might beat this," not a continuation
+   of the team's own strategy description above it. */
+.pilot-guide-counter {
+  margin-top: 10px !important;
+  padding: 10px 12px;
+  border-left: 3px solid var(--mediocre);
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+
+.pilot-guide-counter strong { color: var(--mediocre); }
+
 /* Milestone 12: same treatment as .meta-synergy-note above, for the
    "guaranteed Mega pick(s)" line under Generate Dream Team's "Why these
    six" list — a distinct signal from the numbered picks above it, not a
