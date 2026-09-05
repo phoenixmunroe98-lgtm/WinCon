@@ -2536,6 +2536,37 @@ function wcNotesSoftPreferenceBonus(candidateName, notes) {
 }
 
 /**
+ * Milestone 42: "how much has this player already used species X" --
+ * there's no direct per-species usage-frequency field anywhere in this
+ * app yet, so `experienceLookup` is derived, in builder.js
+ * (buildExperienceLookup), from the player's own saved teams' real
+ * match_log: every team that includes species X contributes that team's
+ * own logged win+loss count to X's total. This function only ever reads
+ * the finished lookup -- same "opts field the same way metaUsage/liveMeta
+ * already are" pattern as those two, threaded through wcPickDreamTeam/
+ * wcDreamTeamCandidateScore the same way.
+ *
+ * Deliberately modest and bounded: saturates at
+ * WC_EXPERIENCE_DIVERSITY_SATURATION logged matches so a genuinely
+ * prolific player's most-used species can't spiral into an ever-growing
+ * penalty, and its full weight is the same order as
+ * WC_SOFT_PREFERENCE_BONUS just above -- a real nudge toward trying
+ * something new, never enough on its own to beat a real matchup/coverage
+ * edge. Silently 0 with no lookup at all (a signed-out visitor, or a
+ * brand new account with nothing logged yet), same contract as every
+ * other real-data nudge in this file.
+ */
+const WC_EXPERIENCE_DIVERSITY_WEIGHT = 0.5;
+const WC_EXPERIENCE_DIVERSITY_SATURATION = 10;
+
+function wcExperienceDiversityBonus(name, experienceLookup) {
+  const count = experienceLookup && experienceLookup[name];
+  if (!count || count <= 0) return 0;
+  const fraction = Math.min(1, count / WC_EXPERIENCE_DIVERSITY_SATURATION);
+  return -fraction * WC_EXPERIENCE_DIVERSITY_WEIGHT;
+}
+
+/**
  * Every name in `namesList` that appears anywhere in `notes` as a plain
  * substring -- the same permissive matching wcPreferredSetter/
  * wcNotesSoftPreferenceBonus use (no trigger phrase required), just
@@ -2911,6 +2942,12 @@ function wcArchetypeSynergyReasoningNote(candidate, team, format, abilitiesData)
  * when `opts.metaBaseline`/`opts.format` are given -- the curated
  * Worlds-2026-grounded floor described on that function, additive to
  * (and independently weighted from) the real-logged-data metaBonus above.
+ *
+ * Milestone 42: also folds in wcExperienceDiversityBonus when
+ * `opts.experienceLookup` is given -- a small, bounded nudge AWAY from
+ * species this player has personally used a lot already (see that
+ * function's own doc comment), independent of and much smaller than the
+ * real win-rate bonuses above.
  */
 function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, opts) {
   const options = opts || {};
@@ -2939,7 +2976,8 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
   const archetypeBonus = wcArchetypeSynergyBonus(candidate, team, options.format || "doubles", options.abilitiesData);
   const softPreferenceBonus = wcNotesSoftPreferenceBonus(candidate.name, options.notes);
   const spreadSafetyBonus = wcSpreadMoveSafetyBonus(candidate, team, options.format || "doubles", options.movesData, typeChart);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + softPreferenceBonus + spreadSafetyBonus;
+  const experienceDiversityBonus = wcExperienceDiversityBonus(candidate.name, options.experienceLookup);
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + softPreferenceBonus + spreadSafetyBonus + experienceDiversityBonus;
 }
 
 /**
@@ -3157,6 +3195,76 @@ function wcNotesIncludedSpecies(notes, pool) {
  * why it didn't all fit).
  */
 /**
+ * Milestone 42: the root-cause fix for Dream Team collapsing onto the
+ * same handful of Pokemon every run. Two real mechanisms caused it: (1)
+ * the guaranteed-Mega step below always took the single top-scoring
+ * candidate from an inherently small pool (curated/live-confirmed Mega
+ * sets only); (2) real win-rate weights (WC_META_USAGE_WEIGHT,
+ * WC_LIVE_META_CANDIDATE_WEIGHT) are large enough to keep pulling the
+ * ordinary greedy loop toward the same "confirmed good" names too.
+ * Neither mechanism is wrong to have -- every team SHOULD get a real
+ * Mega option, and a real logged win rate IS genuinely useful signal --
+ * so neither is removed. What changes is how a tie among several
+ * legitimately-strong candidates gets broken: instead of always
+ * deterministically taking the single #1 scorer, this pulls the top `n`
+ * distinct candidates (by score, descending) so a caller can sample
+ * across them instead.
+ *
+ * Pure and standalone (candidates in, already-scored via `scoreFn`, top
+ * `n` out) specifically so it's independently testable and genuinely
+ * reusable -- Milestone 42 only ever calls it with `n = 1` from the two
+ * places inside wcPickDreamTeam below (byte-identical to the old
+ * bestFromRemaining, since Array.prototype.sort is stable in this
+ * runtime -- an exact tie still resolves to whichever candidate appeared
+ * first, exactly like the old strict `score > bestScore` scan did), but a
+ * future "give me multiple team options" feature can call this same
+ * primitive with `n > 1` to build a genuinely different second option
+ * without duplicating any of this scoring logic.
+ */
+function topCandidatesFromRemaining(remaining, scoreFn, filterFn, n) {
+  const scored = [];
+  (remaining || []).forEach((candidate) => {
+    if (filterFn && !filterFn(candidate)) return;
+    scored.push({ candidate, score: scoreFn(candidate) });
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, Math.max(0, n || 0)).map((entry) => entry.candidate);
+}
+
+/**
+ * Weighted-random pick from a small ranked tier (from
+ * topCandidatesFromRemaining above) -- the "sample from the top tier
+ * instead of always taking #1" half of the Milestone 42 fix, used only
+ * when a caller actually asks for `n > 1`. Weighted by RANK, not raw
+ * score -- wcDreamTeamCandidateScore's raw output can be negative or
+ * wildly different in scale depending on how the team-so-far looks, so
+ * rank-based weighting (1st gets weight 1, 2nd 1/2, 3rd 1/3, ...) is the
+ * honest, stable choice: the single best candidate in the tier is always
+ * the most likely pick, with a real but fast-tapering chance of the next
+ * one or two down -- never a coin flip among options of wildly different
+ * real quality. A tier of length <= 1 always returns that one candidate
+ * (or null) with no randomness at all, which is exactly what keeps
+ * `n = 1` callers fully deterministic. `randomFn` defaults to Math.random
+ * but is injectable so this stays directly unit-testable.
+ */
+function wcWeightedPickFromTop(tier, randomFn) {
+  if (!tier || tier.length === 0) return null;
+  if (tier.length === 1) return tier[0];
+  const weights = tier.map((_, i) => 1 / (i + 1));
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  const roll = (randomFn || Math.random)() * total;
+  let acc = 0;
+  for (let i = 0; i < tier.length; i += 1) {
+    acc += weights[i];
+    if (roll < acc) return tier[i];
+  }
+  return tier[tier.length - 1];
+}
+
+/** How many distinct candidates the guaranteed-Mega step and the main greedy loop below sample from when `diversify` is on -- small enough that every candidate in the tier is still a genuinely strong pick, big enough to actually break the "always the same one or two names" pattern. */
+const WC_DIVERSIFY_TOP_TIER = 3;
+
+/**
  * Milestone 21: `natures`/`movesData`/`abilitiesData` unlock the
  * threat-specific coverage scoring and weather-archetype awareness in
  * wcDreamTeamCandidateScore above (see that function and
@@ -3174,8 +3282,20 @@ function wcNotesIncludedSpecies(notes, pool) {
  * also trailing) are data/meta-baseline.json's parsed contents and this
  * pool's format ("singles"/"doubles") -- passed through the same way, so
  * wcMetaBaselineArchetypeBonus applies alongside the real-usage nudge.
+ *
+ * Milestone 42: `experienceLookup` (optional, trailing) is
+ * builder.js's own per-species logged-match-count lookup (see
+ * buildExperienceLookup there and wcExperienceDiversityBonus above) --
+ * passed through into scoreOpts the same way metaUsage/liveMeta are.
+ * `diversify` (optional, trailing, defaults falsy) switches the
+ * guaranteed-Mega step and the main greedy loop below from always taking
+ * the single top-scoring candidate to sampling from the top
+ * WC_DIVERSIFY_TOP_TIER via wcWeightedPickFromTop -- every existing call
+ * site leaves this unset, so a plain single-team generate is completely
+ * unchanged; it exists for a future "give me multiple team options"
+ * feature to opt into.
  */
-function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds) {
+function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup, diversify) {
   const allTypes = typeChart.types;
   const excludedNames = wcNotesExcludedSpecies(notes, pool);
   const usablePool = excludedNames.length ? pool.filter((c) => !excludedNames.includes(c.name)) : pool;
@@ -3195,7 +3315,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
 
   const canScoreCoverage = Boolean(natures && movesData);
   const weatherInfo = canScoreCoverage ? wcDetectWeatherArchetype(threats, abilitiesData) : null;
-  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format, liveMeta, notes };
+  const scoreOpts = { natures, movesData, abilitiesData, weatherInfo, metaUsage, metaBaseline, format, liveMeta, notes, experienceLookup };
 
   const remaining = [...usablePool];
   const team = [];
@@ -3219,18 +3339,17 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     );
   });
 
+  // Milestone 42: bestFromRemaining is now a thin wrapper over
+  // topCandidatesFromRemaining/wcWeightedPickFromTop above -- with
+  // diversify falsy (every existing call site), the tier size is forced
+  // to 1, which topCandidatesFromRemaining/wcWeightedPickFromTop both
+  // short-circuit back to exactly the old "single deterministic best"
+  // behavior. Nothing else in this function had to change: both call
+  // sites below still just call bestFromRemaining(filterFn)/bestFromRemaining().
   const bestFromRemaining = (filterFn) => {
-    let best = null;
-    let bestScore = -Infinity;
-    remaining.forEach((candidate) => {
-      if (filterFn && !filterFn(candidate)) return;
-      const score = wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, scoreOpts);
-      if (score > bestScore) {
-        bestScore = score;
-        best = candidate;
-      }
-    });
-    return best;
+    const scoreFn = (candidate) => wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes, scoreOpts);
+    const tier = topCandidatesFromRemaining(remaining, scoreFn, filterFn, diversify ? WC_DIVERSIFY_TOP_TIER : 1);
+    return diversify ? wcWeightedPickFromTop(tier) : tier[0] || null;
   };
 
   /**

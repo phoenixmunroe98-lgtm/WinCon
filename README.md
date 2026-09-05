@@ -1975,6 +1975,73 @@ shared 2x-or-worse weakness between them, so no warning fires. 12 checks
 total, all green alongside the full existing suite (26 files, zero
 regressions).
 
+## The root cause of Dream Team collapsing onto the same names, and an experience-based diversity nudge (Milestone 42)
+
+Phase 3 of the same roadmap. Traced two real, concrete mechanisms behind
+"Dream Team keeps suggesting the same 6-8 Pokémon":
+
+1. `wcPickDreamTeam`'s guaranteed-Mega step always forced up to 2 picks
+   from the small pool of Mega-eligible species (curated or live-
+   confirmed sets only, maybe 20-40 of 298 species), via a `bestFromRemaining`
+   closure that always took the single top-scoring candidate from that
+   pool -- deterministically, every single run.
+2. `WC_META_USAGE_WEIGHT` (2) and `WC_LIVE_META_CANDIDATE_WEIGHT` (1.75)
+   are large enough, relative to `coverageGain * 1.5`, to keep pulling
+   even the ordinary greedy loop back toward the same "confirmed good,
+   real logged win rate" names.
+
+Neither mechanism is wrong to have -- every team should get a real Mega
+option, and a real logged win rate is genuinely useful signal -- so
+neither was removed. What changed is how a tie among several
+legitimately strong candidates gets broken.
+
+**`topCandidatesFromRemaining(remaining, scoreFn, filterFn, n)`** (strategy.js)
+is the refactor of the old `bestFromRemaining` closure into a real,
+standalone, independently-testable primitive: pull the top `n` distinct
+candidates by score instead of just #1. **`wcWeightedPickFromTop(tier, randomFn)`**
+picks one candidate from that small tier, weighted by rank (1st most
+likely, tapering off fast) rather than raw score, since
+`wcDreamTeamCandidateScore`'s output can be negative or wildly scaled
+depending on the team so far. `wcPickDreamTeam` gained two new trailing,
+optional parameters: `experienceLookup` (below) and `diversify` -- with
+`diversify` unset, which is every existing call site today, the tier size
+is forced to 1, and both new functions collapse straight back to the
+exact old deterministic "always take #1" behavior (proven directly: with
+`Array.prototype.sort` stable in this runtime, an exact tie still
+resolves to whichever candidate appeared first, byte-identical to the old
+strict `score > bestScore` scan). `diversify: true` isn't wired into any
+button yet -- it's built and fully tested end-to-end so the later "give
+me multiple team options" feature can flip it on for a second candidate
+team without duplicating any of this scoring logic.
+
+**`wcExperienceDiversityBonus(name, experienceLookup)`** is the separate,
+smaller half of this milestone: a real nudge away from species the
+player has personally used a lot already. There's no per-species
+usage-frequency field anywhere in this app, so `buildExperienceLookup()`
+(builder.js) derives one from what's already real: every saved team
+(any format) that includes species X contributes that team's own logged
+win+loss count (`wcMatchRecordSummary`, the same number `renderMatchRecord()`
+already shows) to X's running total. The bonus itself saturates at 10
+logged matches so a prolific player's most-used species can't spiral into
+an ever-growing penalty, and its full weight (0.5) is deliberately the
+same order as `WC_SOFT_PREFERENCE_BONUS` -- a nudge toward trying
+something new, never enough on its own to beat a real matchup/coverage
+edge. Threaded into `wcPickDreamTeam`/`wcDreamTeamCandidateScore` as a new
+opts field the same way `metaUsage`/`liveMeta` already are, wired into
+Generate Dream Team only -- Your Rival's pool is an adversarial pick meant
+to challenge the player, not a "help this player try something new" one.
+
+New test file (`tools/test-dream-team-diversity.mjs`, 20 checks): the two
+new primitives in isolation (including a `diversify: true` end-to-end
+Dream Team run with `Math.random` forced to a controlled value, proving
+the sampling genuinely wires through the guaranteed-Mega step rather than
+just existing as unused helpers), `wcExperienceDiversityBonus`'s bounds
+and saturation, and a real-matchup regression guard (same established
+"two real Water-type threats, Grass genuinely favored over Fire" fixture
+`test-soft-preference.mjs` already uses) proving a real coverage edge
+still beats even a maximally-saturated experience penalty. All 27 test
+files green, zero regressions.
+
 ## Running it
 
 

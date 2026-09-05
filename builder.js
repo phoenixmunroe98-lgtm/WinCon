@@ -2509,6 +2509,34 @@ function eligibleObtainedMembers() {
   return eligible;
 }
 
+/**
+ * Milestone 42: "how much has this player already used species X" --
+ * there's no direct per-species usage-frequency field anywhere in this
+ * app, so this derives one from what's already real and already saved:
+ * every team in this account's teamState (any format -- this is about
+ * the PLAYER's real familiarity with a species, not a per-format count)
+ * that includes species X contributes that team's own real logged
+ * win+loss count (wcMatchRecordSummary, the same count renderMatchRecord()
+ * already shows) to X's total. A team with nothing logged yet
+ * contributes 0 to every species on it -- same silently-a-no-op-until-
+ * real-data contract as metaUsage/liveMeta elsewhere in this file. Feeds
+ * wcExperienceDiversityBonus (strategy.js) via wcPickDreamTeam's new
+ * experienceLookup param, Generate Dream Team only -- Your Rival's pool
+ * is an adversarial pick meant to challenge the player, not a "help this
+ * player try something new" one, so it isn't threaded in there.
+ */
+function buildExperienceLookup() {
+  const lookup = {};
+  (teamState.teams || []).forEach((team) => {
+    const total = wcMatchRecordSummary(team).total;
+    if (!total) return;
+    (team.chosen || []).forEach((name) => {
+      lookup[name] = (lookup[name] || 0) + total;
+    });
+  });
+  return lookup;
+}
+
 function generateDreamTeam() {
   const signedIn = wcRequireAccount((msg) => {
     dreamTeamNoteEl.hidden = false;
@@ -2541,6 +2569,11 @@ function generateDreamTeam() {
   // instead of replacing the whole team outright.
   const keepFromCurrentPick = chosen.filter((name) => eligible.some((m) => m.name === name));
 
+  // Milestone 42: real per-species "how much has this player already
+  // used it" data, feeding wcExperienceDiversityBonus in strategy.js --
+  // see buildExperienceLookup's own comment above.
+  const experienceLookup = buildExperienceLookup();
+
   const {
     chosen: picked,
     reasoning,
@@ -2548,7 +2581,7 @@ function generateDreamTeam() {
     excludedNames,
     notesIncludedNames,
     droppedForcedNames,
-  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup, liveMetaBuildsLookup);
+  } = wcPickDreamTeam(eligible, threatsWithTypes, data.typeChart, 6, notes, keepFromCurrentPick, data.natures, data.moves, data.abilities, metaUsageLookup, metaBaselineData, WINCON_BUILDER_FORMAT, liveMetaLookup, liveMetaBuildsLookup, experienceLookup);
 
   // The team notes can name a real Pokémon that just isn't obtained/
   // eligible yet -- wcPickDreamTeam only ever matches inclusion requests
