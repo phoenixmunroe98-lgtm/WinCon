@@ -4134,28 +4134,142 @@ function wcApplyMetaAnalystFixes(builds, fixes) {
  * concrete suggestedFix found (move and item) for
  * wcApplyMetaAnalystFixes to turn into an optimized build.
  */
+/**
+ * Milestone 47 (UI polish pass): every archetype key this app can bake
+ * into a REAL built team, keyed to its single best real-world matchup --
+ * the concrete answer to "what would actually beat this team's
+ * strategy," not the more roundabout "how does the mechanism itself get
+ * disrupted" answer WINCON_ARCHETYPE_COUNTERS/wcStatedCounterNote already
+ * gives elsewhere (that constant is untouched -- still used by the pilot-
+ * guide bubble). Deliberately terse (a named move/strategy, not a
+ * justifying sentence) -- Phoenix asked for this screen's reasoning text
+ * trimmed down, not expanded. Hand-picked, not exhaustive, same
+ * convention as WINCON_SPREAD_MOVES/WINCON_ARCHETYPE_COUNTERS. Weather
+ * pairs are the real overwrite relationship (sun/rain, sand/snow);
+ * "balanced" deliberately has no entry.
+ */
+const WINCON_BEST_MATCHUP_COUNTERS = {
+  trickroom: "Taunt",
+  tailwind: "Trick Room",
+  sun: "Rain Dance",
+  rain: "Sunny Day",
+  sand: "Blizzard",
+  snow: "Sandstorm",
+  screens: "Brick Break",
+  wideguard: "Single-target attacks",
+  quickguard: "A non-priority attack",
+  safeguard: "Direct damage or stat drops",
+  redirect: "A spread move",
+  hazards: "Rapid Spin or Defog",
+  electricterrain: "A Flying-type or Levitate",
+  grassyterrain: "A Flying-type or Levitate",
+  mistyterrain: "A Flying-type or Levitate",
+  psychicterrain: "A Flying-type or Levitate",
+  helpinghand: "Protect",
+};
+
+// wcArchetypeDisplayName/WC_ARCHETYPE_DISPLAY_NAMES (above) are built for
+// MID-SENTENCE use ("...the strongest points to sun") -- lowercase,
+// sometimes a parenthetical aside -- and read oddly as a standalone
+// capitalized label. This is that same 17-key set, written instead as a
+// clean noun phrase for a stand-alone heading/list, matching the terse
+// style WINCON_BEST_MATCHUP_COUNTERS above already uses.
+const WINCON_BEST_MATCHUP_LABELS = {
+  trickroom: "Trick Room",
+  tailwind: "Tailwind",
+  sun: "Sun",
+  rain: "Rain",
+  sand: "Sandstorm",
+  snow: "Snow",
+  screens: "Screens",
+  wideguard: "Wide Guard",
+  quickguard: "Quick Guard",
+  safeguard: "Safeguard",
+  redirect: "Redirection",
+  hazards: "Hazards",
+  electricterrain: "Electric Terrain",
+  grassyterrain: "Grassy Terrain",
+  mistyterrain: "Misty Terrain",
+  psychicterrain: "Psychic Terrain",
+  helpinghand: "Helping Hand",
+};
+
+/**
+ * Which archetypes are actually LIVE on this real, already-built team --
+ * not a re-derived guess at what "should" have been picked, but what the
+ * final moves/abilities really show. A move-signaled archetype (see
+ * WINCON_STRATEGY_MOVES) is active if any member's real build knows one
+ * of its defining moves; the two ability-only weathers not covered by
+ * WINCON_STRATEGY_MOVES (Sand Stream/Snow Warning -- see
+ * WINCON_WEATHER_SETTING_ABILITIES) are active if any member holds that
+ * ability. A team can genuinely have more than one active at once (e.g.
+ * a Tailwind setter AND a screens user both baked in, Milestone 43) --
+ * this returns all of them, in a stable key order.
+ */
+function wcActiveArchetypesForBuiltTeam(members, builds, abilitiesData) {
+  const active = new Set();
+  if (!members || !members.length || !builds) return [];
+
+  Object.keys(WINCON_STRATEGY_MOVES).forEach((key) => {
+    const definingMoves = WINCON_STRATEGY_MOVES[key];
+    const isActive = members.some((m) => {
+      const build = builds[m.name];
+      return build && Array.isArray(build.moves) && definingMoves.some((mv) => build.moves.includes(mv));
+    });
+    if (isActive) active.add(key);
+  });
+
+  members.forEach((m) => {
+    const ability = wcAbilityOf(abilitiesData, m.name);
+    const archetype = WINCON_WEATHER_SETTING_ABILITIES[ability];
+    if (archetype) active.add(archetype);
+  });
+
+  return [...active];
+}
+
+/**
+ * Milestone 47: replaces the old Trick-Room-specific audit on the Meta
+ * Analyst screen with a general "what actually beats this team" read --
+ * every archetype genuinely active on the built team (see
+ * wcActiveArchetypesForBuiltTeam), each paired with its single terse
+ * best-matchup answer from WINCON_BEST_MATCHUP_COUNTERS above. Returns
+ * `null` for a "balanced" team with nothing active to counter, or if
+ * none of the active archetypes happen to have a mapped counter.
+ */
+function wcBestMatchupAnalysis(members, builds, abilitiesData) {
+  const archetypeKeys = wcActiveArchetypesForBuiltTeam(members, builds, abilitiesData).filter((k) => WINCON_BEST_MATCHUP_COUNTERS[k]);
+  if (!archetypeKeys.length) return null;
+
+  const archetypeLabels = archetypeKeys.map((k) => WINCON_BEST_MATCHUP_LABELS[k] || k);
+  const counters = archetypeKeys.map((k) => WINCON_BEST_MATCHUP_COUNTERS[k]);
+
+  return {
+    archetypeKeys,
+    archetypeLabels,
+    counters,
+    line: `Best matchup against ${archetypeLabels.join(" + ")}: ${counters.join(", ")}`,
+  };
+}
+
 function wcMetaAnalystReport(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData) {
   const strategyResult = wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData);
   const megaAdvice = wcMegaMatchupAdvice(members, threats, typeChart);
   const antiSynergyWarnings = [...wcAntiSynergyWarnings(members, builds, abilitiesData), ...wcSharedWeaknessWarnings(members, typeChart)];
   const moveMismatches = wcMoveStatMismatchWarnings(members, builds, movesData);
-  const trickRoomDependency = wcTrickRoomDependencyWarnings(members, builds);
-  const trickRoomAudit = wcAntiTrickRoomAudit(members, builds, strategyResult.archetype);
   const itemAudit = wcItemValueAudit(members, builds);
-  const counterNote = wcStatedCounterNote(strategyResult.archetype);
+  const bestMatchup = wcBestMatchupAnalysis(members, builds, abilitiesData);
 
+  // Milestone 47: the primary-archetype mode now carries just its name --
+  // Phoenix asked for the backend "why" reasoning trimmed off this
+  // screen. The old Trick-Room-specific audit mode is gone entirely,
+  // replaced by the general best-matchup mode below.
   const modes = [];
   if (strategyResult.archetype !== "balanced") {
-    modes.push({
-      title: `${wcArchetypeDisplayName(strategyResult.archetype)} Mode`,
-      lines: [strategyResult.note, counterNote ? `Countered by: ${counterNote}` : null].filter(Boolean),
-    });
+    modes.push({ title: `${wcArchetypeDisplayName(strategyResult.archetype)} Mode`, lines: [] });
   }
-  if (trickRoomAudit.audited && (trickRoomAudit.confirmations.length || trickRoomAudit.gaps.length)) {
-    modes.push({
-      title: "Anti-Trick-Room Mode",
-      lines: [...trickRoomAudit.confirmations, ...trickRoomAudit.gaps],
-    });
+  if (bestMatchup) {
+    modes.push({ title: "Best Matchup Against This Strategy", lines: [bestMatchup.line] });
   }
 
   const fixes = [...moveMismatches.map((w) => w.suggestedFix).filter(Boolean), ...itemAudit.fixes];
@@ -4166,10 +4280,8 @@ function wcMetaAnalystReport(members, builds, movesData, threats, typeChart, for
     megaAdvice,
     antiSynergyWarnings,
     moveMismatches,
-    trickRoomDependency,
-    trickRoomAudit,
     itemAudit,
-    counterNote,
+    bestMatchup,
     modes,
     fixes,
   };

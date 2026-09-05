@@ -174,6 +174,14 @@ const exportModal = document.getElementById("export-modal");
 const exportModalText = document.getElementById("export-modal-text");
 const exportModalCopyBtn = document.getElementById("export-modal-copy-btn");
 const exportModalCloseBtn = document.getElementById("export-modal-close-btn");
+// Milestone 47: a separate, EDITABLE export modal for the Meta Analyst
+// panel's Showdown export -- mirrors the read-only export modal above
+// (same CSS classes/markup shape) but its textarea has no readonly
+// attribute, so a player can hand-tweak the text before copying it.
+const metaAnalystExportModal = document.getElementById("meta-analyst-export-modal");
+const metaAnalystExportModalText = document.getElementById("meta-analyst-export-modal-text");
+const metaAnalystExportModalCopyBtn = document.getElementById("meta-analyst-export-modal-copy-btn");
+const metaAnalystExportModalCloseBtn = document.getElementById("meta-analyst-export-modal-close-btn");
 const importModal = document.getElementById("import-modal");
 const importModalText = document.getElementById("import-modal-text");
 const importModalPreview = document.getElementById("import-modal-preview");
@@ -217,7 +225,6 @@ const simwinrateHintEl = document.getElementById("simwinrate-hint");
 const simwinrateLoadingEl = document.getElementById("simwinrate-loading");
 const simwinrateScenariosEl = document.getElementById("simwinrate-scenarios");
 const simwinrateRerunBtn = document.getElementById("simwinrate-rerun-btn");
-const simwinrateMethodologyEl = document.getElementById("simwinrate-methodology");
 
 /** Milestone 18 named this "score-rival-header-row" back when Matchup Score's own ring sat here too; Simulated Win Rate replacing that section made it just Your Rival's compact intro/button, so the id was simplified to match -- see #rival-header-row in singles-builder.html/doubles-builder.html. */
 const rivalHeaderRowEl = document.getElementById("rival-header-row");
@@ -295,6 +302,8 @@ async function init() {
   exportTeamBtn.addEventListener("click", openExportModal);
   exportModalCopyBtn.addEventListener("click", copyExportModalText);
   exportModalCloseBtn.addEventListener("click", closeExportModal);
+  metaAnalystExportModalCopyBtn.addEventListener("click", copyMetaAnalystExportModalText);
+  metaAnalystExportModalCloseBtn.addEventListener("click", closeMetaAnalystExportModal);
   importTeamBtn.addEventListener("click", openImportModal);
   importModalParseBtn.addEventListener("click", previewImportModalText);
   importModalApplyBtn.addEventListener("click", applyImportModalText);
@@ -786,6 +795,52 @@ function copyExportModalText() {
   // context) — the text above is already selected by the focus()/select()
   // calls above, so falling back to the older execCommand still gets most
   // browsers there, and worst case the user can just Cmd/Ctrl+C it.
+  try {
+    showResult(document.execCommand("copy") ? "Copied!" : "Select the text above and copy it yourself.");
+  } catch {
+    showResult("Select the text above and copy it yourself.");
+  }
+}
+
+/**
+ * Milestone 47: opens the Meta Analyst's own Showdown export as an
+ * editable modal (button -> popup), instead of the inline read-only
+ * <pre> block it used to render directly in the panel. Mirrors
+ * openExportModal's shape exactly, except metaAnalystExportModalText has
+ * no readonly attribute -- a player can hand-tweak the exported text
+ * (e.g. adjust a Nature/EV line themselves) before copying it out.
+ */
+function openMetaAnalystExportModal(text) {
+  metaAnalystExportModalText.value = text;
+  metaAnalystExportModal.hidden = false;
+  metaAnalystExportModalText.focus();
+  metaAnalystExportModalText.select();
+}
+
+function closeMetaAnalystExportModal() {
+  metaAnalystExportModal.hidden = true;
+}
+
+function copyMetaAnalystExportModalText() {
+  // Reads .value fresh at copy time, so any hand-edits made in the
+  // (editable) textarea since it was opened are what actually gets
+  // copied -- not the original generated text.
+  metaAnalystExportModalText.focus();
+  metaAnalystExportModalText.select();
+  const restoreLabel = "Copy to clipboard";
+  const showResult = (label) => {
+    metaAnalystExportModalCopyBtn.textContent = label;
+    setTimeout(() => {
+      metaAnalystExportModalCopyBtn.textContent = restoreLabel;
+    }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard
+      .writeText(metaAnalystExportModalText.value)
+      .then(() => showResult("Copied!"))
+      .catch(() => showResult("Couldn't copy — select the text above and copy it yourself."));
+    return;
+  }
   try {
     showResult(document.execCommand("copy") ? "Copied!" : "Select the text above and copy it yourself.");
   } catch {
@@ -2836,6 +2891,24 @@ function renderDreamTeamOptionsControl() {
 
   dreamTeamOptionsEl.appendChild(row);
 }
+/**
+ * Milestone 47 (UI polish pass): each reasoning string strategy.js builds
+ * for a Dream Team pick is a concatenation of a short lead clause
+ * ("${name} -- ${short reason}.") plus up to several MORE tacked-on
+ * sentences (meta-usage/live-meta/baseline/synergy/spread-safety notes,
+ * each only appended when its own condition applies). Phoenix asked for
+ * that extra "why" reasoning trimmed off the Dream Team screen -- this
+ * keeps just the first sentence and drops everything after it, without
+ * touching strategy.js's own return value (still fully exercised by the
+ * existing test suite). A single-sentence line (nothing else applied)
+ * passes through unchanged.
+ */
+function wcLeadSentence(text) {
+  if (!text) return text;
+  const breakIdx = text.indexOf(". ");
+  return breakIdx === -1 ? text : text.slice(0, breakIdx + 1);
+}
+
 function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNames, mentionedButNotEligible, tradeoffNotes, antiSynergyWarnings) {
   dreamTeamNoteEl.innerHTML = "";
   dreamTeamNoteEl.hidden = false;
@@ -2902,7 +2975,7 @@ function renderDreamTeamNote(reasoning, megaNote, excludedNames, droppedForcedNa
   const list = document.createElement("ol");
   reasoning.forEach((line) => {
     const li = document.createElement("li");
-    li.textContent = line;
+    li.textContent = wcLeadSentence(line);
     list.appendChild(li);
   });
   dreamTeamNoteEl.appendChild(list);
@@ -3214,7 +3287,7 @@ function renderMetaAnalystNote(report) {
 
   addHeading("Team Modes");
   if (report.modes.length === 0) {
-    addLines(["No single shared mechanism or anti-Trick-Room posture stood out to break into separate modes for this team."], "hint");
+    addLines(["No single shared mechanism stood out to break into separate modes for this team."], "hint");
   } else {
     report.modes.forEach((mode) => {
       const modeHeading = document.createElement("p");
@@ -3233,21 +3306,29 @@ function renderMetaAnalystNote(report) {
     report.moveMismatches.length ? "meta-analyst-flag" : "hint"
   );
 
-  addHeading("Trick Room Dependency");
-  addLines(
-    report.trickRoomDependency.length ? report.trickRoomDependency : ["No team member is built as a Trick Room sweeper without real Trick Room support on the team."],
-    report.trickRoomDependency.length ? "meta-analyst-flag" : "hint"
-  );
-
   addHeading("Utility Item Value Checks");
   addLines(
     report.itemAudit.flags.length ? report.itemAudit.flags : ["No item concerns found -- every held item already looks like a deliberate, efficient choice."],
     report.itemAudit.flags.length ? "meta-analyst-flag" : "hint"
   );
 
+  // Milestone 47: a collapsible <details>/<summary> instead of a flat
+  // heading + list -- these can run long (shared-weakness pairs,
+  // ability/item conflicts), so it starts closed rather than pushing the
+  // Showdown export button further down the panel by default.
   if (report.antiSynergyWarnings.length) {
-    addHeading("Other Anti-Synergy Warnings");
-    addLines(report.antiSynergyWarnings, "meta-analyst-flag");
+    const details = document.createElement("details");
+    details.className = "meta-analyst-collapsible";
+    const summary = document.createElement("summary");
+    summary.textContent = "Anti-Synergy Warnings";
+    details.appendChild(summary);
+    report.antiSynergyWarnings.forEach((line) => {
+      const p = document.createElement("p");
+      p.className = "meta-analyst-flag";
+      p.textContent = line;
+      details.appendChild(p);
+    });
+    metaAnalystNoteEl.appendChild(details);
   }
 
   if (report.megaAdvice) {
@@ -3255,39 +3336,32 @@ function renderMetaAnalystNote(report) {
     addLines([report.megaAdvice.note], "meta-analyst-mode-line");
   }
 
-  addHeading(report.fixes.length ? "Optimized Showdown Export (with the fixes above applied)" : "Showdown Export");
-  const fixedBuilds = wcApplyMetaAnalystFixes(builds, report.fixes);
-  const exportText = wcExportTeamText(chosen, fixedBuilds);
-
-  const pre = document.createElement("pre");
-  pre.className = "meta-analyst-showdown-block";
-  pre.textContent = exportText;
-  metaAnalystNoteEl.appendChild(pre);
-
-  const copyBtn = document.createElement("button");
-  copyBtn.type = "button";
-  copyBtn.className = "btn-secondary meta-analyst-copy-btn";
-  copyBtn.textContent = "Copy to clipboard";
-  copyBtn.addEventListener("click", () => {
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      copyBtn.textContent = "Clipboard unavailable — select the text above manually.";
-      return;
-    }
-    navigator.clipboard.writeText(exportText).then(
-      () => {
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => {
-          copyBtn.textContent = "Copy to clipboard";
-        }, 1500);
-      },
-      () => {
-        copyBtn.textContent = "Couldn't copy — select the text above manually.";
-      }
-    );
+  // Milestone 47: a button that opens the (editable) export modal,
+  // instead of an inline read-only <pre> block -- the export text is
+  // computed fresh at click time so it always reflects the report
+  // currently on screen.
+  const exportBtn = document.createElement("button");
+  exportBtn.type = "button";
+  exportBtn.className = "btn-secondary meta-analyst-export-btn";
+  exportBtn.textContent = report.fixes.length ? "View optimized Showdown export" : "View Showdown export";
+  exportBtn.addEventListener("click", () => {
+    const fixedBuilds = wcApplyMetaAnalystFixes(builds, report.fixes);
+    const exportText = wcExportTeamText(chosen, fixedBuilds);
+    openMetaAnalystExportModal(exportText);
   });
-  metaAnalystNoteEl.appendChild(copyBtn);
+  metaAnalystNoteEl.appendChild(exportBtn);
 }
 
+/**
+ * Milestone 47 (UI polish pass): renders just the archetype heading now
+ * -- Phoenix asked for the long "why this was picked" reasoning trimmed
+ * off-screen everywhere it appears. option.note/metaSynergy.note are
+ * still computed and returned by strategy.js exactly as before (nothing
+ * about the underlying analysis changed, and the existing test suite
+ * still exercises those fields directly) -- this function just no
+ * longer displays them. `metaSynergy` is accepted for call-site
+ * compatibility but intentionally unused now.
+ */
 function renderStrategyOption(container, option, headingText, metaSynergy) {
   const heading = document.createElement("p");
   const strong = document.createElement("strong");
@@ -3295,20 +3369,6 @@ function renderStrategyOption(container, option, headingText, metaSynergy) {
     option.archetype === "balanced" ? `${headingText}: none detected` : `${headingText}: ${archetypeLabel(option.archetype)}`;
   heading.appendChild(strong);
   container.appendChild(heading);
-
-  const note = document.createElement("p");
-  note.textContent = option.note;
-  container.appendChild(note);
-
-  if (metaSynergy) {
-    const metaNote = document.createElement("p");
-    metaNote.className = "meta-synergy-note";
-    const metaLabel = document.createElement("strong");
-    metaLabel.textContent = "Real tournament synergy: ";
-    metaNote.appendChild(metaLabel);
-    metaNote.appendChild(document.createTextNode(metaSynergy.note));
-    container.appendChild(metaNote);
-  }
 }
 
 function renderStrategyNote(strategy, alreadyApplied, megaAdvice, antiSynergyWarnings) {
@@ -3703,7 +3763,6 @@ function refreshSimulatedWinRate() {
     simwinrateScenariosEl.hidden = true;
     simwinrateScenariosEl.innerHTML = "";
     simwinrateRerunBtn.hidden = true;
-    simwinrateMethodologyEl.hidden = true;
     return;
   }
 
@@ -3756,7 +3815,6 @@ async function runSimulatedWinRate() {
   simwinrateHintEl.hidden = true;
   simwinrateScenariosEl.hidden = true;
   simwinrateRerunBtn.hidden = true;
-  simwinrateMethodologyEl.hidden = true;
   simwinrateLoadingEl.hidden = false;
 
   try {
@@ -3782,7 +3840,6 @@ function renderSimulatedWinRateResult(result) {
   simwinrateScenariosEl.innerHTML = "";
   simwinrateRerunBtn.hidden = false;
   simwinrateRerunBtn.textContent = simWinRateNeedsRerun ? "Re-run simulation (your team has changed)" : "Re-run simulation";
-  simwinrateMethodologyEl.hidden = false;
 
   const lineupNote = document.createElement("p");
   lineupNote.className = "hint simwinrate-lineup-note";

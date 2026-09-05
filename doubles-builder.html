@@ -268,23 +268,7 @@
       </p>
       <div id="simwinrate-scenarios" class="simwinrate-scenarios" hidden></div>
       <button type="button" id="simwinrate-rerun-btn" class="btn-secondary" hidden>Re-run simulation</button>
-      <p class="hint methodology" id="simwinrate-methodology" hidden>
-        <strong>How this is simulated:</strong> WinCon automatically picks your best bring-4-of-6 lineup — the real
-        tournament team-preview rule — then plays out hundreds of full mechanical battles per opponent: real turn
-        order (priority, then Speed, then a coin-flip tie), the standard damage formula with STAB, type
-        effectiveness, critical hits and a random damage roll, stat-stage boosts and drops, and the curated
-        ability/item effects and move secondary effects WinCon has mechanical data for — against a reference field
-        grounded in real Pokémon Champions World Championships 2026 results plus known competitive archetypes (see
-        data/meta-baseline.json). Every opponent battled is still one of those hand-verified teams — nothing here
-        gets invented — but a team whose real members are currently winning a lot in live Regulation M-B
-        tournaments gets sampled somewhat more often, so the reported win rate leans toward what's actually being
-        played right now. In-battle move choices are a competent greedy AI, not perfect play, and only the
-        Pokémon/abilities/items/moves WinCon has curated mechanical data for get their special effects modeled —
-        everything else still battles on its base stats, typing, and raw move power, so treat this as a strong
-        estimate, not a lab-perfect one. If your team has one or two Mega-Evolution-eligible members, each is
-        simulated as its own separate scenario below, since only one Mega can actually be active in a real battle.
-      </p>
-    </section>
+          </section>
 
     <section id="rival-header-row" hidden>
       <div class="slots-header">
@@ -410,6 +394,24 @@
       <div class="modal-actions">
         <button id="export-modal-copy-btn" class="btn-primary" type="button">Copy to clipboard</button>
         <button id="export-modal-close-btn" class="btn-secondary" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Milestone 47: the Meta Analyst's own Showdown export -- same shape
+       as the export modal above, but EDITABLE (no readonly) so a player
+       can hand-tweak the text before copying it out. -->
+  <div id="meta-analyst-export-modal" class="modal-overlay" hidden>
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="meta-analyst-export-modal-title">
+      <h3 id="meta-analyst-export-modal-title">Meta Analyst Showdown export</h3>
+      <p>
+        Standard Pokémon Showdown text format, with any fixes the Meta Analyst found already applied. Feel
+        free to edit it by hand before copying it out.
+      </p>
+      <textarea id="meta-analyst-export-modal-text" class="export-textarea" rows="14"></textarea>
+      <div class="modal-actions">
+        <button id="meta-analyst-export-modal-copy-btn" class="btn-primary" type="button">Copy to clipboard</button>
+        <button id="meta-analyst-export-modal-close-btn" class="btn-secondary" type="button">Close</button>
       </div>
     </div>
   </div>

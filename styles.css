@@ -1592,19 +1592,34 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 0.92rem;
 }
 
-.meta-analyst-showdown-block {
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.86rem;
-  white-space: pre-wrap;
-  overflow-x: auto;
+/* Milestone 47: the Showdown export is now a button that opens an
+   editable modal (see #meta-analyst-export-modal, .export-textarea) --
+   the old inline <pre> block/copy button are gone. */
+.meta-analyst-export-btn { margin-top: 8px; }
+
+/* Milestone 47: "Anti-Synergy Warnings" (renamed from "Other Anti-Synergy
+   Warnings") collapses behind a native <details>/<summary> instead of a
+   flat heading + list -- these can run long, so it starts closed. */
+.meta-analyst-collapsible {
+  margin: 14px 0 4px;
 }
 
-.meta-analyst-copy-btn { margin-top: 8px; }
+.meta-analyst-collapsible summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 4px 0;
+}
+
+.meta-analyst-collapsible summary::marker {
+  color: var(--accent);
+}
+
+.meta-analyst-collapsible[open] summary {
+  margin-bottom: 4px;
+}
+
+.meta-analyst-collapsible .meta-analyst-flag { margin-left: 0; }
 
 /* Milestone 12: same treatment as .meta-synergy-note above, for the
    "guaranteed Mega pick(s)" line under Generate Dream Team's "Why these

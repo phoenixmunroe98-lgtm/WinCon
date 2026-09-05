@@ -64,6 +64,12 @@ check("dependency check: the new Milestone 46 functions all exist", () => {
     "wcApplyMetaAnalystFixes",
     "wcMetaAnalystReport",
   ].forEach((fn) => assert.equal(typeof context[fn], "function", `${fn} should exist`));
+  // Milestone 47 additions -- wcTrickRoomDependencyWarnings/wcAntiTrickRoomAudit
+  // above are kept as standalone tested utilities, just no longer wired into
+  // wcMetaAnalystReport's own output (see the report-shape checks below).
+  ["wcActiveArchetypesForBuiltTeam", "wcBestMatchupAnalysis"].forEach((fn) =>
+    assert.equal(typeof context[fn], "function", `${fn} should exist`)
+  );
   // Note: WINCON_HIGH_VARIANCE_ITEMS is a top-level const in strategy.js --
   // per this harness's own established vm.createContext gotcha (see the
   // README/other test files), a top-level const isn't visible as
@@ -339,17 +345,43 @@ check("wcMetaAnalystReport on the real Gemini team: zero move-stat mismatches (e
   assert.equal(report.moveMismatches.length, 0);
 });
 
-check("wcMetaAnalystReport on the real Gemini team: catches Steelix's real Trick Room dependency (Brave/0 Speed, but no Trick Room setter anywhere on the team)", () => {
-  const report = context.wcMetaAnalystReport(geminiTeamMembers(), geminiTeamBuilds(), movesData, THREATS, typeChart, "doubles", "", abilitiesData, null);
-  assert.equal(report.trickRoomDependency.length, 1);
-  assert.match(report.trickRoomDependency[0], /Steelix/);
+check("wcActiveArchetypesForBuiltTeam finds both Tailwind (a real move) and Screens (real moves) baked into the real Gemini team at once", () => {
+  const keys = context.wcActiveArchetypesForBuiltTeam(geminiTeamMembers(), geminiTeamBuilds(), abilitiesData);
+  assert.ok(keys.includes("tailwind"));
+  assert.ok(keys.includes("screens"));
 });
 
-check("wcMetaAnalystReport on the real Gemini team: the anti-Trick-Room audit passes clean (Incineroar alone covers all four tools)", () => {
-  const report = context.wcMetaAnalystReport(geminiTeamMembers(), geminiTeamBuilds(), movesData, THREATS, typeChart, "doubles", "", abilitiesData, null);
-  assert.equal(report.trickRoomAudit.audited, true);
-  assert.equal(report.trickRoomAudit.gaps.length, 0);
-  assert.equal(report.trickRoomAudit.confirmations.length, 4);
+check("wcActiveArchetypesForBuiltTeam detects an ability-only weather (Sand Stream) even with no weather-setting move on the team", () => {
+  const tyranitar = poolMember("Tyranitar");
+  const build = emptyBuild();
+  build.moves = ["Rock Slide", "Earthquake", "Crunch", "Protect"];
+  const keys = context.wcActiveArchetypesForBuiltTeam([tyranitar], { Tyranitar: build }, abilitiesData);
+  assert.ok(keys.includes("sand"));
+});
+
+check("wcBestMatchupAnalysis on the real Gemini team names every active archetype and its real counter together", () => {
+  // The real Gemini team turns out to have FOUR archetypes genuinely
+  // baked in at once, not just the two headline ones: Staraptor's real
+  // Tailwind, Primarina's real Reflect+Light Screen (screens), Steelix's
+  // real Wide Guard, and Mega Charizard Y's real Drought ability (sun) --
+  // wcActiveArchetypesForBuiltTeam reads the actual built team, so all
+  // four genuinely show up, not just whichever one archetype "won".
+  const result = context.wcBestMatchupAnalysis(geminiTeamMembers(), geminiTeamBuilds(), abilitiesData);
+  assert.ok(result);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.archetypeKeys)).sort(), ["screens", "sun", "tailwind", "wideguard"]);
+  assert.ok(result.counters.includes("Trick Room"));
+  assert.ok(result.counters.includes("Brick Break"));
+  assert.ok(result.counters.includes("Rain Dance"));
+  assert.ok(result.counters.includes("Single-target attacks"));
+  assert.match(result.line, /Best matchup against/);
+});
+
+check("wcBestMatchupAnalysis returns null for a team with no active archetype to counter", () => {
+  const steelix = poolMember("Steelix");
+  const build = emptyBuild();
+  build.moves = ["Rock Slide", "Earthquake", "Protect", "Iron Head"];
+  const result = context.wcBestMatchupAnalysis([steelix], { Steelix: build }, abilitiesData);
+  assert.equal(result, null);
 });
 
 check("wcMetaAnalystReport on the real Gemini team: the item-value audit is clean (Focus Sash/Light Clay/Safety Goggles all already correctly assigned)", () => {
@@ -358,11 +390,12 @@ check("wcMetaAnalystReport on the real Gemini team: the item-value audit is clea
   assert.equal(report.fixes.length, 0);
 });
 
-check("wcMetaAnalystReport on the real Gemini team: a real strategy is detected and the Team Modes breakdown is non-empty", () => {
+check("wcMetaAnalystReport on the real Gemini team: a real strategy is detected and the Team Modes breakdown includes the new Best Matchup mode", () => {
   const report = context.wcMetaAnalystReport(geminiTeamMembers(), geminiTeamBuilds(), movesData, THREATS, typeChart, "doubles", "", abilitiesData, null);
   assert.equal(typeof report.archetype, "string");
-  assert.ok(report.modes.length >= 1, "the Anti-Trick-Room Mode alone should always populate modes for this team");
-  assert.ok(report.modes.some((m) => m.title === "Anti-Trick-Room Mode"));
+  assert.ok(report.bestMatchup, "the real Gemini team has active archetypes with real counters");
+  assert.ok(report.modes.some((m) => m.title === "Best Matchup Against This Strategy"));
+  assert.ok(!report.modes.some((m) => m.title === "Anti-Trick-Room Mode"), "the old Trick-Room-specific mode is gone");
 });
 
 check("wcMetaAnalystReport on the real Gemini team: an empty fixes list round-trips through wcApplyMetaAnalystFixes unchanged", () => {
