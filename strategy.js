@@ -3879,3 +3879,298 @@ function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySe
     mechanismDefiningNames,
   };
 }
+
+/**
+ * Milestone 46: "WinCon Meta Analyst" -- a deterministic, rule-based
+ * team critique engine, built from a shared system-prompt draft Phoenix
+ * sourced externally (a Gemini prompt describing an LLM chatbot critic).
+ * WinCon has no backend and holds no API key -- there is nowhere safe for
+ * a browser page to call a real LLM from -- so instead of wiring up a
+ * chatbot, this reuses the exact same explainable, rule-based approach
+ * every other analysis feature in this file already uses. Everything
+ * below is new pure logic; wcMetaAnalystReport is the single entry point
+ * that assembles it together with the strategy/Mega/anti-synergy
+ * analysis this file already had.
+ */
+
+/**
+ * Point 2 of the sourced prompt ("Stat & Physical/Special synergy
+ * checks"): flags a move whose category doesn't match which offensive
+ * stat a Pokemon actually invests in -- e.g. a Special attacker running
+ * a Physical move -- but ONLY when a genuinely better alternative of
+ * the exact same type AND the opposite category actually exists in its
+ * own real learnset (Dragon Rush -> Dragon Pulse, not some unrelated
+ * higher-power move of a different type it also happens to learn). A team that's simply mixed-attacker by design (comparable
+ * Atk/SpA, or no better option to switch to) never gets flagged --
+ * this is a "here's a concrete, provably better move" check, not a
+ * blanket "physical moves are suspicious" one. A 20-point stat gap is
+ * the bar for "notably better stat" -- small gaps are well within normal
+ * bulk/coverage tradeoffs and not worth flagging.
+ */
+function wcMoveStatMismatchWarnings(members, builds, movesData) {
+  const results = [];
+  if (!members || !members.length || !builds || !movesData) return results;
+
+  const STAT_GAP_THRESHOLD = 20;
+
+  members.forEach((member) => {
+    const build = builds[member.name];
+    if (!build || !Array.isArray(build.moves) || !member.baseStats) return;
+    const atk = member.baseStats.atk || 0;
+    const spa = member.baseStats.spa || 0;
+    const gap = spa - atk; // positive => notably special-biased, negative => notably physical-biased
+
+    build.moves.forEach((moveName, slotIndex) => {
+      if (!moveName) return;
+      const move = movesData.find((m) => m.name === moveName);
+      if (!move || move.category === "Status" || !move.power) return;
+
+      const wantsCategory = gap >= STAT_GAP_THRESHOLD ? "Special" : gap <= -STAT_GAP_THRESHOLD ? "Physical" : null;
+      if (!wantsCategory || move.category === wantsCategory) return;
+
+      const learnable = member.learnableNames || [];
+      const alternatives = movesData
+        .filter(
+          (m) =>
+            m.category === wantsCategory &&
+            m.power &&
+            m.type === move.type && // same type as the FLAGGED move itself, not just any STAB type
+            learnable.includes(m.name) &&
+            m.name !== moveName &&
+            !build.moves.includes(m.name) // never "recommend" a move it's already running in another slot
+        )
+        .sort((a, b) => b.power - a.power);
+      const bestAlt = alternatives[0];
+      if (!bestAlt) return; // nothing concretely better to point to -- stay quiet rather than guess
+
+      const betterStat = wantsCategory === "Special" ? `Special Attack (${spa})` : `Attack (${atk})`;
+      const worseStat = wantsCategory === "Special" ? `Attack (${atk})` : `Special Attack (${spa})`;
+      results.push({
+        text: `${member.name}'s ${move.name} is a ${move.category} move, but its ${betterStat} is ${Math.abs(gap)} points higher than its ${worseStat} -- ${bestAlt.name} is a same-type ${wantsCategory} option already in its learnset (power ${bestAlt.power}) that would actually use its better stat.`,
+        suggestedFix: { pokemon: member.name, field: "move", slotIndex, to: bestAlt.name },
+      });
+    });
+  });
+
+  return results;
+}
+
+/**
+ * A "Trick Room sweeper" spread -- a Brave or Quiet nature (boosts Atk or
+ * SpA, lowers Speed) paired with 0 Speed Stat Points -- only actually
+ * pays off if the team has a real Trick Room setter. Note this checks
+ * Stat Points (build.sp.speed), not IVs: Pokemon Champions fixes every
+ * Pokemon's IVs at 31 (see wcParseShowdownTeam's own IV-line warning) --
+ * there's no 0-Speed-IV trick in this game, so Stat Points are the only
+ * real lever, and 0 there is the genuine "built to go last" signal.
+ * A member that itself knows Trick Room is exempt even if it fits this
+ * pattern -- it doesn't need a teammate's help.
+ */
+function wcTrickRoomDependencyWarnings(members, builds) {
+  const warnings = [];
+  if (!members || !members.length || !builds) return warnings;
+
+  const teamHasTrickRoomSetter = Object.values(builds).some(
+    (b) => b && Array.isArray(b.moves) && b.moves.includes("Trick Room")
+  );
+  if (teamHasTrickRoomSetter) return warnings;
+
+  members.forEach((member) => {
+    const build = builds[member.name];
+    if (!build) return;
+    const isOwnSetter = Array.isArray(build.moves) && build.moves.includes("Trick Room");
+    if (isOwnSetter) return;
+    const isSweeperNature = build.nature === "Brave" || build.nature === "Quiet";
+    const zeroSpeed = build.sp && build.sp.speed === 0;
+    if (isSweeperNature && zeroSpeed) {
+      warnings.push(
+        `${member.name} is built with a ${build.nature} nature and 0 Speed investment -- a classic Trick Room sweeper spread meant to move LAST and hit hard. But no one on this team actually knows Trick Room, so ${member.name} will just be slow, not advantaged -- either add a real Trick Room setter, or rebuild ${member.name} with a faster spread if it's meant to function on its own.`
+      );
+    }
+  });
+
+  return warnings;
+}
+
+/**
+ * Point 3 of the sourced prompt ("Trick Room defence audit"): for any
+ * team that isn't itself running Trick Room as its primary strategy,
+ * checks for the four concrete anti-Trick-Room tools the prompt itself
+ * named -- a Taunt user (silences an incoming setter before it moves), a
+ * Fake Out user (its fixed +3 priority still goes before a slower
+ * Trick-Roomed opponent, since priority brackets are never reversed by
+ * Trick Room, only turn order within the same bracket is), a genuine
+ * minimum-Speed utility pivot (0 Speed Stat Points -- "doesn't care
+ * which way Speed order runs" is itself a defensive answer to Trick
+ * Room), and a Safety Goggles holder (bypasses Spore/Rage Powder-style
+ * redirection and status the opponent might lean on while Room is up).
+ * Returns { audited: false } for a team that's itself Trick-Room-
+ * archetyped -- it doesn't need defenses against its own plan.
+ */
+function wcAntiTrickRoomAudit(members, builds, archetype) {
+  if (archetype === "trickroom") return { audited: false, gaps: [], confirmations: [] };
+  if (!members || !members.length || !builds) return { audited: false, gaps: [], confirmations: [] };
+
+  const tauntUsers = members.filter((m) => builds[m.name] && (builds[m.name].moves || []).includes("Taunt"));
+  const fakeOutUsers = members.filter((m) => builds[m.name] && (builds[m.name].moves || []).includes("Fake Out"));
+  const minSpeedPivots = members.filter((m) => builds[m.name] && builds[m.name].sp && builds[m.name].sp.speed === 0);
+  const safetyGogglesUsers = members.filter((m) => builds[m.name] && builds[m.name].item === "Safety Goggles");
+
+  const confirmations = [];
+  const gaps = [];
+
+  if (tauntUsers.length) {
+    confirmations.push(`${tauntUsers.map((m) => m.name).join(", ")} can Taunt an incoming Trick Room setter before it ever gets the move off.`);
+  } else {
+    gaps.push("No one on this team knows Taunt -- against an opposing Trick Room setter, there's no way to silence it before Room goes up.");
+  }
+
+  if (fakeOutUsers.length) {
+    confirmations.push(`${fakeOutUsers.map((m) => m.name).join(", ")} can Fake Out -- its fixed +3 priority still goes before a slower Trick-Roomed opponent, since priority brackets aren't reversed by Trick Room.`);
+  } else {
+    gaps.push("No one on this team knows Fake Out -- a reliable way to flinch and disrupt the turn Trick Room goes up is missing.");
+  }
+
+  if (minSpeedPivots.length) {
+    confirmations.push(`${minSpeedPivots.map((m) => m.name).join(", ")} ${minSpeedPivots.length === 1 ? "is" : "are"} built with 0 Speed investment -- a genuine minimum-Speed utility pivot that isn't disadvantaged either way Speed order runs.`);
+  } else {
+    gaps.push("No minimum-Speed utility pivot on this team -- everyone is built to care about Speed order one way, so an opposing Trick Room flips who's disadvantaged for the whole team at once.");
+  }
+
+  if (safetyGogglesUsers.length) {
+    confirmations.push(`${safetyGogglesUsers.map((m) => m.name).join(", ")} holds Safety Goggles, bypassing Spore/Rage Powder-style redirection and status.`);
+  } else {
+    gaps.push("No one holds Safety Goggles -- a redirection-plus-status Amoonguss-style lead has no built-in answer on this team.");
+  }
+
+  return { audited: true, gaps, confirmations };
+}
+
+/**
+ * Point 4 of the sourced prompt ("Utility item value checks"). A small,
+ * hand-picked, honestly-not-exhaustive set of high-variance RNG items
+ * (same convention as WINCON_SPREAD_MOVES/WINCON_ARCHETYPE_COUNTERS) is
+ * flagged wherever held, and two concrete, always-correct-when-they-fire
+ * upgrades are recommended with a real suggestedFix: Light Clay for a
+ * member that already sets up BOTH Reflect and Light Screen without
+ * holding it, and Focus Sash for a member that sets Tailwind while
+ * holding no item at all (a fast, fragile lead needs to survive its one
+ * setup turn more than it needs anything else). Both recommendations are
+ * deliberately conservative -- they never suggest replacing an item a
+ * build already has a real reason to hold (a Mega Stone, an existing
+ * defensive item), only filling a genuinely empty or clearly-worse slot.
+ */
+const WINCON_HIGH_VARIANCE_ITEMS = {
+  "Quick Claw": "a random ~20% chance to move first each turn -- not a reliable tournament tool since it fails 4 times out of 5.",
+  "King's Rock": "a random ~10% flinch chance -- too unreliable to build a real gameplan around.",
+  "Lax Incense": "a random ~10% extra evasion -- too unreliable to build a real gameplan around.",
+  "Bright Powder": "a random ~10% extra evasion -- too unreliable to build a real gameplan around.",
+};
+
+function wcItemValueAudit(members, builds) {
+  const flags = [];
+  const fixes = [];
+  if (!members || !members.length || !builds) return { flags, fixes };
+
+  members.forEach((member) => {
+    const build = builds[member.name];
+    if (!build) return;
+    const moves = build.moves || [];
+
+    if (build.item && WINCON_HIGH_VARIANCE_ITEMS[build.item]) {
+      flags.push(`${member.name} holds ${build.item} -- ${WINCON_HIGH_VARIANCE_ITEMS[build.item]}`);
+    }
+
+    const setsDualScreens = (moves.includes("Reflect") && moves.includes("Light Screen")) || moves.includes("Aurora Veil");
+    if (setsDualScreens && build.item !== "Light Clay" && !Object.values(WINCON_MEGA_STONES).includes(build.item)) {
+      flags.push(
+        `${member.name} sets up ${moves.includes("Aurora Veil") ? "Aurora Veil" : "both Reflect and Light Screen"} but doesn't hold Light Clay -- Light Clay extends screens to 8 turns instead of 5, real extra coverage for the same setup cost.`
+      );
+      fixes.push({ pokemon: member.name, field: "item", to: "Light Clay" });
+    }
+
+    if (moves.includes("Tailwind") && !build.item) {
+      flags.push(
+        `${member.name} sets Tailwind but isn't holding any item -- Focus Sash guarantees it survives to actually get Tailwind off even from a one-hit-range attack, which is the whole point of a fast, fragile Tailwind lead.`
+      );
+      fixes.push({ pokemon: member.name, field: "item", to: "Focus Sash" });
+    }
+  });
+
+  return { flags, fixes };
+}
+
+/**
+ * Turns a list of { pokemon, field: "item"|"move", slotIndex?, to } fixes
+ * (the suggestedFix entries wcMoveStatMismatchWarnings/wcItemValueAudit
+ * produce) into a NEW builds object with those fixes applied -- pure,
+ * never mutates the input, the same purity contract wcAssignTeamSynergy
+ * documents for the same reason: this is a "here's what it would look
+ * like fixed" preview (used to build the Meta Analyst's optimized
+ * Showdown export), not a live edit of the team currently on screen.
+ */
+function wcApplyMetaAnalystFixes(builds, fixes) {
+  const result = {};
+  Object.keys(builds || {}).forEach((name) => {
+    const b = builds[name];
+    result[name] = { ...b, moves: (b.moves || []).slice(), sp: { ...(b.sp || {}) } };
+  });
+  (fixes || []).forEach((fix) => {
+    const b = result[fix.pokemon];
+    if (!b) return;
+    if (fix.field === "item") b.item = fix.to;
+    if (fix.field === "move" && Number.isInteger(fix.slotIndex)) b.moves[fix.slotIndex] = fix.to;
+  });
+  return result;
+}
+
+/**
+ * The single entry point for the "WinCon Meta Analyst" (Milestone 46):
+ * combines the strategy/Mega-matchup/anti-synergy analysis this file
+ * already had with the four new checks above into one report, plus a
+ * `modes` breakdown matching the sourced prompt's own requested "Team
+ * Modes" response shape (e.g. a team's offensive archetype as one mode,
+ * its anti-Trick-Room posture as another). `fixes` collects every
+ * concrete suggestedFix found (move and item) for
+ * wcApplyMetaAnalystFixes to turn into an optimized build.
+ */
+function wcMetaAnalystReport(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData) {
+  const strategyResult = wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData);
+  const megaAdvice = wcMegaMatchupAdvice(members, threats, typeChart);
+  const antiSynergyWarnings = [...wcAntiSynergyWarnings(members, builds, abilitiesData), ...wcSharedWeaknessWarnings(members, typeChart)];
+  const moveMismatches = wcMoveStatMismatchWarnings(members, builds, movesData);
+  const trickRoomDependency = wcTrickRoomDependencyWarnings(members, builds);
+  const trickRoomAudit = wcAntiTrickRoomAudit(members, builds, strategyResult.archetype);
+  const itemAudit = wcItemValueAudit(members, builds);
+  const counterNote = wcStatedCounterNote(strategyResult.archetype);
+
+  const modes = [];
+  if (strategyResult.archetype !== "balanced") {
+    modes.push({
+      title: `${wcArchetypeDisplayName(strategyResult.archetype)} Mode`,
+      lines: [strategyResult.note, counterNote ? `Countered by: ${counterNote}` : null].filter(Boolean),
+    });
+  }
+  if (trickRoomAudit.audited && (trickRoomAudit.confirmations.length || trickRoomAudit.gaps.length)) {
+    modes.push({
+      title: "Anti-Trick-Room Mode",
+      lines: [...trickRoomAudit.confirmations, ...trickRoomAudit.gaps],
+    });
+  }
+
+  const fixes = [...moveMismatches.map((w) => w.suggestedFix).filter(Boolean), ...itemAudit.fixes];
+
+  return {
+    archetype: strategyResult.archetype,
+    strategyResult,
+    megaAdvice,
+    antiSynergyWarnings,
+    moveMismatches,
+    trickRoomDependency,
+    trickRoomAudit,
+    itemAudit,
+    counterNote,
+    modes,
+    fixes,
+  };
+}

@@ -197,10 +197,12 @@ const saveBtn = document.getElementById("save-btn");
 const saveStatus = document.getElementById("save-status");
 const autobuildBtn = document.getElementById("autobuild-btn");
 const autostrategyBtn = document.getElementById("autostrategy-btn");
+const metaAnalystBtn = document.getElementById("meta-analyst-btn");
 const autogenHint = document.getElementById("autogen-hint");
 const autostrategyHint = document.getElementById("autostrategy-hint");
 const strategyNoteEl = document.getElementById("strategy-note");
 const pilotGuideNoteEl = document.getElementById("pilot-guide-note");
+const metaAnalystNoteEl = document.getElementById("meta-analyst-note");
 const modalOverlay = document.getElementById("changes-modal");
 const modalTitle = document.getElementById("changes-modal-title");
 const modalBody = document.getElementById("changes-modal-body");
@@ -299,6 +301,7 @@ async function init() {
   importModalCloseBtn.addEventListener("click", closeImportModal);
   autobuildBtn.addEventListener("click", autoBuildTeam);
   autostrategyBtn.addEventListener("click", autoBuildStrategy);
+  metaAnalystBtn.addEventListener("click", runMetaAnalyst);
   dreamTeamBtn.addEventListener("click", generateDreamTeam);
   rivalBtn.addEventListener("click", findYourRival);
   if (simwinrateRerunBtn) simwinrateRerunBtn.addEventListener("click", () => runSimulatedWinRate());
@@ -3053,6 +3056,7 @@ function isTeamComplete() {
 function refreshStrategyAvailability() {
   const complete = isTeamComplete();
   autostrategyBtn.disabled = !complete;
+  metaAnalystBtn.disabled = !complete;
   autostrategyHint.textContent = complete
     ? ""
     : "Complete every field for all 6 Pokémon first — Nature, item, all 4 moves, all 66 Stat Points, and no duplicate items — to unlock strategy analysis.";
@@ -3125,6 +3129,163 @@ function autoBuildStrategy() {
     ...wcSharedWeaknessWarnings(members, data.typeChart),
   ];
   renderStrategyNote(result, false, wcMegaMatchupAdvice(members, threatsWithTypes, data.typeChart), antiSynergyWarnings);
+}
+
+/**
+ * Milestone 46: the "WinCon Meta Analyst" -- a deterministic team
+ * critique built from an externally-sourced system-prompt draft (a
+ * Gemini prompt describing an LLM chatbot critic for this exact game).
+ * WinCon has no backend and holds no API key, so instead of wiring up a
+ * real chatbot this runs on whatever's currently in chosen/builds
+ * (Dream Team, Auto-build team, Auto-build strategy, or a pasted Import)
+ * through the same rule-based analysis engine every other feature here
+ * already uses -- see wcMetaAnalystReport in strategy.js for the actual
+ * logic. Mirrors autoBuildStrategy's own guard/member-building pattern
+ * exactly, since this is really the same "analyze whatever's built right
+ * now" action with a different, more comprehensive report at the end.
+ */
+function runMetaAnalyst() {
+  if (!wcRequireAccount((msg) => { autostrategyHint.textContent = msg; }, "run the Meta Analyst")) return;
+  if (!isTeamComplete()) {
+    refreshStrategyAvailability();
+    return;
+  }
+
+  const members = [];
+  chosen.forEach((name) => {
+    const pokemon = data.pokemon.find((p) => p.name === name);
+    const baseStats = data.baseStats.find((b) => b.name === name);
+    const learnableNames = data.learnsets[name];
+    if (pokemon && baseStats && learnableNames) {
+      members.push(effectiveMemberFor(name, pokemon.types, baseStats, learnableNames, builds[name]));
+    }
+  });
+
+  if (members.length < chosen.length) {
+    metaAnalystNoteEl.hidden = false;
+    metaAnalystNoteEl.innerHTML = "";
+    const p = document.createElement("p");
+    p.textContent =
+      "Some of your 6 are missing base-stat/learnset data (Reg M-B additions without confirmed data yet), so the Meta Analyst can't run until those are filled in by hand.";
+    metaAnalystNoteEl.appendChild(p);
+    return;
+  }
+
+  const threatsWithTypes = getThreatsWithTypes();
+  const report = wcMetaAnalystReport(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
+  renderMetaAnalystNote(report);
+}
+
+/**
+ * Renders wcMetaAnalystReport's data in the "Team Modes" headed format
+ * the sourced prompt itself asked for -- a distinct panel from the
+ * existing Auto-build strategy callout/pilot-guide bubble above it
+ * (those stay exactly as they were), ending in a real, copy-pasteable
+ * Showdown export block. When wcMetaAnalystReport found any concrete
+ * fixes (a move or item swap), that export reflects them applied via
+ * wcApplyMetaAnalystFixes -- a preview, never a live edit of the team
+ * currently in the slots above.
+ */
+function renderMetaAnalystNote(report) {
+  metaAnalystNoteEl.innerHTML = "";
+  metaAnalystNoteEl.hidden = false;
+
+  const heading = document.createElement("h3");
+  heading.textContent = "WinCon Meta Analyst";
+  metaAnalystNoteEl.appendChild(heading);
+
+  const addHeading = (text) => {
+    const p = document.createElement("p");
+    p.className = "meta-analyst-section-heading";
+    const strong = document.createElement("strong");
+    strong.textContent = text;
+    p.appendChild(strong);
+    metaAnalystNoteEl.appendChild(p);
+  };
+
+  const addLines = (lines, className) => {
+    lines.forEach((line) => {
+      const p = document.createElement("p");
+      p.className = className;
+      p.textContent = line;
+      metaAnalystNoteEl.appendChild(p);
+    });
+  };
+
+  addHeading("Team Modes");
+  if (report.modes.length === 0) {
+    addLines(["No single shared mechanism or anti-Trick-Room posture stood out to break into separate modes for this team."], "hint");
+  } else {
+    report.modes.forEach((mode) => {
+      const modeHeading = document.createElement("p");
+      modeHeading.className = "meta-analyst-mode-heading";
+      const em = document.createElement("em");
+      em.textContent = mode.title;
+      modeHeading.appendChild(em);
+      metaAnalystNoteEl.appendChild(modeHeading);
+      addLines(mode.lines, "meta-analyst-mode-line");
+    });
+  }
+
+  addHeading("Stat & Physical/Special Synergy Checks");
+  addLines(
+    report.moveMismatches.length ? report.moveMismatches.map((w) => w.text) : ["No physical/special move-vs-stat mismatches found."],
+    report.moveMismatches.length ? "meta-analyst-flag" : "hint"
+  );
+
+  addHeading("Trick Room Dependency");
+  addLines(
+    report.trickRoomDependency.length ? report.trickRoomDependency : ["No team member is built as a Trick Room sweeper without real Trick Room support on the team."],
+    report.trickRoomDependency.length ? "meta-analyst-flag" : "hint"
+  );
+
+  addHeading("Utility Item Value Checks");
+  addLines(
+    report.itemAudit.flags.length ? report.itemAudit.flags : ["No item concerns found -- every held item already looks like a deliberate, efficient choice."],
+    report.itemAudit.flags.length ? "meta-analyst-flag" : "hint"
+  );
+
+  if (report.antiSynergyWarnings.length) {
+    addHeading("Other Anti-Synergy Warnings");
+    addLines(report.antiSynergyWarnings, "meta-analyst-flag");
+  }
+
+  if (report.megaAdvice) {
+    addHeading("Mega Matchup Advisor");
+    addLines([report.megaAdvice.note], "meta-analyst-mode-line");
+  }
+
+  addHeading(report.fixes.length ? "Optimized Showdown Export (with the fixes above applied)" : "Showdown Export");
+  const fixedBuilds = wcApplyMetaAnalystFixes(builds, report.fixes);
+  const exportText = wcExportTeamText(chosen, fixedBuilds);
+
+  const pre = document.createElement("pre");
+  pre.className = "meta-analyst-showdown-block";
+  pre.textContent = exportText;
+  metaAnalystNoteEl.appendChild(pre);
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "btn-secondary meta-analyst-copy-btn";
+  copyBtn.textContent = "Copy to clipboard";
+  copyBtn.addEventListener("click", () => {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      copyBtn.textContent = "Clipboard unavailable — select the text above manually.";
+      return;
+    }
+    navigator.clipboard.writeText(exportText).then(
+      () => {
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => {
+          copyBtn.textContent = "Copy to clipboard";
+        }, 1500);
+      },
+      () => {
+        copyBtn.textContent = "Couldn't copy — select the text above manually.";
+      }
+    );
+  });
+  metaAnalystNoteEl.appendChild(copyBtn);
 }
 
 function renderStrategyOption(container, option, headingText, metaSynergy) {

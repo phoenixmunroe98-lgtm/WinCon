@@ -1558,6 +1558,54 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   color: var(--ink-muted);
 }
 
+/* Milestone 46: the "WinCon Meta Analyst" panel -- a distinct, more
+   comprehensive critique than the existing strategy callout/pilot-guide
+   bubble above it, ending in a real copy-pasteable Showdown export.
+   Reuses .callout-box for the outer panel; these are just the internal
+   structure (section headings, mode headings, flagged lines, the
+   <pre> export block). */
+.meta-analyst-note h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.meta-analyst-section-heading {
+  margin: 14px 0 4px;
+}
+
+.meta-analyst-section-heading:first-of-type { margin-top: 10px; }
+
+.meta-analyst-mode-heading {
+  margin: 10px 0 2px;
+  color: var(--accent);
+}
+
+.meta-analyst-mode-line { margin: 4px 0; }
+
+.meta-analyst-flag {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--mediocre);
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 0.92rem;
+}
+
+.meta-analyst-showdown-block {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.meta-analyst-copy-btn { margin-top: 8px; }
+
 /* Milestone 12: same treatment as .meta-synergy-note above, for the
    "guaranteed Mega pick(s)" line under Generate Dream Team's "Why these
    six" list — a distinct signal from the numbered picks above it, not a
