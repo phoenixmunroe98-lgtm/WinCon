@@ -2855,6 +2855,71 @@ body.wc-signed-out #tracker-log-loss-btn {
   }
 }
 
+/* Milestone 47: a second, independent popup for the community subreddit
+   link -- bottom-left so it never overlaps wc-account-popup's spot at
+   bottom-right. No auto-dismiss keyframe reuse needed since it uses the
+   same slide/fade-in animation as that popup. */
+.wc-reddit-popup {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 600;
+  max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  animation: wc-account-popup-in 0.2s ease-out;
+}
+
+.wc-reddit-popup[hidden] { display: none; }
+
+.wc-reddit-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.wc-reddit-popup-close:hover { color: var(--ink); }
+
+.wc-reddit-popup-title {
+  margin: 0 22px 6px 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.wc-reddit-popup-body {
+  margin: 0 0 12px;
+  color: var(--ink-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.wc-reddit-popup-actions .wc-reddit-popup-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .wc-reddit-popup {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
+}
+
 /* ---------- Milestone 25: homepage welcome banner ---------- */
 
 .welcome-banner {

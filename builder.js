@@ -373,6 +373,7 @@ async function init() {
 
   wcInitDone = true;
   wcUpdateSignedOutBodyClass();
+  wcMaybeShowRedditPopup();
 }
 
 /** Set once init()'s first render has completed -- see the wc:auth-changed listener above, registered before this can be guaranteed true. */
@@ -1150,6 +1151,59 @@ function wcRequireAccount(showMessage, actionLabel) {
   showMessage(`Sign up free to ${actionLabel} — it only takes a minute, and your teams follow you to any device once you're signed in.`);
   wcShowAccountPopup();
   return false;
+}
+
+/**
+ * Milestone 47 (final item): a small, dismissible community-link popup,
+ * bottom-left so it never collides with wcShowAccountPopup's bottom-right
+ * spot. Unlike that popup this one isn't tied to a gated action -- it's
+ * just a standing invite to the subreddit -- so it never auto-dismisses
+ * on a timer; it stays until the player closes it, and once closed it
+ * remembers that in localStorage and never shows again on this browser.
+ * The canonical subreddit URL is used (not the specific share-link post
+ * Phoenix pasted) so the link stays valid even if that particular post is
+ * ever deleted or edited -- "the official WinCon reddit" reads as the
+ * subreddit itself, not one post in it.
+ */
+const WINCON_REDDIT_URL = "https://www.reddit.com/r/WinCon/";
+const WC_REDDIT_POPUP_DISMISSED_KEY = "wc_reddit_popup_dismissed";
+let wcRedditPopupEl = null;
+
+function wcEnsureRedditPopupEl() {
+  if (wcRedditPopupEl) return wcRedditPopupEl;
+  const el = document.createElement("div");
+  el.id = "wc-reddit-popup";
+  el.className = "wc-reddit-popup";
+  el.hidden = true;
+  el.setAttribute("role", "note");
+  el.innerHTML = `
+    <button type="button" class="wc-reddit-popup-close" aria-label="Dismiss">×</button>
+    <p class="wc-reddit-popup-title">Join the community</p>
+    <p class="wc-reddit-popup-body">Team feedback, meta talk, and the rest of the WinCon community live on the official subreddit.</p>
+    <div class="wc-reddit-popup-actions">
+      <a class="btn-primary wc-reddit-popup-link" href="${WINCON_REDDIT_URL}" target="_blank" rel="noopener noreferrer">Visit r/WinCon</a>
+    </div>
+  `;
+  document.body.appendChild(el);
+  el.querySelector(".wc-reddit-popup-close").addEventListener("click", wcHideRedditPopup);
+  wcRedditPopupEl = el;
+  return el;
+}
+
+function wcHideRedditPopup(remember) {
+  if (wcRedditPopupEl) wcRedditPopupEl.hidden = true;
+  if (remember) {
+    try { localStorage.setItem(WC_REDDIT_POPUP_DISMISSED_KEY, "1"); } catch (err) { /* private mode etc. -- fine to just skip remembering */ }
+  }
+}
+
+function wcMaybeShowRedditPopup() {
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(WC_REDDIT_POPUP_DISMISSED_KEY) === "1"; } catch (err) { /* private mode etc. -- just show it */ }
+  if (dismissed) return;
+  const el = wcEnsureRedditPopupEl();
+  el.hidden = false;
+  el.querySelector(".wc-reddit-popup-close").onclick = () => wcHideRedditPopup(true);
 }
 
 function saveDraft() {
