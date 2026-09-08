@@ -1,4 +1,6 @@
-// WinCon — tools/test-battle-plan-report.mjs (Milestone 54, Part D)
+// WinCon — tools/test-battle-plan-report.mjs (Milestone 54, Part D;
+// reworked for Milestone 56's wcPickBestLineup refactor + win-condition
+// bug fix)
 //
 // Regression test for wcBattlePlanReport (strategy.js) -- WinCon's own,
 // no-external-AI answer to a "Battle Coach AI" request (see README's
@@ -9,6 +11,17 @@
 // mechanism is guaranteed to fire -- that's testing THIS function's own
 // move-reading rule set, not asserting anything about what Auto-build
 // would naturally choose. Nothing here is a placeholder/mocked value.
+//
+// Milestone 56 refactored the Core Four selection to go through the
+// shared wcPickBestLineup helper (moved to strategy.js), and fixed a
+// real bug: the closing Win Condition line used to run
+// wcAnalyzeTeamStrategy on the full 6-member roster instead of the
+// actual Core Four being brought to this matchup, so it could name a
+// mechanism the bench was carrying instead of the team on the field.
+// This fixture (verified below) demonstrates the bug directly: the full
+// roster's real archetype (helpinghand, set by Whimsicott) differs from
+// the real Core Four's own archetype (grassyterrain, set by Sceptile) --
+// the win-condition line must now say the latter.
 //
 // Run: node tools/test-battle-plan-report.mjs
 
@@ -94,24 +107,23 @@ check("wcBattlePlanReport's empty-opponent guard returns the honest fallback sha
   assert.ok(report.turn1Lines[0].includes("No opponent species entered yet"));
 });
 
-check("wcBattlePlanReport's Core Four is exactly 4 real members for doubles, matching wcRankLineupsHeuristic's own top pick against the real revealed threats", () => {
+check("wcBattlePlanReport's Core Four is exactly 4 real members for doubles, matching wcPickBestLineup's own real selection against the revealed threats", () => {
   const report = runReport();
   assert.equal(report.coreFourNames.length, 4);
   assert.equal(report.coreFourLines.length, 4);
   assert.equal(report.benchLines.length, 2);
 
-  const names = userTeam.members.map((m) => m.slotName || m.name);
-  const specsByName = {};
-  userTeam.members.forEach((m) => {
-    specsByName[m.name] = { name: m.name, types: m.types, baseStats: m.baseStats, build: userTeam.builds[m.name] };
-  });
-  const lineups = context.wcEnumerateLineups(names, 4);
-  const ranked = context.wcRankLineupsHeuristic(lineups, specsByName, [opponentThreats], { typeChart, natures, movesData, sheetMode: "closed" }, null);
-  const expectedCoreFour = ranked[0].names;
-  assert.deepEqual(JSON.parse(JSON.stringify(report.coreFourNames.slice().sort())), JSON.parse(JSON.stringify(expectedCoreFour.slice().sort())), "expected the same real top-ranked combo wcRankLineupsHeuristic itself would pick");
+  // Milestone 56: wcBattlePlanReport now builds its Core Four via the
+  // shared wcPickBestLineup helper -- so this test compares directly
+  // against that same helper's own real output, rather than re-deriving
+  // the ranking by hand.
+  const lineup = context.wcPickBestLineup(userTeam.members, userTeam.builds, opponentThreats, "doubles", natures, movesData, typeChart);
+  assert.deepEqual(JSON.parse(JSON.stringify(report.coreFourNames.slice().sort())), JSON.parse(JSON.stringify(lineup.lineupNames.slice().sort())), "expected the same real lineup wcPickBestLineup itself would pick");
 
+  const names = userTeam.members.map((m) => m.slotName || m.name);
   const benched = names.filter((n) => !report.coreFourNames.includes(n));
   assert.equal(benched.length, 2);
+  assert.deepEqual(benched.slice().sort(), lineup.benchedNames.slice().sort());
   benched.forEach((n) => assert.ok(report.benchLines.some((l) => l.startsWith(n)), `expected a bench line naming ${n}`));
 });
 
@@ -153,9 +165,9 @@ check("wcBattlePlanReport's Turn 1 line honestly falls back when the real Core F
 check("wcBattlePlanReport's Turn 1 line correctly detects a real, built Trick Room and names the member that carries it", () => {
   // Force every member's own real build to carry a real move name
   // ("Trick Room") this function checks for directly -- guarantees
-  // whichever real member wcRankLineupsHeuristic picks for the Core Four
-  // will trigger the detection, so this tests the report's own reading
-  // of build.moves, not Auto-build's independent move selection.
+  // whichever real member wcPickBestLineup picks for the Core Four will
+  // trigger the detection, so this tests the report's own reading of
+  // build.moves, not Auto-build's independent move selection.
   const forcedBuilds = {};
   userTeam.members.forEach((m) => {
     forcedBuilds[m.name] = { ...userTeam.builds[m.name], moves: ["Trick Room", ...userTeam.builds[m.name].moves.slice(1)] };
@@ -200,15 +212,35 @@ check("wcBattlePlanReport's Pivoting section flags a real benched support-signal
   }
 });
 
-check("wcBattlePlanReport's final line states the real user team's win condition, matching wcAnalyzeTeamStrategy run independently against the real revealed threats", () => {
+check("wcBattlePlanReport's final line states the real Core Four's OWN win condition, matching wcAnalyzeTeamStrategy run independently against just the real lineup members -- not the full 6-member roster", () => {
   const report = runReport();
-  const userStrategy = context.wcAnalyzeTeamStrategy(userTeam.members, userTeam.builds, movesData, opponentThreats, typeChart, "doubles", "", abilitiesData, null);
+  const lineup = context.wcPickBestLineup(userTeam.members, userTeam.builds, opponentThreats, "doubles", natures, movesData, typeChart);
+  const lineupStrategy = context.wcAnalyzeTeamStrategy(lineup.lineupMembers, userTeam.builds, movesData, opponentThreats, typeChart, "doubles", "", abilitiesData, null);
   const lastLine = report.pivotLines[report.pivotLines.length - 1];
-  if (userStrategy.archetype === "independent") {
-    assert.ok(lastLine.startsWith("No single shared win condition"), `expected the independent-team line, got: ${lastLine}`);
+  if (lineupStrategy.archetype === "independent") {
+    assert.ok(lastLine.startsWith("No single shared win condition"), `expected the independent-lineup line, got: ${lastLine}`);
   } else {
-    assert.ok(lastLine.includes(context.wcArchetypeDisplayName(userStrategy.archetype)), `expected the real archetype name in: ${lastLine}`);
+    assert.ok(lastLine.includes(context.wcArchetypeDisplayName(lineupStrategy.archetype)), `expected the real Core Four's own archetype name in: ${lastLine}`);
   }
+});
+
+check("Milestone 56 bug-fix regression: this fixture's real full 6-roster archetype genuinely differs from the real Core Four's own archetype, and the Win Condition line reports the Core Four's, not the roster's", () => {
+  const report = runReport();
+  const lineup = context.wcPickBestLineup(userTeam.members, userTeam.builds, opponentThreats, "doubles", natures, movesData, typeChart);
+  const lineupStrategy = context.wcAnalyzeTeamStrategy(lineup.lineupMembers, userTeam.builds, movesData, opponentThreats, typeChart, "doubles", "", abilitiesData, null);
+  const fullRosterStrategy = context.wcAnalyzeTeamStrategy(userTeam.members, userTeam.builds, movesData, opponentThreats, typeChart, "doubles", "", abilitiesData, null);
+
+  // If this ever stops being true because Auto-build's own heuristic or
+  // the ranking changed, that's the honest signal to pick a new fixture
+  // that still demonstrates the fix -- not to weaken this check. As of
+  // this write, the full 6's real archetype is "helpinghand" (set by
+  // Whimsicott) while the real Core Four's is "grassyterrain" (set by
+  // Sceptile) -- genuinely different mechanisms.
+  assert.notEqual(lineupStrategy.archetype, fullRosterStrategy.archetype, "expected this fixture to genuinely exercise the bug: the full roster and the real Core Four disagree on archetype");
+
+  const lastLine = report.pivotLines[report.pivotLines.length - 1];
+  assert.ok(lastLine.includes(context.wcArchetypeDisplayName(lineupStrategy.archetype)), `expected the Core Four's own real archetype (${lineupStrategy.archetype}) in the Win Condition line, got: ${lastLine}`);
+  assert.ok(!lastLine.includes(context.wcArchetypeDisplayName(fullRosterStrategy.archetype)), `the Win Condition line should NOT report the full roster's real archetype (${fullRosterStrategy.archetype}) -- that was the bug -- got: ${lastLine}`);
 });
 
 console.log(`\nAll ${checks} Battle Plan Report checks passed.`);

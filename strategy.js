@@ -4760,6 +4760,125 @@ function wcMetaAnalystReport(members, builds, movesData, threats, typeChart, for
 
 
 // ---------------------------------------------------------------------------
+// Milestone 56: moved here from battle-sim-lineup.js. Both are pure
+// combinatorial/scoring helpers with zero real battle-sim dependency --
+// wcRankLineupsHeuristic only ever calls wcScoreMatchup and
+// wcComboSynergyBonus, both already defined in this file -- but Team
+// Strategy Report/Rival Breakdown just below need them on the Builder
+// page's own main thread, which loads strategy.js directly but never
+// loads battle-sim-lineup.js (that file is Worker-only -- confirmed
+// against doubles-builder.html/singles-builder.html's own <script> tags
+// and battle-tracker.html's importScripts list). battle-sim-lineup.js
+// (Team-vs-Team's own lineup search) and Battle Plan below both keep
+// calling these exactly as before -- plain global-scope function
+// declarations, same as every other cross-file call in this project,
+// and strategy.js already loads first everywhere both are needed.
+// ---------------------------------------------------------------------------
+
+/** All C(6,n) lineups of a 6-name roster, as arrays of names. n=4 (Doubles, C(6,4)=15) or n=3 (Singles, C(6,3)=20). */
+function wcEnumerateLineups(chosenSix, n) {
+  const results = [];
+  const combo = [];
+  function recurse(start) {
+    if (combo.length === n) {
+      results.push([...combo]);
+      return;
+    }
+    for (let i = start; i < chosenSix.length; i += 1) {
+      combo.push(chosenSix[i]);
+      recurse(i + 1);
+      combo.pop();
+    }
+  }
+  recurse(0);
+  return results;
+}
+
+/**
+ * Cheap ranking pass (no Monte Carlo): scores every candidate lineup by
+ * reusing wcScoreMatchup against every member of every sampled reference
+ * team, averaged, plus wcComboSynergyBonus (real logged-battle data --
+ * guarded, since it may not be loaded in every context that reuses this
+ * ranker) when a combo lookup is supplied. Returns lineups sorted
+ * best-first.
+ */
+function wcRankLineupsHeuristic(lineupCombos, specsByName, referenceTeams, data, comboLookup) {
+  const { typeChart, natures, movesData, sheetMode } = data;
+  const scored = lineupCombos.map((names) => {
+    let total = 0;
+    let count = 0;
+    referenceTeams.forEach((team) => {
+      team.forEach((threat) => {
+        names.forEach((name) => {
+          const spec = specsByName[name];
+          if (!spec) return;
+          const result = wcScoreMatchup(
+            { name: spec.name, types: spec.types },
+            spec.build,
+            spec.baseStats,
+            { name: threat.name, types: threat.types },
+            threat.baseStats,
+            natures,
+            typeChart,
+            movesData,
+            { sheetMode }
+          );
+          total += result.points;
+          count += 1;
+        });
+      });
+    });
+    const heuristicAvg = count > 0 ? total / count : 0;
+    const synergyBonus = comboLookup && typeof wcComboSynergyBonus === "function" ? wcComboSynergyBonus(names, comboLookup) : 0;
+    return { names, score: heuristicAvg + synergyBonus };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored;
+}
+
+/**
+ * Picks the best real n-of-6 lineup (n = 3 Singles / 4 Doubles) a team
+ * would actually bring against `threats`, via the exact same exhaustive-
+ * combination heuristic ranking above -- every real C(6,4)=15 (or
+ * C(6,3)=20) combination is scored, never a shortcut subset. Guards on
+ * missing natures/movesData/typeChart (wcScoreMatchup's own Speed calc
+ * hard-crashes on a null natures array via wcNatureModifier, so this
+ * can't silently pass one through) by falling back to "first n members,
+ * nothing genuinely ranked" -- same graceful-degrade spirit as every
+ * other optional-data fallback in this file, never a crash. Returns
+ * { lineupMembers, benchedMembers, lineupNames, benchedNames }, split by
+ * real name membership in the winning combo.
+ */
+function wcPickBestLineup(members, builds, threats, format, natures, movesData, typeChart) {
+  const fmt = wcNormalizeFormat(format);
+  const n = fmt === "singles" ? 3 : 4;
+  const names = members.map((m) => m.slotName || m.name);
+  const takeN = Math.min(n, names.length);
+
+  const splitByNames = (lineupNames) => {
+    const benchedNames = names.filter((nm) => !lineupNames.includes(nm));
+    const lineupMembers = members.filter((m) => lineupNames.includes(m.slotName || m.name));
+    const benchedMembers = members.filter((m) => benchedNames.includes(m.slotName || m.name));
+    return { lineupMembers, benchedMembers, lineupNames, benchedNames };
+  };
+
+  if (!natures || !movesData || !typeChart) {
+    return splitByNames(names.slice(0, takeN));
+  }
+
+  const specsByName = {};
+  members.forEach((m) => {
+    const key = m.slotName || m.name;
+    specsByName[key] = { name: m.name, types: m.types, baseStats: m.baseStats, build: (builds && (builds[key] || builds[m.name])) || {} };
+  });
+  const lineups = wcEnumerateLineups(names, takeN);
+  const ranked = wcRankLineupsHeuristic(lineups, specsByName, [threats || []], { typeChart, natures, movesData, sheetMode: "closed" }, null);
+  const lineupNames = ranked.length ? ranked[0].names : names.slice(0, takeN);
+  return splitByNames(lineupNames);
+}
+
+
+// ---------------------------------------------------------------------------
 // Milestone 54, Part A: Team Strategy Report -- a WinCon-native answer to
 // a request for an AI team analyst ("act as an expert VGC analyst,
 // output Core Strategy & Roles / Threat Assessment / Type & Synergy
@@ -4852,24 +4971,34 @@ function wcTeamSynergyGrade(warningCount, defenseGapCount, offenseGapCount, hasR
  * `builds`/etc. the Builder page already has on hand for that report) --
  * see runMetaAnalyst in builder.js for exactly how those are built.
  */
-function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData) {
+function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData, natures) {
   const fmt = wcNormalizeFormat(format);
-  const strategyResult = wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, fmt, notes, abilitiesData, metaBaselineData);
-  const megaAdvice = wcMegaMatchupAdvice(members, threats, typeChart);
-  const bestMatchup = wcBestMatchupAnalysis(members, builds, abilitiesData);
-  const antiSynergyWarnings = wcAntiSynergyWarnings(members, builds, abilitiesData);
-  const sharedWeaknessWarnings = wcSharedWeaknessWarnings(members, typeChart);
-  const defenseGaps = wcDefensiveCoverageGaps(members, typeChart);
-  const offenseGaps = wcOffensiveCoverageGaps(members, builds, movesData, typeChart);
-  const assistingMembers = members.filter((m) => wcHasRealSupportAbility(m.name, abilitiesData));
+
+  // Milestone 56: narrow to the actual n-of-6 (3 Singles/4 Doubles) this
+  // team would really bring, picked via the exact same exhaustive-
+  // combination heuristic Battle Plan's own Core Four uses -- every
+  // section below reads out the selected lineup's real signals, never
+  // the full roster's, so this report never cites a mechanism, warning,
+  // or coverage gap that belongs to a Pokemon that wouldn't actually be
+  // on the field for this matchup.
+  const { lineupMembers, benchedNames } = wcPickBestLineup(members, builds, threats, fmt, natures, movesData, typeChart);
+
+  const strategyResult = wcAnalyzeTeamStrategy(lineupMembers, builds, movesData, threats, typeChart, fmt, notes, abilitiesData, metaBaselineData);
+  const megaAdvice = wcMegaMatchupAdvice(lineupMembers, threats, typeChart);
+  const bestMatchup = wcBestMatchupAnalysis(lineupMembers, builds, abilitiesData);
+  const antiSynergyWarnings = wcAntiSynergyWarnings(lineupMembers, builds, abilitiesData);
+  const sharedWeaknessWarnings = wcSharedWeaknessWarnings(lineupMembers, typeChart);
+  const defenseGaps = wcDefensiveCoverageGaps(lineupMembers, typeChart);
+  const offenseGaps = wcOffensiveCoverageGaps(lineupMembers, builds, movesData, typeChart);
+  const assistingMembers = lineupMembers.filter((m) => wcHasRealSupportAbility(m.name, abilitiesData));
 
   // ---- Core Strategy & Roles ----
   const winCondition =
     strategyResult.archetype === "independent"
-      ? "No single shared win condition -- this team plays as six independent attackers rather than leaning on one shared mechanism."
+      ? "No single shared win condition -- this lineup plays as independent attackers rather than leaning on one shared mechanism."
       : `Win condition: ${wcArchetypeDisplayName(strategyResult.archetype)}${strategyResult.setterName ? `, set by ${strategyResult.setterName}` : ""}. ${strategyResult.note}`;
 
-  const roleLines = members.map((m) => {
+  const roleLines = lineupMembers.map((m) => {
     const build = (builds && (builds[m.slotName || m.name] || builds[m.name])) || {};
     if (strategyResult.setterName && m.name === strategyResult.setterName) {
       return `${m.name} sets ${wcArchetypeDisplayName(strategyResult.archetype)} -- the team's real win condition.`;
@@ -4888,6 +5017,13 @@ function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, fo
     return `${m.name} is built as a ${role === "fast" ? "fast" : "bulky"} ${offenseLabel} attacker -- its real contribution here is offense/coverage, not a shared setup role.`;
   });
 
+  // Milestone 56: names the real 2/3 who didn't make this specific
+  // best-lineup read against these threats -- same bench-note pattern
+  // Battle Plan's own report already established.
+  const benchLines = benchedNames.map(
+    (name) => `${name} isn't part of this specific best real lineup against these threats -- benched here, though a different matchup could bring it back in.`
+  );
+
   // ---- Threat Assessment ----
   const threatLines = [];
   if (bestMatchup) {
@@ -4895,22 +5031,22 @@ function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, fo
   }
   if (megaAdvice && megaAdvice.note) threatLines.push(megaAdvice.note);
   antiSynergyWarnings.forEach((w) => threatLines.push(w));
-  // Shared-weakness pairs can run long on a full 6 -- capped at 3 here,
-  // same "don't drown the report" spirit as Meta Analyst's own
-  // collapsible section for the same data.
+  // Shared-weakness pairs can run long -- capped at 3 here, same "don't
+  // drown the report" spirit as Meta Analyst's own collapsible section
+  // for the same data.
   sharedWeaknessWarnings.slice(0, 3).forEach((w) => threatLines.push(w));
   if (threatLines.length === 0) {
-    threatLines.push("No concrete anti-synergy, shared-weakness, or best-matchup-counter signal found for this team right now.");
+    threatLines.push("No concrete anti-synergy, shared-weakness, or best-matchup-counter signal found for this lineup right now.");
   }
 
   // ---- Type & Synergy Analysis ----
   const coverageLines = [
     offenseGaps.length === 0
-      ? "Offensive coverage is complete -- at least one real damaging move on this team hits every type."
-      : `No damaging move on this team hits: ${offenseGaps.join(", ")}.`,
+      ? "Offensive coverage is complete -- at least one real damaging move on this lineup hits every type."
+      : `No damaging move on this lineup hits: ${offenseGaps.join(", ")}.`,
     defenseGaps.length === 0
-      ? "No defensive gap found -- no type has 2+ teammates weak to it with nobody resisting."
-      : `Defensive gap: ${defenseGaps.join(", ")} -- 2 or more teammates are weak to ${defenseGaps.length === 1 ? "this type" : "each of these types"} and nobody on the team resists or blocks it.`,
+      ? "No defensive gap found -- no type has 2+ of this lineup weak to it with nobody resisting."
+      : `Defensive gap: ${defenseGaps.join(", ")} -- 2 or more of this lineup are weak to ${defenseGaps.length === 1 ? "this type" : "each of these types"} and nobody in the lineup resists or blocks it.`,
   ];
 
   const grade = wcTeamSynergyGrade(
@@ -4921,7 +5057,7 @@ function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, fo
     assistingMembers.length
   );
 
-  return { winCondition, roleLines, threatLines, coverageLines, grade };
+  return { winCondition, roleLines, threatLines, coverageLines, grade, benchLines };
 }
 
 
@@ -4944,27 +5080,40 @@ function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, fo
  * @param reasoning - pendingRival's own real per-pick reasoning array
  * @param userMembers/userBuilds - the user's own real built 6
  */
-function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMembers, userBuilds, movesData, typeChart, format, abilitiesData) {
+function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMembers, userBuilds, movesData, typeChart, format, abilitiesData, natures) {
   const fmt = wcNormalizeFormat(format);
 
-  // Each side's own real win condition, read with the OTHER side as its
-  // real threats list -- the natural "who is this team actually built to
-  // fight" framing for a head-to-head breakdown.
-  const rivalAsThreats = rivalMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
-  const userAsThreats = userMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
-  const userStrategy = wcAnalyzeTeamStrategy(userMembers, userBuilds, movesData, rivalAsThreats, typeChart, fmt, "", abilitiesData, null);
-  const rivalStrategy = wcAnalyzeTeamStrategy(rivalMembers, rivalBuilds, movesData, userAsThreats, typeChart, fmt, "", abilitiesData, null);
+  // Milestone 56: each side's own best real lineup (3 Singles/4 Doubles)
+  // against the OTHER side's full revealed 6 -- matches how team-
+  // building actually works (you don't know your opponent's Team
+  // Preview pick when building your own roster, but the report's
+  // narrative should describe what would actually be sent out for this
+  // matchup, not the full bench).
+  const userAsThreatsFull = userMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
+  const rivalAsThreatsFull = rivalMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
+  const userLineup = wcPickBestLineup(userMembers, userBuilds, rivalAsThreatsFull, fmt, natures, movesData, typeChart);
+  const rivalLineup = wcPickBestLineup(rivalMembers, rivalBuilds, userAsThreatsFull, fmt, natures, movesData, typeChart);
+  const userLineupMembers = userLineup.lineupMembers;
+  const rivalLineupMembers = rivalLineup.lineupMembers;
+
+  // Each side's own real win condition, read with the OTHER side's real
+  // selected lineup as its real threats list -- the natural "who is this
+  // lineup actually built to fight" framing for a head-to-head breakdown.
+  const rivalAsThreats = rivalLineupMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
+  const userAsThreats = userLineupMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
+  const userStrategy = wcAnalyzeTeamStrategy(userLineupMembers, userBuilds, movesData, rivalAsThreats, typeChart, fmt, "", abilitiesData, null);
+  const rivalStrategy = wcAnalyzeTeamStrategy(rivalLineupMembers, rivalBuilds, movesData, userAsThreats, typeChart, fmt, "", abilitiesData, null);
 
   // ---- The Counter Strategy ----
   const counterStrategyLines = [];
   counterStrategyLines.push(
     userStrategy.archetype === "independent"
-      ? "Your team has no single shared win condition for this rival to specifically break -- it's already playing as six independent attackers."
+      ? "Your selected lineup has no single shared win condition for this rival to specifically break -- it's already playing as independent attackers."
       : `Your win condition: ${wcArchetypeDisplayName(userStrategy.archetype)}${userStrategy.setterName ? `, set by ${userStrategy.setterName}` : ""}.`
   );
   counterStrategyLines.push(
     rivalStrategy.archetype === "independent"
-      ? "This rival has no single shared win condition of its own -- it was synthesized purely to answer your team's real weak points, not to run a matching strategy."
+      ? "This rival's selected lineup has no single shared win condition of its own -- it was synthesized purely to answer your team's real weak points, not to run a matching strategy."
       : `The rival's own real plan: ${wcArchetypeDisplayName(rivalStrategy.archetype)}${rivalStrategy.setterName ? `, set by ${rivalStrategy.setterName}` : ""}. ${rivalStrategy.note}`
   );
 
@@ -4972,10 +5121,13 @@ function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMember
   // "what beats a team running your archetype" (see Part A above); this
   // checks honestly whether the rival's own real built moveset actually
   // carries that literal counter, rather than just asserting it does.
-  const bestMatchupVsUser = wcBestMatchupAnalysis(userMembers, userBuilds, abilitiesData);
+  // Milestone 56: checked against each side's real selected lineup, not
+  // the full 6 -- a counter move sitting on a benched rival member isn't
+  // real pressure for this matchup.
+  const bestMatchupVsUser = wcBestMatchupAnalysis(userLineupMembers, userBuilds, abilitiesData);
   let mechanismLine;
   if (bestMatchupVsUser) {
-    const rivalHasCounterMove = rivalMembers.some((m) => {
+    const rivalHasCounterMove = rivalLineupMembers.some((m) => {
       const build = rivalBuilds[m.slotName || m.name] || rivalBuilds[m.name];
       return build && Array.isArray(build.moves) && bestMatchupVsUser.counters.some((c) => build.moves.includes(c));
     });
@@ -4984,7 +5136,7 @@ function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMember
       : `${bestMatchupVsUser.line}. No rival member's real built moveset happens to carry that exact move, but the rival was still picked specifically to answer your team's real typing and stats (see Rival Roles below), so the pressure is real even without that literal counter.`;
   } else {
     mechanismLine =
-      "Your team doesn't cleanly read as one of the archetypes this app tracks a textbook counter for, so there's no single named mechanism here -- the rival's real edge comes from the per-member matchups below instead.";
+      "Your selected lineup doesn't cleanly read as one of the archetypes this app tracks a textbook counter for, so there's no single named mechanism here -- the rival's real edge comes from the per-member matchups below instead.";
   }
   counterStrategyLines.push(mechanismLine);
 
@@ -4992,27 +5144,37 @@ function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMember
   // findYourRival()'s own reasoning array already ties every pick to a
   // specific real gap in the user's team (that's what the reverse-
   // Dream-Team picker's own per-candidate reasoning notes say) -- reused
-  // verbatim rather than regenerated.
-  const rivalRoleLines = (reasoning || []).slice();
+  // verbatim, index-aligned with rivalMembers same as always, but
+  // Milestone 56 now filters it down to just the rival's real selected
+  // lineup: a benched rival pick's own reasoning line doesn't describe
+  // what's actually on the field for this matchup.
+  const rivalLineupNameSet = new Set(rivalLineup.lineupNames);
+  const rivalRoleLines = (reasoning || []).filter((line, i) => {
+    const member = rivalMembers[i];
+    return Boolean(member && rivalLineupNameSet.has(member.slotName || member.name));
+  });
+  const rivalBenchLines = rivalLineup.benchedNames.map(
+    (name) => `${name} is on the rival's full roster but isn't part of this specific best real lineup against your team.`
+  );
 
   // ---- Type Superiority ----
-  const rivalDefenseGaps = wcDefensiveCoverageGaps(rivalMembers, typeChart);
-  const rivalOffenseGaps = wcOffensiveCoverageGaps(rivalMembers, rivalBuilds, movesData, typeChart);
-  const rivalSharedWeaknesses = wcSharedWeaknessWarnings(rivalMembers, typeChart);
+  const rivalDefenseGaps = wcDefensiveCoverageGaps(rivalLineupMembers, typeChart);
+  const rivalOffenseGaps = wcOffensiveCoverageGaps(rivalLineupMembers, rivalBuilds, movesData, typeChart);
+  const rivalSharedWeaknesses = wcSharedWeaknessWarnings(rivalLineupMembers, typeChart);
 
   const typeSuperiorityLines = [
     rivalOffenseGaps.length === 0
-      ? "This rival's real moveset offensively covers all 18 types between its 6 members -- nothing on your team is safe purely by typing."
-      : `This rival has no real damaging move covering: ${rivalOffenseGaps.join(", ")} -- a teammate of yours resisting or blocking one of those types has a real, typing-based opening against it.`,
+      ? "This rival's selected lineup offensively covers all 18 types -- nothing on your team is safe purely by typing."
+      : `This rival's selected lineup has no real damaging move covering: ${rivalOffenseGaps.join(", ")} -- a teammate of yours resisting or blocking one of those types has a real, typing-based opening against it.`,
     rivalDefenseGaps.length === 0
-      ? "No clean defensive gap in the rival's own typing -- no type hits 2+ of its members with nobody on its side resisting."
-      : `Where this rival is genuinely still beatable: ${rivalDefenseGaps.join(", ")} -- 2 or more of its own members are weak to ${rivalDefenseGaps.length === 1 ? "this type" : "each of these types"} with nobody on its side resisting or blocking it.`,
+      ? "No clean defensive gap in the rival's selected lineup -- no type hits 2+ of its members with nobody on its side resisting."
+      : `Where this rival is genuinely still beatable: ${rivalDefenseGaps.join(", ")} -- 2 or more of its selected lineup are weak to ${rivalDefenseGaps.length === 1 ? "this type" : "each of these types"} with nobody on its side resisting or blocking it.`,
   ];
   // One concrete real example, not a wall of every pair -- same
   // "don't drown the report" cap Part A's Threat Assessment uses.
   if (rivalSharedWeaknesses.length > 0) typeSuperiorityLines.push(rivalSharedWeaknesses[0]);
 
-  return { counterStrategyLines, rivalRoleLines, typeSuperiorityLines };
+  return { counterStrategyLines, rivalRoleLines, typeSuperiorityLines, rivalBenchLines };
 }
 
 
@@ -5038,7 +5200,6 @@ function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMember
  */
 function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData, typeChart, format, abilitiesData, natures) {
   const fmt = wcNormalizeFormat(format);
-  const n = fmt === "singles" ? 3 : 4;
 
   if (!opponentThreats || opponentThreats.length === 0) {
     return {
@@ -5050,7 +5211,6 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
     };
   }
 
-  const names = userMembers.map((m) => m.slotName || m.name);
   const specsByName = {};
   userMembers.forEach((m) => {
     const key = m.slotName || m.name;
@@ -5059,10 +5219,20 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
   const heuristicData = { typeChart, natures, movesData, sheetMode: "closed" };
 
   // ---- The Core Four ----
-  const lineups = wcEnumerateLineups(names, Math.min(n, names.length));
-  const ranked = wcRankLineupsHeuristic(lineups, specsByName, [opponentThreats], heuristicData, null);
-  const coreFourNames = ranked.length ? ranked[0].names : names.slice(0, n);
-  const benchedNames = names.filter((nm) => !coreFourNames.includes(nm));
+  // Milestone 56: built via the shared wcPickBestLineup helper (added
+  // just above Part A, so Team Strategy Report/Rival Breakdown could
+  // reuse the exact same exhaustive-combination search this function
+  // pioneered) -- the same real ranking as before, just no longer
+  // duplicated inline here.
+  const { lineupMembers, benchedNames, lineupNames: coreFourNames } = wcPickBestLineup(
+    userMembers,
+    userBuilds,
+    opponentThreats,
+    fmt,
+    natures,
+    movesData,
+    typeChart
+  );
 
   const avgMatchupScore = (name) => {
     const spec = specsByName[name];
@@ -5159,7 +5329,13 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
     }
   });
 
-  const userStrategy = wcAnalyzeTeamStrategy(userMembers, userBuilds, movesData, opponentThreats, typeChart, fmt, "", abilitiesData, null);
+  // Milestone 56 bug fix: the win condition now reads the actual Core
+  // Four being brought to this matchup (lineupMembers), not the full
+  // revealed 6 -- the old code ran wcAnalyzeTeamStrategy on userMembers
+  // regardless of who made the Core Four, so this line could name a
+  // mechanism the bench was carrying instead of the team actually on
+  // the field.
+  const userStrategy = wcAnalyzeTeamStrategy(lineupMembers, userBuilds, movesData, opponentThreats, typeChart, fmt, "", abilitiesData, null);
   pivotLines.push(
     userStrategy.archetype === "independent"
       ? "No single shared win condition for this team -- close the game out by grinding the real per-member matchup edges above, not one shared mechanism."

@@ -60,66 +60,13 @@ function wcIsMegaEligible(baseName, build, pokemonList) {
   return Boolean(itemDerived && itemDerived.name !== baseName);
 }
 
-/** All C(6,n) lineups of a 6-name roster, as arrays of names. n=4 (Doubles, C(6,4)=15) or n=3 (Singles, C(6,3)=20). */
-function wcEnumerateLineups(chosenSix, n) {
-  const results = [];
-  const combo = [];
-  function recurse(start) {
-    if (combo.length === n) {
-      results.push([...combo]);
-      return;
-    }
-    for (let i = start; i < chosenSix.length; i += 1) {
-      combo.push(chosenSix[i]);
-      recurse(i + 1);
-      combo.pop();
-    }
-  }
-  recurse(0);
-  return results;
-}
-
-/**
- * Cheap ranking pass (no Monte Carlo): scores every candidate lineup by
- * reusing wcScoreMatchup (strategy.js) against every member of every
- * sampled reference team, averaged, plus wcComboSynergyBonus
- * (strategy.js, real logged-battle data — guarded, since it may not be
- * loaded in every context that reuses this ranker) when a combo lookup
- * is supplied. Returns lineups sorted best-first.
- */
-function wcRankLineupsHeuristic(lineupCombos, specsByName, referenceTeams, data, comboLookup) {
-  const { typeChart, natures, movesData, sheetMode } = data;
-  const scored = lineupCombos.map((names) => {
-    let total = 0;
-    let count = 0;
-    referenceTeams.forEach((team) => {
-      team.forEach((threat) => {
-        names.forEach((name) => {
-          const spec = specsByName[name];
-          if (!spec) return;
-          const result = wcScoreMatchup(
-            { name: spec.name, types: spec.types },
-            spec.build,
-            spec.baseStats,
-            { name: threat.name, types: threat.types },
-            threat.baseStats,
-            natures,
-            typeChart,
-            movesData,
-            { sheetMode }
-          );
-          total += result.points;
-          count += 1;
-        });
-      });
-    });
-    const heuristicAvg = count > 0 ? total / count : 0;
-    const synergyBonus = comboLookup && typeof wcComboSynergyBonus === "function" ? wcComboSynergyBonus(names, comboLookup) : 0;
-    return { names, score: heuristicAvg + synergyBonus };
-  });
-  scored.sort((a, b) => b.score - a.score);
-  return scored;
-}
+// wcEnumerateLineups/wcRankLineupsHeuristic moved to strategy.js
+// (Milestone 56) -- they have zero real battle-sim dependency (only
+// wcScoreMatchup/wcComboSynergyBonus, both already in strategy.js), and
+// Team Strategy Report/Rival Breakdown need them on the Builder page's
+// main thread, which never loads this file. strategy.js loads before
+// this file everywhere it matters (this Worker's own importScripts
+// list included), so every call below still resolves exactly as before.
 
 /**
  * Finds Mega-eligible members of a candidate lineup and produces the 1-3

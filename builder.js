@@ -3462,7 +3462,7 @@ function runTeamStrategyReport() {
   }
 
   const threatsWithTypes = getThreatsWithTypes();
-  const report = wcTeamStrategyReport(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
+  const report = wcTeamStrategyReport(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData, data.natures);
   renderTeamStrategyReport(report);
 }
 
@@ -3503,6 +3503,7 @@ function renderTeamStrategyReport(report) {
   addHeading("Core Strategy & Roles");
   addLines([report.winCondition], "meta-analyst-mode-line");
   addLines(report.roleLines, "meta-analyst-mode-line");
+  addLines(report.benchLines, "hint");
 
   addHeading("Threat Assessment");
   addLines(report.threatLines, "meta-analyst-flag");
@@ -4753,7 +4754,8 @@ function runRivalBreakdown() {
     data.moves,
     data.typeChart,
     WINCON_BUILDER_FORMAT,
-    data.abilities
+    data.abilities,
+    data.natures
   );
   renderRivalBreakdownReport(report);
 }
@@ -4806,6 +4808,7 @@ function renderRivalBreakdownReport(report) {
     });
     rivalBreakdownNoteEl.appendChild(list);
   }
+  addLines(report.rivalBenchLines, "hint");
 
   addHeading("Type Superiority");
   addLines(report.typeSuperiorityLines, "meta-analyst-mode-line");
