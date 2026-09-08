@@ -2513,7 +2513,21 @@ A second, related bug turned up in the same pasted output once looked at closely
 `tools/test-battle-plan-report.mjs` gained a `realTiers()` helper that independently reproduces `wcBattlePlanReport`'s own real lead/reserve/bench split (never hardcoded, same discipline as this file's other checks), and three new checks built on it: a real in-battle reserve member with a forced support move correctly gets a pivot line naming it as a Core Four member; a real benched (excluded-from-Core-Four) member with every tracked support signal forced onto it -- the direct regression test for Phoenix's exact bug -- never gets a pivot line at all; and a real reserve member with a forced Turn-1-tracked move (Light Screen) never gets a false Turn 1 claim, surfacing correctly in Pivoting instead. The old check this replaced was itself asserting the buggy behavior (forcing a support move onto an excluded member and expecting a pivot line for it) and failed immediately once the real fix landed, confirming the fix actually changed the reported behavior rather than just the wording. Full `tools/test-*.mjs` suite (39 files) re-run afterward with zero regressions.
 
 
+## Simulated Win Rate results can go stale silently -- now says so out loud (Milestone 59)
+
+Phoenix reported that "Other win rates for this team" wasn't showing her real Trick Room build at all, and looked like it was "focusing on Tailwind" instead -- even though her team has real, tournament-level success running Trick Room, with Whimsicott genuinely carrying it as one of its 4 actual built moves.
+
+**Investigated directly rather than assumed.** `wcBuildGamePlans`/`wcPlanForCombo`/`wcSimulateTeamWinRate` were all re-verified against a real fixture built the same way Auto-build actually builds a team: with Whimsicott's real built move forced to Trick Room and confirmed nowhere else on the roster has a real built Tailwind, the real engine correctly tags 10 of 15 real combos "Trick Room" (three real carry variants), with zero Tailwind labels anywhere -- so the underlying detection logic is correct. Auto-build's own default choice for Whimsicott, confirmed directly, is actually Tailwind -- meaning Phoenix's real team almost certainly had Whimsicott's build edited from Tailwind to Trick Room at some point, and the Simulated Win Rate panel was still showing the numbers computed before that edit.
+
+**The real gap this surfaced.** Simulated Win Rate is deliberately built to NOT silently re-simulate on every edit (a full sweep takes real time, see Milestone 57) -- it keeps the last real result on screen and only marks the Re-run button's own text "Re-run simulation (your team has changed)" once anything changes. That's a reasonable design, but the ONLY place that staleness was visible was the button label, sitting below a full hero card, an average win rate, and a whole dropdown of numbers that otherwise look completely current -- easy to miss, and exactly what happened here.
+
+**The fix.** A visible warning now renders directly on the results themselves -- above the hero card, first thing in the panel -- whenever the team has changed since these numbers were computed: "Your team has changed since these numbers were computed -- they still reflect your PREVIOUS build. Click Re-run simulation below to see real results for your current build." No more hunting for a one-word difference in a button's label to know the numbers on screen might not be real any more.
+
+Verified with a real DOM smoke test (the actual extracted render function, run against a real simulated result in a headless document): the note is absent when the result is fresh, present and reads correctly when it's stale, and renders before the hero card so it's the first thing seen. Full `tools/test-*.mjs` suite (39 files) re-run afterward with zero regressions -- this milestone touched only rendering/CSS, no engine logic changed.
+
+
 ## Running it
+
 
 
 

@@ -1758,6 +1758,20 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-style: italic;
 }
 
+/* Milestone 59: a visible warning directly on the results themselves
+   when the team has changed since these numbers were computed -- the
+   only previous signal was the Re-run button's own text below a full
+   hero card + dropdown of numbers that otherwise look current. */
+.simwinrate-stale-note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--critical, #C0463B);
+  background: var(--surface-muted);
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
 .simwinrate-lineup-note {
   margin: 4px 0 16px;
 }

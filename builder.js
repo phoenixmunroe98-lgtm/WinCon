@@ -4047,6 +4047,25 @@ function renderSimulatedWinRateResult(result) {
   const combos = result.combos || [];
   if (combos.length === 0) return;
 
+  // Milestone 59 (Phoenix: her real team's Trick Room build stopped
+  // showing up in "Other win rates for this team" and everything looked
+  // Tailwind-focused instead -- root cause turned out to be exactly what
+  // this note now says out loud: she'd edited a build since these
+  // numbers were computed, and Simulated Win Rate deliberately keeps
+  // showing the last real result rather than silently re-simulating (see
+  // invalidateSimulatedWinRate()'s own doc comment) -- previously the
+  // ONLY signal of that was the Re-run button's own text, easy to miss
+  // below a full hero card and dropdown of numbers that LOOK current.
+  // This banner puts the same honest warning directly on the results
+  // themselves, not just buried in a button label.
+  if (simWinRateNeedsRerun) {
+    const staleNote = document.createElement("p");
+    staleNote.className = "simwinrate-stale-note";
+    staleNote.textContent =
+      "Your team has changed since these numbers were computed -- they still reflect your PREVIOUS build. Click Re-run simulation below to see real results for your current build.";
+    simwinrateScenariosEl.appendChild(staleNote);
+  }
+
   const [best, ...otherCombos] = combos;
 
   const lineupNote = document.createElement("p");
