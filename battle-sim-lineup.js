@@ -393,12 +393,52 @@ function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abiliti
  * stronger in simulated battle. Returns a no-op (always 0) function if
  * this plan has no carry role assigned (the "Standard" fallback plan).
  */
-function wcCarryPlanBonus(plan, specsByName, typeChart) {
+/**
+ * Milestone 52 (Phoenix: "the use of reflect and light screen enable
+ * staraptor and incineroar to be able to have more survivability") --
+ * does any member of this lineup (checked against its REAL BUILT
+ * moveset, spec.build.moves -- not mere learnability, since this runs
+ * post-build during the actual Simulated Win Rate search) actually run
+ * Light Screen or Reflect? Real screens protect the whole side, not just
+ * the setter, so this checks every name in the lineup, not just non-carry
+ * teammates.
+ */
+function wcRealScreensSetterPresent(names, specsByName) {
+  return names.some((name) => {
+    const spec = specsByName[name];
+    return Boolean(
+      spec && spec.build && spec.build.moves && (spec.build.moves.includes("Light Screen") || spec.build.moves.includes("Reflect"))
+    );
+  });
+}
+
+/**
+ * Real damage reduction from an active Light Screen/Reflect -- reused
+ * (not re-derived) from battle-sim-engine.js's own wcScreensModifierFor,
+ * which the actual battle simulation already applies: 0.5x incoming
+ * damage in Singles, 0.66x in Doubles. Taking less damage is mechanically
+ * the same as having more effective bulk, so 1/modifier is exactly how
+ * much a teammate's real bulk score should scale up when a genuine
+ * screens-setter is in the same lineup -- not an arbitrary bonus number.
+ */
+function wcScreensSurvivabilityMultiplier(format) {
+  return format === "singles" ? 2 : 1 / 0.66;
+}
+
+function wcCarryPlanBonus(plan, specsByName, typeChart, format) {
   const carryName = Object.keys(plan.roleByName).find((name) => plan.roleByName[name] === "carry");
   const carrySpec = carryName && specsByName[carryName];
   if (!carrySpec) return () => 0;
 
   return (names) => {
+    // Milestone 52: screens protect everyone on the field, including the
+    // carry itself, so the full lineup (not just this scoring pass's
+    // non-carry names) is checked for a real screens-setter.
+    const fullLineup = [carryName, ...names];
+    const bulkMultiplier = wcRealScreensSetterPresent(fullLineup, specsByName)
+      ? wcScreensSurvivabilityMultiplier(format || "doubles")
+      : 1;
+
     let bonus = 0;
     names.forEach((name) => {
       if (name === carryName) return;
@@ -423,7 +463,9 @@ function wcCarryPlanBonus(plan, specsByName, typeChart) {
       // independently of the carry's own typing. Weighted smaller than
       // type-cover (0.08) and stat-cover (0.15) since it's a
       // supplementary signal, not a replacement for either.
-      bonus += wcSurvivabilityBonus(spec.baseStats) * 0.06;
+      // Milestone 52: bulkMultiplier folds in a real screens-setter's
+      // effect on this teammate's effective bulk, computed above.
+      bonus += wcSurvivabilityBonus(spec.baseStats, bulkMultiplier) * 0.06;
     });
     return bonus;
   };
@@ -511,7 +553,7 @@ function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseSta
     specsByName[name] = roleWeights ? { ...base, roleWeights } : base;
   });
 
-  const planBonusFn = wcCarryPlanBonus(plan, specsByName, simData.typeChart);
+  const planBonusFn = wcCarryPlanBonus(plan, specsByName, simData.typeChart, format);
   const bestLineup = wcSelectBestLineupBySuccessiveHalving(orderedLineups, specsByName, oppPool, format, simData, comboLookup, undefined, planBonusFn);
 
   // wcBuildMegaScenarios rebuilds specs from scratch (it needs to force

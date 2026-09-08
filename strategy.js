@@ -2385,8 +2385,17 @@ function wcBulkPoints(baseStats) {
 // were exceptional.
 const WC_GENUINE_WALL_BULK_THRESHOLD = 7475;
 const WC_MEDIAN_BULK_THRESHOLD = 6150;
-function wcSurvivabilityBonus(baseStats) {
-  const pts = wcBulkPoints(baseStats);
+function wcSurvivabilityBonus(baseStats, bulkMultiplier) {
+  // Milestone 52 (Phoenix: "the use of reflect and light screen enable
+  // staraptor and incineroar to be able to have more survivability") --
+  // bulkMultiplier is optional and defaults to 1, so every Milestone 51
+  // call site keeps working unchanged. A real screens-setter in the
+  // lineup scales this UP before the tier thresholds are applied (not
+  // after), so a genuinely fragile teammate whose own bulk alone scores 0
+  // can still cross into a real tier once screens are accounted for --
+  // see wcCarryPlanBonus (battle-sim-lineup.js) for where the multiplier
+  // itself is derived and passed in.
+  const pts = wcBulkPoints(baseStats) * (bulkMultiplier || 1);
   if (pts >= WC_GENUINE_WALL_BULK_THRESHOLD) return 2;
   if (pts >= WC_MEDIAN_BULK_THRESHOLD) return 1;
   return 0;
@@ -3502,6 +3511,50 @@ function wcArchetypeBeneficiaryScore(candidate, archetypeType, abilitiesData) {
 const WC_ARCHETYPE_SETTER_WEIGHT = 1;
 const WC_ARCHETYPE_BENEFICIARY_WEIGHT = 1.5;
 
+// Milestone 52 (Phoenix: "this type of play is to be called an assisting
+// pokemon... including but not limited too: Sinistcha, Primarina,
+// girafarig, peliper, and similar pokemon") -- a small, curated set of
+// real abilities whose data/abilities.json description explicitly helps
+// a TEAMMATE, not just the holder: Hospitality heals an ally's HP on
+// switch-in, Sweet Veil/Aroma Veil protect the whole side from sleep/
+// mental-status moves, Healer can cure an adjacent ally's status each
+// turn, Receiver copies a fainted ally's ability. Genuinely rare (5/298
+// = 1.7% of the roster, confirmed against the real data) and, unlike
+// every move-based signal above (screens/redirect/Wide Guard/Quick
+// Guard/Safeguard/terrain/weather, all already scored by
+// wcArchetypeSynergyBonus below), has no existing home anywhere in this
+// file -- those are entirely move- and weather-ability-driven and never
+// look at abilities.json's own ally-support text. A "count how many
+// support-flavored traits this Pokemon has" version of this trait was
+// tried and rejected: Helping Hand (68.5% of the roster), screens
+// (43.0%), and terrain (30.2%) are all too common individually to gate
+// on, and OR-ing several "individually rare" categories together (even
+// ones already treated as real standalone signals elsewhere in this
+// file, like Safeguard at 22.8%) ends up flagging 51% of the roster --
+// including Steelix and Sceptile, exactly the two Pokemon Phoenix
+// considers the non-support, offense/coverage picks on her own team.
+// This curated ability list is the one piece that's both genuinely rare
+// AND genuinely new, so it's the only new NUMERIC signal added here --
+// Primarina/Pelipper/Farigiraf's real screens/Wide Guard/terrain kits
+// are already correctly scored by wcArchetypeSynergyBonus, just never
+// named "Assisting Pokemon" until wcArchetypeSynergyReasoningNote below.
+const WINCON_SUPPORT_ABILITIES = new Set(["Hospitality", "Sweet Veil", "Aroma Veil", "Healer", "Receiver"]);
+const WINCON_SUPPORT_ABILITY_DESCRIPTIONS = {
+  Hospitality: "heals an ally's HP the instant it switches in",
+  "Sweet Veil": "protects itself and every ally from sleep",
+  "Aroma Veil": "protects itself and every ally from mental-status moves like Taunt and Encore",
+  Healer: "has a real chance to cure an adjacent ally's status condition each turn",
+  Receiver: "copies a fainted ally's ability, keeping its value on the field",
+};
+
+/** Does this Pokemon's real, sourced ability appear on the curated support-ability list above? */
+function wcHasRealSupportAbility(name, abilitiesData) {
+  const ability = wcAbilityOf(abilitiesData, name);
+  return Boolean(ability && WINCON_SUPPORT_ABILITIES.has(ability));
+}
+
+const WC_SUPPORT_ABILITY_WEIGHT = 1;
+
 /**
  * The scoring hook wired into wcDreamTeamCandidateScore below: once a
  * shared strategy is already forming on the team, a candidate that
@@ -3565,9 +3618,28 @@ function wcArchetypeSynergyReasoningNote(candidate, team, format, abilitiesData)
   }
   const ownSignals = wcArchetypeSignalsFor(candidate, format, abilitiesData);
   if (ownSignals.length > 0) {
-    return ` ${candidate.name} can also set up ${ownSignals.map(wcArchetypeDisplayName).join("/")} for this team, giving the rest of the picks a real shared strategy to build around.`;
+    // Milestone 52 (Phoenix's own term): naming this out loud is the
+    // point -- the underlying signal/score here is unchanged from
+    // Milestone 39, only the wording now says what Phoenix asked for.
+    return ` ${candidate.name} can also set up ${ownSignals.map(wcArchetypeDisplayName).join("/")} for this team -- a real Assisting Pokemon, giving the rest of the picks a real shared strategy to build around.`;
   }
   return "";
+}
+
+/**
+ * Milestone 52 (Phoenix: "this type of play is to be called an assisting
+ * pokemon"): names the one genuinely new support signal above -- a
+ * curated real support ABILITY (WINCON_SUPPORT_ABILITIES) -- the same way
+ * wcArchetypeSynergyReasoningNote already names the existing move-based
+ * signals. Appended alongside that note at every wcPickDreamTeam
+ * reasoning site rather than folded into it, since this fires on a
+ * completely separate condition (ability, not team-archetype state) and
+ * can be true at the same time as either of that note's branches.
+ */
+function wcSupportAbilityReasoningNote(candidate, abilitiesData) {
+  const ability = wcAbilityOf(abilitiesData, candidate.name);
+  if (!ability || !WINCON_SUPPORT_ABILITIES.has(ability)) return "";
+  return ` ${candidate.name}'s ${ability} is a real Assisting Pokemon trait: it ${WINCON_SUPPORT_ABILITY_DESCRIPTIONS[ability]}, team-wide support beyond its own raw stats.`;
 }
 
 /**
@@ -3629,10 +3701,18 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
   // every other term here -- never overrides the coverage/matchup scoring
   // that already dominates this function.
   const teamStyleBonus = wcTeamStyleSynergyBonus(candidate, team, options.notes, options.abilitiesData);
+  // Milestone 52 (Phoenix's "Assisting Pokemon" request): a small, rare
+  // (1.7% of the roster) standalone signal for a curated real support
+  // ABILITY (Hospitality/Sweet Veil/Aroma Veil/Healer/Receiver) -- the
+  // one piece of this request nothing above already scores. Deliberately
+  // NOT re-scoring the move-based signals (screens/Wide Guard/terrain/
+  // etc.) here, since archetypeBonus just above already credits those;
+  // adding a second bonus for the same signal would double-count it.
+  const supportAbilityBonus = wcHasRealSupportAbility(candidate.name, options.abilitiesData) ? WC_SUPPORT_ABILITY_WEIGHT : 0;
   const softPreferenceBonus = wcNotesSoftPreferenceBonus(candidate.name, options.notes);
   const spreadSafetyBonus = wcSpreadMoveSafetyBonus(candidate, team, options.format || "doubles", options.movesData, typeChart);
   const experienceDiversityBonus = wcExperienceDiversityBonus(candidate.name, options.experienceLookup);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + teamStyleBonus + softPreferenceBonus + spreadSafetyBonus + experienceDiversityBonus;
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + teamStyleBonus + supportAbilityBonus + softPreferenceBonus + spreadSafetyBonus + experienceDiversityBonus;
 }
 
 /**
@@ -3981,6 +4061,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     if (idx === -1) return;
     const member = remaining[idx];
     const archetypeNote = wcArchetypeSynergyReasoningNote(member, team, format || "doubles", abilitiesData);
+    const supportAbilityNote = wcSupportAbilityReasoningNote(member, abilitiesData);
     team.push(member);
     remaining.splice(idx, 1);
     reasoning.push(
@@ -3990,7 +4071,8 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
         wcMetaUsageReasoningNote(name, metaUsage) +
         wcLiveMetaReasoningNote(name, liveMeta) +
         wcMetaBaselineReasoningNote(name, metaBaseline, format || "doubles") +
-        archetypeNote
+        archetypeNote +
+        supportAbilityNote
     );
   });
 
@@ -4071,6 +4153,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     const best = bestFromRemaining((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
     if (!best) break;
     const archetypeNote = wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData);
+    const supportAbilityNote = wcSupportAbilityReasoningNote(best, abilitiesData);
     team.push(best);
     guaranteedMegaNames.push(best.name);
     remaining.splice(remaining.indexOf(best), 1);
@@ -4079,7 +4162,8 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
         wcMetaUsageReasoningNote(best.name, metaUsage) +
         wcLiveMetaReasoningNote(best.name, liveMeta) +
         wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles") +
-        archetypeNote
+        archetypeNote +
+        supportAbilityNote
     );
   }
 
@@ -4092,6 +4176,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
       wcLiveMetaReasoningNote(best.name, liveMeta) +
       wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles") +
       wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData) +
+      wcSupportAbilityReasoningNote(best, abilitiesData) +
       wcSpreadMoveSafetyReasoningNote(best, team, format || "doubles", movesData, typeChart);
     team.push(best);
     remaining.splice(remaining.indexOf(best), 1);

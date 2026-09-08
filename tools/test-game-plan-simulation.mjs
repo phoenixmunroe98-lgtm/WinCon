@@ -581,4 +581,77 @@ check("wcCarryPlanBonus now includes a real survivability term, weighted smaller
   assert.ok(Math.abs(steelixOnly - 0.16) < 1e-9, `expected Steelix-only bonus ~0.16, got ${steelixOnly}`);
 });
 
+// ---------------------------------------------------------------------------
+// 9. Milestone 52: screens-aware survivability (Phoenix: "the use of
+// reflect and light screen enable staraptor and incineroar to be able to
+// have more survivability"). wcSurvivabilityBonus now takes an optional
+// bulkMultiplier, and wcCarryPlanBonus derives a real one (not an
+// arbitrary bonus) from the same 0.5x singles / 0.66x doubles incoming-
+// damage reduction battle-sim-engine.js's wcScreensModifierFor already
+// models -- taking less damage is mechanically the same as having more
+// effective bulk.
+// ---------------------------------------------------------------------------
+
+check("wcSurvivabilityBonus's new bulkMultiplier defaults to 1 (no behavior change for every Milestone 51 call site)", () => {
+  const steelixStats = { hp: 75, def: 200, spd: 65 };
+  assert.equal(context.wcSurvivabilityBonus(steelixStats), 0);
+  assert.equal(context.wcSurvivabilityBonus(steelixStats, 1), 0);
+});
+
+check("wcSurvivabilityBonus's bulkMultiplier can genuinely flip a fragile teammate into a real bulk tier -- Steelix's own 4875 bulk points (0 credit alone) cross the real p50 threshold (6150) once a real Doubles screens multiplier (1/0.66) is applied", () => {
+  const steelixStats = { hp: 75, def: 200, spd: 65 };
+  const doublesMultiplier = context.wcScreensSurvivabilityMultiplier("doubles");
+  const singlesMultiplier = context.wcScreensSurvivabilityMultiplier("singles");
+  assert.ok(Math.abs(doublesMultiplier - 1 / 0.66) < 1e-9);
+  assert.equal(singlesMultiplier, 2);
+  // 4875 * (1/0.66) = 7386.36... -- clears the real p50 threshold (6150)
+  // but not the real p75 "genuine wall" threshold (7475): a real, honest
+  // partial credit, not an inflated free pass to top-tier bulk.
+  assert.equal(context.wcSurvivabilityBonus(steelixStats, doublesMultiplier), 1);
+  // 4875 * 2 = 9750 -- clears even the real p75 threshold in Singles,
+  // where screens block a full 50% of incoming damage instead of 34%.
+  assert.equal(context.wcSurvivabilityBonus(steelixStats, singlesMultiplier), 2);
+});
+
+check("wcRealScreensSetterPresent finds a real built Light Screen/Reflect anywhere in the lineup, and is false with no build or an unrelated moveset", () => {
+  const specsByName = {
+    Primarina: { build: { moves: ["Light Screen", "Moonblast", "Helping Hand", "Protect"] } },
+    Farigiraf: { build: { moves: ["Reflect", "Psychic", "Trick Room", "Protect"] } },
+    Steelix: { build: { moves: ["Rock Slide", "Earthquake", "Heavy Slam", "Wide Guard"] } },
+    NoBuild: {},
+  };
+  assert.equal(context.wcRealScreensSetterPresent(["Primarina", "Steelix"], specsByName), true);
+  assert.equal(context.wcRealScreensSetterPresent(["Farigiraf", "Steelix"], specsByName), true);
+  assert.equal(context.wcRealScreensSetterPresent(["Steelix", "NoBuild"], specsByName), false);
+  assert.equal(context.wcRealScreensSetterPresent(["Missing"], specsByName), false);
+});
+
+check("wcCarryPlanBonus now boosts a teammate's real survivability term specifically when a real screens-setter is anywhere in the lineup (including the carry itself)", () => {
+  const carrySpecNoScreens = { types: ["Fire", "Flying"], baseStats: { hp: 78, atk: 104, def: 78, spa: 159, spd: 115, spe: 100 }, ability: null };
+  const carrySpecWithScreens = { ...carrySpecNoScreens, build: { moves: ["Light Screen", "Flamethrower", "Protect", "Dragon Pulse"] } };
+  const steelixSpec = { name: "Steelix", types: ["Steel", "Ground"], baseStats: { hp: 75, atk: 85, def: 200, spa: 55, spd: 65, spe: 30 }, ability: "Sturdy" };
+
+  const plan = { roleByName: { Carry: "carry", Steelix: "support" } };
+
+  const specsWithoutScreens = { Carry: carrySpecNoScreens, Steelix: steelixSpec };
+  const bonusWithoutScreens = context.wcCarryPlanBonus(plan, specsWithoutScreens, typeChart, "doubles")(["Carry", "Steelix"]);
+  // Same as the Milestone 51 test above: 0.16 type-cover + 0 stat-cover + 0 survivability (Steelix's 4875 bulk points alone don't clear the real p50 threshold).
+  assert.ok(Math.abs(bonusWithoutScreens - 0.16) < 1e-9, `expected 0.16 with no screens-setter present, got ${bonusWithoutScreens}`);
+
+  const specsWithScreens = { Carry: carrySpecWithScreens, Steelix: steelixSpec };
+  const bonusWithScreensDoubles = context.wcCarryPlanBonus(plan, specsWithScreens, typeChart, "doubles")(["Carry", "Steelix"]);
+  // Now the carry's own real, built Light Screen is on the field: Steelix's
+  // survivability term scales up by the real Doubles multiplier (1/0.66),
+  // crossing into the p50 tier -- 0.16 type-cover + 1*0.06 survivability = 0.22.
+  assert.ok(Math.abs(bonusWithScreensDoubles - 0.22) < 1e-9, `expected ~0.22 with a real Doubles screens-setter present, got ${bonusWithScreensDoubles}`);
+
+  const bonusWithScreensSingles = context.wcCarryPlanBonus(plan, specsWithScreens, typeChart, "singles")(["Carry", "Steelix"]);
+  // In Singles, screens block a full 50% of incoming damage, so Steelix's
+  // 4875*2=9750 clears even the real p75 "genuine wall" threshold -- 0.16
+  // type-cover + 2*0.06 survivability = 0.28.
+  assert.ok(Math.abs(bonusWithScreensSingles - 0.28) < 1e-9, `expected ~0.28 with a real Singles screens-setter present, got ${bonusWithScreensSingles}`);
+
+  assert.ok(bonusWithScreensDoubles > bonusWithoutScreens, "a real screens-setter in the lineup must raise Steelix's real survivability credit, not leave it unchanged");
+});
+
 console.log(`\nAll ${checksRun} checks passed.`);
