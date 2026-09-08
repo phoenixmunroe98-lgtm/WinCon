@@ -335,13 +335,16 @@ hand-edited afterward.
 **It's not live usage data.** The 16 Pokémon it checks your team against
 (`data/starter-threats.json`) are a hand-picked reference set — strong,
 recognizable Pokémon spanning different types and roles — not the actual
-current Reg M-B Doubles meta. There's a free, no-auth API
+current Reg M-C Doubles meta. There's a free, no-auth API
 ([championsbattledata.com](https://championsbattledata.com/api_guide))
-that has the real thing, but fetching it hit a fetch-tool permission
-timeout in the environment this was built in rather than a real dead end
-— it's worth another attempt (or a plain browser fetch) before assuming
-it doesn't work, and swapping the starter list for it is the highest-value
-next change to this feature specifically.
+that has the real thing — fetching it hit a fetch-tool permission timeout
+the first time this was attempted, not a real dead end, and Milestone 53
+confirmed that: it's now genuinely integrated, feeding real current Stat
+Point spreads into Auto-build (see that section below). Swapping THIS
+feature's own 16-Pokémon starter list for the same source's real usage
+data is still the highest-value next change here specifically — Milestone
+53 deliberately scoped to Stat Points only and left this swap for a
+follow-up.
 
 **The stat math is a well-corroborated approximation, not an officially
 sourced one.** Champions replaced EVs and IVs entirely with its own 0–66
@@ -2414,6 +2417,25 @@ A naive "count how many support-flavored traits this Pokemon has" version of thi
 10 new checks added (`tools/test-assisting-pokemon.mjs`, new) plus 4 more in `tools/test-game-plan-simulation.mjs` (now 29), all real species/values independently verified against the data files first. All 34 test files green.
 
 
+## Real, current Stat Point spreads from championsbattledata.com (Milestone 53)
+
+Phoenix asked WinCon to pull in current-meta information from four named sources: "Pikalytics, LabMaus, Silph Scope and limitless." Researching all four turned up an honest split. **Limitless was already fully integrated** (Milestone 34's pipeline — `api/cron-limitless-sync.js`, `live_tier_stats`/`live_meta_builds`/`live_reference_teams`, wired into the threat list, Dream Team/Your Rival scoring, and Auto-Mega opt-in) — nothing new to build there. **Pikalytics, Silph Scope, and LabMaus have no free, scriptable public API**: Pikalytics' team-builder backend isn't documented as public, Silph Scope's usage page is a client-rendered SPA with no documented endpoint, and LabMaus is Patreon-hosted video/write-up analysis, not structured data. All three stay informational, browse-it-yourself sources — this milestone doesn't pretend otherwise, and doesn't build a scraper against an undocumented backend.
+
+**A fifth source turned up instead, and it's a genuine find.** `championsbattledata.com` is the free, no-auth, CORS-enabled API this README's own "Two honesty notes on the Matchup Score" already flagged — a previous attempt hit a fetch-tool permission timeout in this environment, not a real dead end. It works: real, current Regulation M-C data (season "M5", updated daily), confirmed live. Its `/api` index endpoint returns each of the roster's ~236 species' current top move/held item/teammate/nature/ability, per format, already pre-aggregated with a real percentage showing how many logged builds agree — and, critically, a real **Stat Point spread** (`hp_points`/`attack_points`/`defense_points`/`sp_atk_points`/`sp_def_points`/`speed_points`, 0–32 each) per species, in exactly WinCon's own Stat Point system. That's something Limitless's decklist data structurally cannot provide — its real decklists stop at species/item/ability/moves/nature/tera (confirmed by Milestone 34's own research, documented in `0007_live_limitless_meta.sql`'s header), no stat allocation at all, which is exactly why `live_reference_teams` was never wired into Simulated Win Rate ("Task 5, deferred until/unless a stat-spread source is ever found"). A real stat-spread source has now turned up, from a different site than expected.
+
+**The pipeline.** `api/cron-championsdata-sync.js` (new) mirrors `api/cron-limitless-sync.js`'s shape — plain Node, zero dependencies, `?dryRun=1` mode that computes and returns what it would write without writing, real (non-dry-run) runs gated behind the same `CRON_SECRET` the Limitless job already uses, fail-soft error handling logged to `live_pipeline_runs` — but is simpler by construction: since the source's own `/api` index already returns every species' current top-1 per category pre-aggregated, this is one fetch, one transform, one upsert batch, with no per-tournament folding math needed the way Limitless's raw standings require. Runs daily via `vercel.json`'s second cron entry, offset an hour from Limitless's own job. Writes into a new table, `live_champions_stats` (`supabase/migrations/0009_live_champions_stats.sql`) — one row per (species, format, category, rank) — rather than being forced into `live_meta_builds`' shape, because this source's data is six independent per-category top-1 rows, not a single build-signature composite the way a real decklist is. `live_pipeline_runs` picked up a `source` column so both pipelines log into the same observability table (existing Limitless rows backfilled to `'limitless'`).
+
+**The one consumer: real Stat Points in Auto-build.** `wcFetchLiveChampionsStats(format)` (`teams.js`) fetches the table — notably *not* Doubles-only the way most `live_*` fetches are, since this source genuinely has real Singles data too — feeding a new `liveChampionsStatsLookup` wired into the Builder's auth lifecycle (`builder.js`) exactly where `liveMetaBuildsLookup` already is. `wcRealStatPointSpreadFor(species, format, liveChampionsStats)` (`strategy.js`, next to `wcPickSP`) returns the real spread only once its percentage clears `WC_CHAMPIONS_STAT_SPREAD_MIN_PERCENT` — 25, the real computed median (p50) top-spread percentage across all 298 species' Doubles data (p25=17.1%, p50=24.8%, p75=33.9%, min=5.4%, max=65.9%, computed live during this milestone's research). This source exposes no raw sample count anywhere, unlike Limitless's `WC_META_USAGE_MIN_SAMPLE` — a percentage-based floor was the only option, and it's the real median rather than a hand-picked number. Inside `wcGenerateBuild`, this slots into the exact same trust hierarchy every other real-data signal in this function already follows: a locked build's own Stat Points (a person set them permanently) still wins, then a hand-curated `WINCON_META_KNOWN_SETS` entry (a person verified it), then this live, automated spread, and only then the `wcPickSP` heuristic guess as the honest last resort.
+
+**Live-verified, this session, against today's real data (Doubles, season M5):** Sceptile's real top spread is HP2/SpA32/Spe32 at 61.7% agreement — well clear of the 25% floor — and Auto-build now hands out that exact spread for a base Sceptile build with nothing curated for it. Staraptor's real top spread sits at 17.8%, below the floor — too many real players disagree on it for it to stand in as *the* default — so Auto-build correctly falls back to the `wcPickSP` heuristic instead of forcing an unconfident live number. Garchomp's real spread (HP2/Atk32/Spe32 at 38.6%) matches its existing hand-curated `WINCON_META_KNOWN_SETS` entry almost exactly — a good sign the earlier curation work was already accurate — and the curated entry still wins, unchanged, since a person verified it.
+
+**The honesty caveat: Mega-form conflation.** `championsbattledata.com`'s index has no separate top-level entry per Mega form — a species' aggregate battle data mixes together base *and* Mega usage under one species name. Real, directly-observed example from this session: Abomasnow's aggregate is dominated by real Mega Abomasnow play (81.3% of logged builds hold "Abomasite"), so trusting that aggregate for a *base-form* Abomasnow build would risk handing out a spread tuned for the wrong stat line entirely. `wcRealStatPointSpreadFor` is deliberately restricted to base-form builds only (`wcGenerateBuild`'s existing `isBaseForm` guard, keyed by `pokemon.name` rather than the Mega-resolved `effectivePokemon.name`) — the same guard, and the same underlying reason, `opts.lockedBuild` already uses. A build that auto-opts into a Mega form never receives a live spread at all, confirmed by a dedicated test.
+
+**Task 5 stays deferred, on purpose.** This milestone deliberately does not attempt to cross-reference `live_champions_stats` with Limitless's `live_reference_teams` to produce genuinely battle-ready Simulated Win Rate opponents (real decklist *and* real stat spread, combined) — that's the natural next step once both sources exist side by side, but it's a bigger feature (species-name matching across two independently-shaped tables, plus deciding how to handle a species present in one but not the other) that deserves its own milestone rather than riding along on this one.
+
+18 new checks added (`tools/test-championsdata-pipeline.mjs`, new): pure transform tests for the pipeline's `rowsFromIndex`/`rowsFromSpeciesTop` against a fixture shaped like a real `/api` index response, end-to-end handler smoke tests (dry-run reporting, auth gating, a fail-soft source-fetch failure), `wcRealStatPointSpreadFor`'s confidence-threshold behavior at/below/above the real 25% floor, and `wcGenerateBuild`'s integration — a confident live spread applies, an unconfident one falls back, a locked build and a curated set both still outrank it, and the Mega-conflation guard holds. Full `tools/test-*.mjs` suite (35 files now, all green — the new test file plus Milestone 52's existing 34) re-run afterward to confirm zero regressions from the new trailing parameters threaded through `wcGenerateTeamBuilds`/`wcPickDreamTeamOptions`/`wcGenerateBuild`.
+
+
 ## Running it
 
 
@@ -2468,15 +2490,25 @@ somewhere new:
 
 ## What's next (see the WinCon Blueprint for the full roadmap)
 
-- Swap `starter-threats.json`'s hand-picked reference list for real usage
-  data — Milestone 28 made a start on this from the inside (real, logged,
-  cross-user battle results now nudge Dream Team/Auto-build/Auto-build
-  strategy once enough games exist per species — see that section above),
-  but it's a supplement, not the swap itself, and stays quiet until real
-  usage accumulates. Pulling in an external source like
-  championsbattledata.com remains the faster way to get a genuinely
-  current picture from day one; see the honesty note earlier in this
-  file for why that attempt didn't land yet.
+- Swap `starter-threats.json`'s hand-picked 16-Pokémon reference list for
+  real usage data. Milestone 28 made a start on this from the inside
+  (real, logged, cross-user battle results now nudge Dream Team/Auto-
+  build/Auto-build strategy once enough games exist per species — see
+  that section above), but it's a supplement, not the swap itself, and
+  stays quiet until real usage accumulates. Milestone 53 got
+  championsbattledata.com itself genuinely working (real Stat Point
+  spreads now feed Auto-build), but deliberately scoped to that one
+  signal — its top move/item/teammate/ability data, the actual inputs
+  this Matchup Score's starter list would need, is still sitting there
+  unused for this specific feature.
+- Pair Milestone 53's real Stat Point spreads (`live_champions_stats`)
+  with Limitless's real decklists (`live_reference_teams`, Milestone 34)
+  to finally produce genuinely battle-ready Simulated Win Rate opponents
+  — a real decklist *and* a real stat spread together, not either alone.
+  Deliberately deferred out of Milestone 53 itself ("Task 5" in that
+  section above) since it needs species-name matching across two
+  independently-shaped tables and a real decision about species present
+  in one source but not the other.
 - ~~An account (Supabase) so progress and saved teams sync across
   devices~~ — done as of Milestone 22: sign in on any device and your
   saved teams (including their logged win/loss record) show up there too.

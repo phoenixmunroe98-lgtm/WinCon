@@ -270,6 +270,49 @@ function wcPickSP(primaryOffenseKey, role, baseStats) {
   return sp;
 }
 
+/**
+ * Milestone 53 (Phoenix: "Pikalytics, LabMaus, Silph Scope and limitless
+ * ... get information on the current meta"): the real, computed
+ * confidence floor for trusting championsbattledata.com's real top Stat
+ * Point spread over wcPickSP's heuristic guess. That source exposes only
+ * a percentage per top pick, never a raw sample count (unlike
+ * WC_META_USAGE_MIN_SAMPLE elsewhere in this file), so this floor is
+ * percentage-based: the real median (p50) top-spread percentage across
+ * all 298 species' Doubles data, computed live during this milestone's
+ * research (p25=17.1%, p50=24.8%, p75=33.9%, min=5.4%, max=65.9% --
+ * rounded to 25 here). Below this, too many real players disagree on the
+ * spread for it to stand in as THE default the way a genuinely dominant
+ * one should.
+ */
+const WC_CHAMPIONS_STAT_SPREAD_MIN_PERCENT = 25;
+
+/**
+ * Real, currently-played Stat Points for `species` in `format`, from
+ * live_champions_stats (see wcFetchLiveChampionsStats, teams.js, and
+ * api/cron-championsdata-sync.js for where this data actually comes
+ * from) -- null whenever there's nothing confident enough to offer yet,
+ * same silent-defer contract as wcLiveMegaSetFor just above. Returns the
+ * exact same {hp, attack, defense, sp_attack, sp_defense, speed} shape
+ * wcPickSP does, so callers never need to know which one they got.
+ *
+ * Deliberately keyed by the BASE species name only, and only ever
+ * consulted for a build's base (non-Mega) form -- see wcGenerateBuild's
+ * own isBaseForm guard on this. championsbattledata.com's index has no
+ * separate entry per Mega form; a species' aggregate mixes together
+ * however much of its real logged data was actually its Mega form (for a
+ * species whose Mega is heavily favored, like Abomasnow, that aggregate
+ * is mostly describing the MEGA's real spread under the BASE species'
+ * name) -- trusting it for a Mega build specifically would risk handing
+ * out a spread tuned for the wrong stat line entirely, the same honest
+ * reason a locked build (also base-species-keyed) needs the same guard.
+ */
+function wcRealStatPointSpreadFor(species, format, liveChampionsStats) {
+  const entry = liveChampionsStats && liveChampionsStats[species] && liveChampionsStats[species].stat_points;
+  if (!entry || !entry.spPoints) return null;
+  if (entry.percentageValue == null || entry.percentageValue < WC_CHAMPIONS_STAT_SPREAD_MIN_PERCENT) return null;
+  return { ...entry.spPoints };
+}
+
 // Ordered candidate pools per role/format/offensive-category — best fit
 // first. Pokémon Champions enforces the same Item Clause real VGC/Singles
 // do: no two Pokémon on one team can hold the same item. Auto-generate
@@ -926,11 +969,21 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
   const nature = opts.lockedBuild
     ? opts.lockedBuild.nature
     : (metaSet && metaSet.nature) || wcPickNature(primaryKey, role, effectiveBaseStats);
+  // Milestone 53: a real, currently-played Stat Point spread
+  // (wcRealStatPointSpreadFor) slots in between curatedSet's hand-
+  // verified spread (still the most trusted -- a real person checked it)
+  // and wcPickSP's heuristic guess (the honest last resort) -- real,
+  // automated-live data beats a guess, but a human's own verification
+  // still wins. Base-form-only, same reasoning as the isBaseForm guard
+  // right below it.
+  const liveStatSpread = isBaseForm ? wcRealStatPointSpreadFor(pokemon.name, format, opts.liveChampionsStats) : null;
   const sp = opts.lockedBuild && isBaseForm
     ? { ...opts.lockedBuild.sp }
     : curatedSet && curatedSet.sp
       ? { ...curatedSet.sp }
-      : wcPickSP(primaryKey, role, effectiveBaseStats);
+      : liveStatSpread
+        ? liveStatSpread
+        : wcPickSP(primaryKey, role, effectiveBaseStats);
 
   let item;
   if (forcedStoneItem) {
@@ -1021,7 +1074,7 @@ function wcGenerateBuild(pokemon, baseStats, learnableNames, movesData, threats,
  *   without a hand-curated WINCON_META_KNOWN_SETS entry; omitted
  *   entirely, every build generates exactly as it did before this.
  */
-function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes) {
+function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes, liveChampionsStats) {
   const fmt = wcNormalizeFormat(format);
   const builds = {};
   // Shared across every member below so wcPickItem never hands out the
@@ -1048,6 +1101,10 @@ function wcGenerateTeamBuilds(members, movesData, threats, typeChart, format, ab
       abilitiesData,
       sheetMode,
       liveMetaBuilds,
+      // Milestone 53: real, currently-played Stat Point spreads from
+      // championsbattledata.com -- see wcRealStatPointSpreadFor's own
+      // comment for how wcGenerateBuild uses this.
+      liveChampionsStats,
       lockedBuild: lockedBuildsLookup && lockedBuildsLookup[m.name],
       teamSoFar: teamSoFar.slice(),
       notes,
@@ -4251,7 +4308,7 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
  * wcGenerateTeamBuilds exactly like every real call site already does;
  * both fully optional.
  */
-function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup, sheetMode, lockedBuildsLookup) {
+function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup, sheetMode, lockedBuildsLookup, liveChampionsStats) {
   const option1Pick = wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup);
 
   if (option1Pick.chosen.length < size) {
@@ -4261,7 +4318,7 @@ function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySe
   }
 
   const option1Members = option1Pick.chosen.map((name) => pool.find((c) => c.name === name)).filter(Boolean);
-  const { builds: option1Builds } = wcGenerateTeamBuilds(option1Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes);
+  const { builds: option1Builds } = wcGenerateTeamBuilds(option1Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes, liveChampionsStats);
   const option1Strategy = wcAnalyzeTeamStrategy(option1Members, option1Builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline);
 
   const mechanismDefiningNames = [
@@ -4284,7 +4341,7 @@ function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySe
   }
 
   const option2Members = option2Pick.chosen.map((name) => poolForOption2.find((c) => c.name === name)).filter(Boolean);
-  const { builds: option2Builds } = wcGenerateTeamBuilds(option2Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes);
+  const { builds: option2Builds } = wcGenerateTeamBuilds(option2Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes, liveChampionsStats);
   const option2Strategy = wcAnalyzeTeamStrategy(option2Members, option2Builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline);
 
   return {

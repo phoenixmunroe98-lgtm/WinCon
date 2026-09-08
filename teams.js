@@ -733,6 +733,61 @@ async function wcFetchLiveMetaBuilds(format) {
 }
 
 /**
+ * Milestone 53 (Phoenix: "Pikalytics, LabMaus, Silph Scope and limitless
+ * ... get information on the current meta"): reads live_champions_stats
+ * (supabase/migrations/0009_live_champions_stats.sql), refreshed by
+ * api/cron-championsdata-sync.js from championsbattledata.com's free,
+ * no-auth API. Unlike every other live_* fetch in this file, this one is
+ * NOT Doubles-only -- championsbattledata.com's own data genuinely covers
+ * both formats (unlike Limitless, which only ever has Doubles tournament
+ * results to pull from), so this reads whichever `format` it's asked for.
+ *
+ * Returns { [species]: { [category]: { name, percentageValue, spPoints? } } }
+ * -- `category` is one of move/held_item/teammate/stat_alignment/
+ * stat_points/ability (see the migration's own check constraint).
+ * `spPoints` (the real reason this pipeline exists -- see that file's
+ * header) is only ever present on the `stat_points` category's entry, and
+ * only when this format+species actually has one logged yet. {} whenever
+ * there's nothing to offer, same silent-defer contract as every other
+ * live_* fetch above.
+ */
+async function wcFetchLiveChampionsStats(format) {
+  if (typeof window === "undefined" || !window.wcSupabase) return {};
+  try {
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase
+        .from("live_champions_stats")
+        .select("species, category, name, percentage_value, hp_points, attack_points, defense_points, sp_atk_points, sp_def_points, speed_points")
+        .eq("format", format)
+        .eq("rank", 1),
+      5000
+    );
+    if (!selectResult) return {};
+    const { data: rows, error } = selectResult;
+    if (error || !rows) return {};
+    const bySpecies = {};
+    rows.forEach((row) => {
+      if (!bySpecies[row.species]) bySpecies[row.species] = {};
+      const entry = { name: row.name || null, percentageValue: row.percentage_value == null ? null : row.percentage_value };
+      if (row.category === "stat_points") {
+        entry.spPoints = {
+          hp: row.hp_points || 0,
+          attack: row.attack_points || 0,
+          defense: row.defense_points || 0,
+          sp_attack: row.sp_atk_points || 0,
+          sp_defense: row.sp_def_points || 0,
+          speed: row.speed_points || 0,
+        };
+      }
+      bySpecies[row.species][row.category] = entry;
+    });
+    return bySpecies;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Locked builds: a permanent, per-species Nature/Stat Points/moveset that
  * every team reuses instead of wcGenerateBuild regenerating one -- see
  * supabase/migrations/0008_locked_builds.sql's header for the full

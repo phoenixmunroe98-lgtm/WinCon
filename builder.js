@@ -90,6 +90,9 @@ let liveMetaLookup = {};
 /** "Untapped gem" follow-up to Milestone 34: the live_meta_builds lookup (see wcFetchLiveMetaBuilds in teams.js) for THIS page's format -- same lifecycle/gating as liveMetaLookup just above (refreshed alongside it in wcSyncTeamStateForAuth(), {} while signed out or for Singles). Consumed by wcLiveMegaSetFor (strategy.js, via wcHasKnownMegaOption/wcPickAutoMegaForm) so Dream Team/Auto-build/autofill can proactively opt into a Mega form with real, live-confirmed tournament usage even when it isn't on the hand-curated WINCON_META_KNOWN_SETS list. */
 let liveMetaBuildsLookup = {};
 
+/** Milestone 53 (the championsbattledata.com pipeline): the live_champions_stats lookup (see wcFetchLiveChampionsStats in teams.js) for THIS page's format -- same sign-in gating and refresh schedule/event as liveMetaLookup/liveMetaBuildsLookup above (live_champions_stats has the same read-only-to-signed-in RLS shape as every other live_* table), but genuinely covers BOTH formats, unlike those two -- championsbattledata.com has real Singles data too, unlike Limitless (Doubles-only tournaments). {} until init()/wcSyncTeamStateForAuth() resolves it, or whenever signed out. Consumed by wcRealStatPointSpreadFor (strategy.js, via wcGenerateBuild) so Auto-build/Dream Team/autofill can use a real, currently-played Stat Point spread instead of guessing one from role/primary-offense-stat alone, whenever one exists and is confident enough (see that function's own comment for the real, computed confidence bar). */
+let liveChampionsStatsLookup = {};
+
 /**
  * Locked builds: a permanent, per-species Nature/Stat Points/moveset the
  * signed-in user has pinned (see supabase/migrations/0008_locked_builds.sql
@@ -1048,6 +1051,10 @@ async function wcSyncTeamStateForAuth() {
   // "Untapped gem" follow-up: refreshed on the exact same schedule/event
   // as liveMetaLookup just above, for the same reason.
   liveMetaBuildsLookup = wcTeamDataSignedIn ? await wcFetchLiveMetaBuilds(WINCON_BUILDER_FORMAT) : {};
+  // Milestone 53: refreshed on the exact same schedule/event as every
+  // lookup above, for the same reason -- see wcFetchLiveChampionsStats in
+  // teams.js.
+  liveChampionsStatsLookup = wcTeamDataSignedIn ? await wcFetchLiveChampionsStats(WINCON_BUILDER_FORMAT) : {};
   // Locked builds: refreshed on the exact same schedule/event as every
   // lookup above, for the same reason -- see wcFetchLockedBuilds in
   // teams.js.
@@ -2721,7 +2728,8 @@ function generateDreamTeam() {
     liveMetaBuildsLookup,
     experienceLookup,
     sheetMode,
-    lockedBuildsLookup
+    lockedBuildsLookup,
+    liveChampionsStatsLookup
   );
 
   const option1Pick = dreamOptions.option1.pick;
@@ -3136,7 +3144,7 @@ function autoBuildTeam() {
 
   const threatsWithTypes = getThreatsWithTypes();
 
-  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup, notes);
+  const { builds: generated } = wcGenerateTeamBuilds(members, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, sheetMode, liveMetaBuildsLookup, lockedBuildsLookup, notes, liveChampionsStatsLookup);
 
   Object.entries(generated).forEach(([name, build]) => {
     builds[name] = build;
@@ -4387,7 +4395,7 @@ function findYourRival() {
  */
 function recomputeRivalScoring() {
   const myThreats = myTeamAsThreats();
-  const { builds: rivalBuilds } = wcGenerateTeamBuilds(pendingRival.rivalMembers, data.moves, myThreats, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, "closed", liveMetaBuildsLookup);
+  const { builds: rivalBuilds } = wcGenerateTeamBuilds(pendingRival.rivalMembers, data.moves, myThreats, data.typeChart, WINCON_BUILDER_FORMAT, data.abilities, "closed", liveMetaBuildsLookup, undefined, undefined, liveChampionsStatsLookup);
   const rivalAsThreats = pendingRival.rivalMembers.map((m) => ({ name: m.name, types: m.types, role: "Your Rival" }));
   const myResult = scoreAgainstThreats(rivalAsThreats);
   pendingRival.rivalBuilds = rivalBuilds;
