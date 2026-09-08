@@ -290,21 +290,28 @@ const fixtureBPlans = JSON.parse(
 const fixtureBLineups = context.wcEnumerateLineups(FIXTURE_B_SIX, 4);
 
 // ---------------------------------------------------------------------------
-// 3. wcPlanForCombo -- role-weighted AI/lead order is applied only to the
+// 3. wcPlansForCombo -- role-weighted AI/lead order is applied only to the
 // specific real combos that genuinely satisfy a detected plan's required
 // pieces, never to every combo indiscriminately and never withheld from a
-// combo that does qualify.
+// combo that does qualify. (Milestone 60: renamed from wcPlanForCombo --
+// now returns an ARRAY of every real matching plan, since a combo built
+// around a dual-move setter can genuinely satisfy more than one plan at
+// once. Fixture B has only a single-move Tailwind setter (Staraptor), so
+// every combo here still matches at most one plan -- see the new Fixture
+// C section below for the genuinely-more-than-one-plan case.)
 // ---------------------------------------------------------------------------
 
-check("wcPlanForCombo returns the matching plan for every real combo containing that plan's required pieces, and null for every combo that doesn't fit any detected plan", () => {
+check("wcPlansForCombo returns every real matching plan for a combo containing that plan's required pieces, and [null] for a combo that doesn't fit any detected plan", () => {
   fixtureBLineups.forEach((names) => {
-    const plan = context.wcPlanForCombo(names, fixtureBPlans);
-    const expectedPlan = fixtureBPlans.find((p) => p.requiredNames.every((req) => names.includes(req))) || null;
-    if (expectedPlan === null) {
-      assert.equal(plan, null, `combo [${names}] should not match any real detected plan`);
+    const matchedPlans = JSON.parse(JSON.stringify(context.wcPlansForCombo(names, fixtureBPlans)));
+    const expectedPlans = fixtureBPlans.filter((p) => p.requiredNames.every((req) => names.includes(req)));
+    if (expectedPlans.length === 0) {
+      assert.deepEqual(matchedPlans, [null], `combo [${names}] should not match any real detected plan`);
     } else {
-      assert.ok(plan, `combo [${names}] should match plan ${expectedPlan.key}`);
-      assert.equal(plan.key, expectedPlan.key);
+      assert.equal(matchedPlans.length, expectedPlans.length, `combo [${names}] should match exactly ${expectedPlans.length} real plan(s)`);
+      const matchedKeys = matchedPlans.map((p) => p.key).sort();
+      const expectedKeys = expectedPlans.map((p) => p.key).sort();
+      assert.deepEqual(matchedKeys, expectedKeys);
     }
   });
 });
@@ -318,11 +325,10 @@ check("a combo containing both a plan's real setter and carry is treated differe
   assert.ok(qualifyingCombo, "expected at least one real combo containing the Sceptile Tailwind plan's required pieces");
   assert.ok(nonQualifyingCombo, "expected at least one real combo missing at least one required piece");
 
-  assert.ok(context.wcPlanForCombo(qualifyingCombo, fixtureBPlans), "a combo with all required pieces must resolve to a real plan, not null");
-  const nonMatch = context.wcPlanForCombo(nonQualifyingCombo, fixtureBPlans);
-  if (nonMatch) {
-    assert.notEqual(nonMatch.key, sceptilePlan.key, "a combo missing the Sceptile plan's required pieces must not resolve to that same plan");
-  }
+  const qualifyingMatches = JSON.parse(JSON.stringify(context.wcPlansForCombo(qualifyingCombo, fixtureBPlans)));
+  assert.ok(qualifyingMatches.some((p) => p && p.key === sceptilePlan.key), "a combo with all required pieces must resolve to the real plan, not be excluded");
+  const nonMatches = JSON.parse(JSON.stringify(context.wcPlansForCombo(nonQualifyingCombo, fixtureBPlans)));
+  assert.ok(!nonMatches.some((p) => p && p.key === sceptilePlan.key), "a combo missing the Sceptile plan's required pieces must never resolve to that same plan");
 });
 
 // ---------------------------------------------------------------------------
@@ -391,6 +397,133 @@ check("wcSimulateOneCombo never resolves both Sceptile and Charizard to \"mega\"
   } finally {
     context.wcBattlerSpecForSlot = realBattlerSpecForSlot;
   }
+});
+
+// ---------------------------------------------------------------------------
+// 5. Milestone 60 (Phoenix: "could the issue be i have whimsicott running
+// both tailwind and trick room, this is to allow it to be placed in my
+// tail wind team and my trick sand (sandyroom) team") -- Fixture C: a real
+// dual-purpose setter built with BOTH signature moves at once, so the same
+// four Pokemon can genuinely be read as either a Tailwind lineup or a
+// Trick Room lineup. Proves the two real, stacked bugs Phoenix's own
+// diagnosis surfaced are actually fixed: (a) wcPlansForCombo genuinely
+// finds BOTH the tailwind__X and trickroom__X plans for a qualifying
+// combo, not just the array-order-first one; (b) the archetype-scoped AI
+// weights really do differ between the two, so a Trick Room scenario's
+// setter genuinely prioritizes casting Trick Room over Tailwind; (c) a
+// real simulated combo's own reported planLabel can genuinely come back
+// as either "Tailwind" or "Trick Room" for the SAME four names, depending
+// on which real Monte Carlo result actually won -- never hardcoded to
+// whichever plan happened to be pushed first.
+// ---------------------------------------------------------------------------
+
+const FIXTURE_C_SIX = ["Whimsicott", "Primarina", "Tyranitar", "Steelix", "Sceptile", "Garchomp"];
+
+const FIXTURE_C_BUILDS = {
+  // The real dual-purpose setter: BOTH Tailwind and Trick Room equipped
+  // at once, exactly Phoenix's own real Whimsicott (a deliberate flex
+  // pick so the same Pokemon can anchor either her real Tailwind team or
+  // her real Trick Room / "sandyroom" team).
+  Whimsicott: {
+    nature: "Timid",
+    item: "Focus Sash",
+    moves: ["Tailwind", "Trick Room", "Moonblast", "Protect"],
+    sp: { hp: 0, attack: 0, defense: 0, sp_attack: 20, sp_defense: 4, speed: 32 },
+  },
+  Primarina: {
+    nature: "Modest",
+    item: "Light Clay",
+    moves: ["Reflect", "Light Screen", "Hyper Voice", "Dazzling Gleam"],
+    sp: { hp: 16, attack: 0, defense: 4, sp_attack: 32, sp_defense: 0, speed: 12 },
+  },
+  Tyranitar: {
+    nature: "Adamant",
+    item: "Assault Vest",
+    moves: ["Rock Slide", "Crunch", "Low Kick", "Ice Punch"],
+    sp: { hp: 20, attack: 32, defense: 0, sp_attack: 0, sp_defense: 12, speed: 0 },
+  },
+  Steelix: {
+    nature: "Brave",
+    item: "Leftovers",
+    moves: ["Heavy Slam", "Earthquake", "Wide Guard", "Rock Slide"],
+    sp: { hp: 20, attack: 32, defense: 12, sp_attack: 0, sp_defense: 0, speed: 0 },
+  },
+  Sceptile: {
+    nature: "Timid",
+    item: "Sceptilite",
+    moves: ["Leaf Storm", "Dragon Pulse", "Earth Power", "Focus Blast"],
+    sp: { hp: 0, attack: 0, defense: 0, sp_attack: 32, sp_defense: 4, speed: 28 },
+  },
+  Garchomp: {
+    nature: "Jolly",
+    item: "Rocky Helmet",
+    moves: ["Earthquake", "Stone Edge", "Scale Shot", "Protect"],
+    sp: { hp: 0, attack: 32, defense: 0, sp_attack: 0, sp_defense: 4, speed: 32 },
+  },
+};
+
+const fixtureCPlans = JSON.parse(
+  JSON.stringify(context.wcBuildGamePlans(FIXTURE_C_SIX, FIXTURE_C_BUILDS, pokemonList, baseStatsData, abilitiesData))
+);
+
+check("Fixture C's dual-move Whimsicott produces a real tailwind__X and a real trickroom__X plan for the same carry X, with identical requiredNames", () => {
+  const tailwindPlan = fixtureCPlans.find((p) => p.key.startsWith("tailwind__"));
+  const trickroomPlan = fixtureCPlans.find((p) => p.key.startsWith("trickroom__"));
+  assert.ok(tailwindPlan, "expected a real tailwind__X plan");
+  assert.ok(trickroomPlan, "expected a real trickroom__X plan");
+  assert.deepEqual(tailwindPlan.requiredNames, trickroomPlan.requiredNames, "both plans should require the same real setter+carry pair");
+  assert.equal(tailwindPlan.roleByName.Whimsicott, "setter");
+  assert.equal(trickroomPlan.roleByName.Whimsicott, "setter");
+});
+
+check("wcPlansForCombo genuinely finds BOTH the Tailwind and Trick Room plans for a qualifying combo -- Milestone 60's core fix, replacing the old array-order-first bug that could never surface Trick Room", () => {
+  const tailwindPlan = fixtureCPlans.find((p) => p.key.startsWith("tailwind__"));
+  const qualifyingCombo = FIXTURE_C_SIX.filter((name) => tailwindPlan.requiredNames.includes(name) || name === "Primarina").slice(0, 4);
+  tailwindPlan.requiredNames.forEach((req) => assert.ok(qualifyingCombo.includes(req), `fixture combo must include required piece ${req}`));
+
+  const matchedPlans = JSON.parse(JSON.stringify(context.wcPlansForCombo(qualifyingCombo, fixtureCPlans)));
+  const matchedKeys = matchedPlans.map((p) => p && p.key).sort();
+  assert.ok(matchedKeys.includes(tailwindPlan.key), "must genuinely find the Tailwind plan");
+  assert.ok(matchedKeys.some((k) => k && k.startsWith("trickroom__")), "must genuinely find the Trick Room plan too -- not masked by array order");
+});
+
+check("wcRoleWeightsFor genuinely differentiates the setter's AI priorities per archetype -- a Trick Room plan's setter is NOT still secretly biased toward Tailwind", () => {
+  const tailwindWeights = context.wcRoleWeightsFor("setter", "tailwind");
+  const trickroomWeights = context.wcRoleWeightsFor("setter", "trickroom");
+  assert.ok(tailwindWeights.tailwindUpScore > trickroomWeights.tailwindUpScore, "only the Tailwind plan's setter should have a boosted tailwindUpScore");
+  assert.ok(trickroomWeights.trickRoomUpScore > tailwindWeights.trickRoomUpScore, "only the Trick Room plan's setter should have a boosted trickRoomUpScore");
+});
+
+check("a real simulated combo built around the dual-move setter can genuinely come back tagged Trick Room -- not hardcoded to Tailwind regardless of which is actually better", () => {
+  const referenceTeamDefs = [
+    {
+      id: "test-reference-c",
+      label: "Test reference C",
+      members: [
+        { name: "Gholdengo", item: "Choice Specs", role: "fast-special", moves: ["Make It Rain", "Shadow Ball", "Trick", "Protect"] },
+        { name: "Torkoal", item: "Charcoal", role: "bulky-special", moves: ["Eruption", "Protect", "Rock Slide", "Yawn"] },
+      ],
+    },
+  ];
+  const referenceTeams = referenceTeamDefs.map((team) => context.wcResolveBaselineTeam(team, pokemonList, baseStatsData, abilitiesData));
+  const oppPool = referenceTeamDefs.map((team, i) => ({ id: team.id, label: team.label, specs: referenceTeams[i], weight: 1 }));
+  const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode: "open", format: "doubles" };
+
+  const tailwindPlan = fixtureCPlans.find((p) => p.key.startsWith("tailwind__"));
+  const qualifyingCombo = FIXTURE_C_SIX.filter((name) => tailwindPlan.requiredNames.includes(name) || name === "Primarina").slice(0, 4);
+
+  const result = JSON.parse(
+    JSON.stringify(
+      context.wcSimulateOneCombo(qualifyingCombo, FIXTURE_C_BUILDS, "doubles", pokemonList, baseStatsData, abilitiesData, oppPool, simData, fixtureCPlans)
+    )
+  );
+
+  console.log(`  (Fixture C real simulated result: planLabel="${result.planLabel}", winRate=${result.winRate})`);
+  assert.ok(result.planLabel, "expected a real plan label, not null, for a combo that genuinely qualifies for two plans");
+  assert.ok(
+    result.planLabel.startsWith("Tailwind") || result.planLabel.startsWith("Trick Room"),
+    `expected the winning real plan label to be Tailwind or Trick Room, got "${result.planLabel}"`
+  );
 });
 
 console.log(`\nAll ${checksRun} checks passed.`);

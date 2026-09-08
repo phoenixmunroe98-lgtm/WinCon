@@ -188,10 +188,28 @@ check("a team with no real archetype and no real anti-Trick-Room tooling gets ex
 // that turn a plan's roles into an actual AI/lead-order change.
 // ---------------------------------------------------------------------------
 
-check("wcRoleWeightsFor boosts exactly the payoffs each role cares about, on top of the real defaults", () => {
-  const setterWeights = context.wcRoleWeightsFor("setter");
-  assert.equal(setterWeights.tailwindUpScore, 90);
-  assert.equal(setterWeights.expectedDamageWeight, context.WC_DEFAULT_AI_WEIGHTS.expectedDamageWeight); // untouched default carried through
+check("wcRoleWeightsFor boosts exactly the payoffs each role cares about, on top of the real defaults, and (Milestone 60) scopes a setter's up-score boost to its own real archetype", () => {
+  // Milestone 60 (Phoenix: a real dual-purpose setter carrying both
+  // Tailwind and Trick Room). The setter role's up-score boost used to be
+  // one flat object boosting BOTH tailwindUpScore and trickRoomUpScore
+  // together -- so a Trick Room plan's own setter still favored casting
+  // Tailwind in battle (90 > the old flat 70). Now it's scoped per real
+  // archetype: only the ONE up-score that matches the plan this setter is
+  // actually running gets boosted.
+  const tailwindSetterWeights = context.wcRoleWeightsFor("setter", "tailwind");
+  assert.equal(tailwindSetterWeights.tailwindUpScore, 90);
+  assert.equal(tailwindSetterWeights.trickRoomUpScore, context.WC_DEFAULT_AI_WEIGHTS.trickRoomUpScore); // NOT boosted for a Tailwind plan
+  assert.equal(tailwindSetterWeights.expectedDamageWeight, context.WC_DEFAULT_AI_WEIGHTS.expectedDamageWeight); // untouched default carried through
+
+  const trickroomSetterWeights = context.wcRoleWeightsFor("setter", "trickroom");
+  assert.equal(trickroomSetterWeights.trickRoomUpScore, 90);
+  assert.equal(trickroomSetterWeights.tailwindUpScore, context.WC_DEFAULT_AI_WEIGHTS.tailwindUpScore); // NOT boosted for a Trick Room plan
+
+  const plainSetterWeights = context.wcRoleWeightsFor("setter"); // no archetypeKey -- e.g. the defensive "trickroomdefense" plan's lead
+  assert.equal(plainSetterWeights.tailwindUpScore, context.WC_DEFAULT_AI_WEIGHTS.tailwindUpScore);
+  assert.equal(plainSetterWeights.trickRoomUpScore, context.WC_DEFAULT_AI_WEIGHTS.trickRoomUpScore);
+  assert.equal(plainSetterWeights.screensUpScore, 60); // the flat, non-archetype-specific part of the setter overlay still applies
+
   assert.equal(context.wcRoleWeightsFor("neutral"), null);
   assert.equal(context.wcRoleWeightsFor("support"), null);
 });

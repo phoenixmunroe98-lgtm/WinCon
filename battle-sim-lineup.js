@@ -101,13 +101,16 @@ function wcBuildMegaScenarios(lineupNames, buildsByName, pokemonList, baseStatsD
 // (wcActiveArchetypesForBuiltTeam, wcAntiTrickRoomAudit -- strategy.js).
 // wcSimulateTeamWinRate below fully simulates every real n-of-6 lineup
 // combination directly (Milestone 57) -- a plan's own role-weighted AI and
-// lead order (wcPlanForCombo/wcSimulateOneCombo) are applied to whichever
+// lead order (wcPlansForCombo/wcSimulateOneCombo) are applied to whichever
 // specific real combo genuinely satisfies that plan's required pieces, so
 // a team that can genuinely run more than one real line (Phoenix's example
-// team can lead Tailwind into either Mega Sceptile or Mega Charizard Y)
-// gets each of its real combos reported on its own honest merits, never
-// blended into one generic-AI number and never narrowed to a single
-// combo per plan before simulating it.
+// team can lead Tailwind into either Mega Sceptile or Mega Charizard Y --
+// or, Milestone 60, a single dual-move setter that can genuinely run
+// EITHER Tailwind or Trick Room off the same four Pokemon) gets each of
+// its real combos -- and, per combo, each real matching plan -- reported
+// on its own honest simulated merits, never blended into one generic-AI
+// number and never narrowed to a single plan per combo before simulating
+// it.
 //
 // This deliberately does NOT give the simulator any new "on purpose"
 // switching mid-battle (no scripted U-turn pivot, no mid-battle Mega-evolve
@@ -126,21 +129,46 @@ function wcBuildMegaScenarios(lineupNames, buildsByName, pokemonList, baseStatsD
  * Per-role AI weight overlays, merged onto WC_DEFAULT_AI_WEIGHTS. Kept
  * small and conservative -- same "hand-picked, not exhaustive" convention
  * as the rest of this project -- rather than trying to retune every
- * situational score for every role.
+ * situational score for every role. The setter's own up-score boost
+ * (Tailwind vs Trick Room) is scoped separately below, by archetype --
+ * see WC_SETTER_ARCHETYPE_UP_SCORE.
  */
 const WC_GAME_PLAN_ROLE_WEIGHT_OVERRIDES = {
-  setter: { tailwindUpScore: 90, trickRoomUpScore: 70, screensUpScore: 60, protectLowHpScore: 75, protectHighHpScore: 45 },
+  setter: { screensUpScore: 60, protectLowHpScore: 75, protectHighHpScore: 45 },
   screener: { screensUpScore: 75, protectLowHpScore: 75, protectHighHpScore: 45 },
   carry: { selfBoostHealthyScore: 45, selfBoostLowScore: 20 },
   support: {},
   neutral: {},
 };
 
-/** Merged { ...WC_DEFAULT_AI_WEIGHTS, ...override } for a role, or null for a role with no override (so the spec doesn't carry a pointless identical-to-default weights object). */
-function wcRoleWeightsFor(role) {
-  const overrides = WC_GAME_PLAN_ROLE_WEIGHT_OVERRIDES[role];
-  if (!overrides || Object.keys(overrides).length === 0) return null;
-  return { ...WC_DEFAULT_AI_WEIGHTS, ...overrides };
+/**
+ * Milestone 60 (Phoenix: a real dual-purpose setter -- Whimsicott built
+ * with BOTH Tailwind and Trick Room, on purpose, so the same Pokemon can
+ * slot into either her real Tailwind team or her real Trick Room team).
+ * The setter role's up-score boost used to be one flat object boosting
+ * BOTH tailwindUpScore and trickRoomUpScore together, regardless of
+ * which archetype a plan actually represented -- so a dual-move
+ * setter's simulated battle always favored Tailwind (its higher
+ * WC_DEFAULT_AI_WEIGHTS baseline) no matter which plan label was
+ * nominally attached, making "Trick Room (carry: X)" a cosmetic label
+ * with no real behavioral difference underneath it. Scoped by archetype
+ * instead: a tailwind__X plan's setter gets ONLY its tailwindUpScore
+ * boosted, a trickroom__X plan's setter gets ONLY its trickRoomUpScore
+ * boosted -- so the AI genuinely prioritizes casting the ONE move the
+ * plan it's actually running is built around.
+ */
+const WC_SETTER_ARCHETYPE_UP_SCORE = {
+  tailwind: { tailwindUpScore: 90 },
+  trickroom: { trickRoomUpScore: 90 },
+};
+
+/** Merged { ...WC_DEFAULT_AI_WEIGHTS, ...override } for a role, or null when there's no real override to apply (so the spec doesn't carry a pointless identical-to-default weights object). `archetypeKey` (the winning plan's own archetypeKeys[0], e.g. "tailwind"/"trickroom") scopes the setter's own up-score boost to whichever ONE archetype this specific plan is actually built around -- see WC_SETTER_ARCHETYPE_UP_SCORE above; any other role, or a setter with no matching archetype entry (e.g. the defensive "trickroomdefense" plan's lead), just gets the flat role override with no up-score boost added. */
+function wcRoleWeightsFor(role, archetypeKey) {
+  const baseOverride = WC_GAME_PLAN_ROLE_WEIGHT_OVERRIDES[role];
+  const setterArchetypeOverride = role === "setter" ? WC_SETTER_ARCHETYPE_UP_SCORE[archetypeKey] : null;
+  const merged = { ...(baseOverride || {}), ...(setterArchetypeOverride || {}) };
+  if (Object.keys(merged).length === 0) return null;
+  return { ...WC_DEFAULT_AI_WEIGHTS, ...merged };
 }
 
 /** Lead-priority rank (lower = sent out first) for a plan's roles -- setter/screener need to act turn 1, the carry is the payoff that should only come in once the field's actually set (or a lead has fainted -- the engine's only real switch mechanism, see this file's header comment). */
@@ -270,19 +298,29 @@ function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abiliti
 /**
  * Milestone 57 (Phoenix: "run a win rate for each combination of 4...
  * ensure that you attempt the sim with all combinations"). Which
- * already-detected real game plan (if any) can THIS EXACT raw combo
- * genuinely run -- checked directly against the combo's own real member
- * names, not against whichever single lineup a search happened to settle
- * on. Returns the first plan (in wcBuildGamePlans's own detection order)
- * whose requiredNames are all present in this combo, or null when the
- * combo doesn't fit any real detected archetype (a neutral combo --
- * still simulated for real below, just with no role-weighted AI/lead-
- * order applied). Each carry-specific plan variant names a different
- * real carry, so a combo can only ever satisfy one per archetype in
- * practice -- no ambiguity to resolve.
+ * already-detected real game plan(s) can THIS EXACT raw combo genuinely
+ * run -- checked directly against the combo's own real member names,
+ * not against whichever single lineup a search happened to settle on.
+ *
+ * Milestone 60 (Phoenix: a real dual-purpose setter -- Whimsicott built
+ * with BOTH Tailwind and Trick Room on purpose, so the same Pokemon can
+ * anchor either her real Tailwind team or her real Trick Room team).
+ * When a setter has two signature moves built, wcBuildGamePlans pushes
+ * TWO separate plan objects for the same carry (tailwind__X and
+ * trickroom__X) with byte-identical requiredNames -- so a combo genuinely
+ * qualifies for BOTH at once. The old version of this function used
+ * `Array.prototype.find`, which always returns the FIRST match in
+ * wcBuildGamePlans's own push order (tailwind is always pushed before
+ * trickroom) -- meaning Trick Room could structurally never be chosen
+ * for a dual-move setter's combos, no matter how well it would actually
+ * perform. Returns EVERY real matching plan now (or `[null]` when none
+ * match -- still simulated for real below, just with no role-weighted
+ * AI/lead order applied), so wcSimulateOneCombo can genuinely simulate
+ * each candidate and report whichever one actually wins the most.
  */
-function wcPlanForCombo(comboNames, plans) {
-  return plans.find((plan) => plan.requiredNames.every((req) => comboNames.includes(req))) || null;
+function wcPlansForCombo(comboNames, plans) {
+  const matches = plans.filter((plan) => plan.requiredNames.every((req) => comboNames.includes(req)));
+  return matches.length ? matches : [null];
 }
 
 /**
@@ -290,37 +328,55 @@ function wcPlanForCombo(comboNames, plans) {
  * -- no shortcut, no proxy score, no elimination round. Orders its
  * members (wcOrderLineupForPlan) and attaches role-weighted AI
  * (wcRoleWeightsFor) only when this exact combo genuinely matches a real
- * detected plan (wcPlanForCombo); otherwise it's simulated with the
- * plain default AI, same as the "Standard" case always was. Builds the
- * real 1-3 Mega scenarios (wcBuildMegaScenarios -- exactly one real Mega
- * per battle, never two at once) and runs the full
- * WC_REFERENCE_RUNS_PER_OPPONENT-per-opponent simulation for EVERY
- * scenario; this combo's own reported result is whichever scenario
- * scored highest, the same "which Mega, if any, is genuinely best for
- * this exact lineup" question Battle Plan/Battle Tracker already settle
- * by real simulated result rather than a guess.
+ * detected plan; otherwise it's simulated with the plain default AI,
+ * same as the "Standard" case always was. Builds the real 1-3 Mega
+ * scenarios (wcBuildMegaScenarios -- exactly one real Mega per battle,
+ * never two at once) and runs the full WC_REFERENCE_RUNS_PER_OPPONENT-
+ * per-opponent simulation for EVERY scenario; this combo's own reported
+ * result is whichever scenario scored highest, the same "which Mega, if
+ * any, is genuinely best for this exact lineup" question Battle Plan/
+ * Battle Tracker already settle by real simulated result rather than a
+ * guess.
+ *
+ * Milestone 60 (Phoenix: a real dual-purpose setter carrying both
+ * Tailwind and Trick Room). A combo can now genuinely match MORE THAN
+ * ONE real plan at once (wcPlansForCombo) -- e.g. the same four
+ * Pokemon read as a Tailwind lineup or a Trick Room lineup depending on
+ * which move the setter actually opens with. Rather than picking one
+ * label arbitrarily, this runs a REAL simulation for every candidate
+ * plan (each with its own archetype-scoped AI weights, via the new
+ * `archetypeKey` passed to wcRoleWeightsFor -- a Trick Room plan's
+ * setter genuinely prioritizes casting Trick Room, not Tailwind, in
+ * battle) crossed with every real Mega scenario, and reports whichever
+ * single (plan x Mega) combination actually won the most -- so a plan
+ * label like "Trick Room" reflects a genuine simulated outcome, never
+ * just array order.
  */
 function wcSimulateOneCombo(rawNames, builds, format, pokemonList, baseStatsData, abilitiesData, oppPool, simData, plans) {
-  const plan = wcPlanForCombo(rawNames, plans);
-  const orderedNames = plan ? wcOrderLineupForPlan(rawNames, plan) : rawNames;
+  const candidatePlans = wcPlansForCombo(rawNames, plans);
 
-  const scenarios = wcBuildMegaScenarios(orderedNames, builds, pokemonList, baseStatsData, abilitiesData).map((scenario) => ({
-    megaName: scenario.megaName,
-    specs: scenario.specs.map((spec) => {
-      const roleWeights = plan ? wcRoleWeightsFor(plan.roleByName[spec.name] || "neutral") : null;
-      return roleWeights ? { ...spec, roleWeights } : spec;
-    }),
-  }));
+  const scenarioResults = candidatePlans.flatMap((plan) => {
+    const orderedNames = plan ? wcOrderLineupForPlan(rawNames, plan) : rawNames;
+    const archetypeKey = plan && plan.archetypeKeys && plan.archetypeKeys[0];
 
-  const scenarioResults = scenarios.map((scenario) => ({
-    megaName: scenario.megaName,
-    ...wcRunMonteCarlo(scenario.specs, oppPool, WC_REFERENCE_RUNS_PER_OPPONENT, format, simData),
-  }));
+    return wcBuildMegaScenarios(orderedNames, builds, pokemonList, baseStatsData, abilitiesData).map((scenario) => {
+      const specs = scenario.specs.map((spec) => {
+        const roleWeights = plan ? wcRoleWeightsFor(plan.roleByName[spec.name] || "neutral", archetypeKey) : null;
+        return roleWeights ? { ...spec, roleWeights } : spec;
+      });
+      return {
+        planLabel: plan ? plan.label : null,
+        lineup: orderedNames,
+        megaName: scenario.megaName,
+        ...wcRunMonteCarlo(specs, oppPool, WC_REFERENCE_RUNS_PER_OPPONENT, format, simData),
+      };
+    });
+  });
   const best = scenarioResults.reduce((a, b) => (b.winRate > a.winRate ? b : a));
 
   return {
-    lineup: orderedNames,
-    planLabel: plan ? plan.label : null,
+    lineup: best.lineup,
+    planLabel: best.planLabel,
     megaName: best.megaName,
     winRate: best.winRate,
     wins: best.wins,
@@ -352,11 +408,14 @@ function wcSimulateOneCombo(rawNames, builds, format, pokemonList, baseStatsData
  * single real C(6,4)=15 (Doubles) or C(6,3)=20 (Singles) combination
  * directly -- nothing narrowed, nothing excluded for not fitting one
  * detected strategy. Each combo still gets real, archetype-aware AI/lead
- * order when it genuinely can run one of the team's detected game plans
- * (wcBuildGamePlans/wcPlanForCombo/wcSimulateOneCombo), and its own real
- * Mega-scenario branching exactly as before -- only the "narrow down to
- * one via a cheap search" step is gone, replaced with "simulate all of
- * them, honestly, and rank what comes back." `combos` always has exactly
+ * order for EVERY real detected game plan it genuinely qualifies for
+ * (wcBuildGamePlans/wcPlansForCombo/wcSimulateOneCombo -- Milestone 60: a
+ * combo can genuinely qualify for more than one plan at once, e.g. a
+ * dual-move Tailwind+Trick Room setter, and each is really simulated
+ * rather than the first one arbitrarily winning), crossed with its own
+ * real Mega-scenario branching exactly as before -- only the "narrow
+ * down to one via a cheap search" step is gone, replaced with "simulate
+ * all of them, honestly, and rank what comes back." `combos` always has exactly
  * C(6,4)/C(6,3) entries, sorted by real win rate (most successful
  * first); `averageWinRate` is the plain mean across all of them. Note:
  * `payload.comboLookup` (the cross-user logged-battle combo synergy
