@@ -2874,7 +2874,7 @@ function selectDreamTeamOption(n) {
 
   autogenHint.textContent = "";
   saveStatus.textContent =
-    optionData.strategyResult.archetype === "balanced"
+    optionData.strategyResult.archetype === "independent"
       ? "Dream Team picked and built — no single shared strategy stood out for this roster, so it's playing as six strong independent attackers. Save team when you're happy with it."
       : `Dream Team picked, built, and strategized around ${archetypeLabel(optionData.strategyResult.archetype)} — Save team when you're happy with it.`;
 }
@@ -3420,7 +3420,7 @@ function renderStrategyOption(container, option, headingText, metaSynergy) {
   const heading = document.createElement("p");
   const strong = document.createElement("strong");
   strong.textContent =
-    option.archetype === "balanced" ? `${headingText}: none detected` : `${headingText}: ${archetypeLabel(option.archetype)}`;
+    option.archetype === "independent" ? `${headingText}: none detected` : `${headingText}: ${archetypeLabel(option.archetype)}`;
   heading.appendChild(strong);
   container.appendChild(heading);
 }
@@ -3430,6 +3430,21 @@ function renderStrategyNote(strategy, alreadyApplied, megaAdvice, antiSynergyWar
   strategyNoteEl.hidden = false;
 
   renderStrategyOption(strategyNoteEl, strategy, "Recommended strategy", strategy.metaSynergy);
+
+  // Milestone 51: the team's overall macro STYLE (Balance/Weather/Hyper
+  // Offense/Tailwind/Trick Room/Dual Room -- wcClassifyTeamStyle,
+  // strategy.js) is a separate, additive read from the single tactical
+  // archetype rendered just above -- only shown when something real was
+  // actually detected (most early/mixed teams get null back, honestly).
+  if (strategy.teamStyle) {
+    const teamStyleP = document.createElement("p");
+    teamStyleP.className = "meta-synergy-note team-style-note";
+    const teamStyleLabel = document.createElement("strong");
+    teamStyleLabel.textContent = `Team style: ${wcTeamStyleDisplayName(strategy.teamStyle.style)} — `;
+    teamStyleP.appendChild(teamStyleLabel);
+    teamStyleP.appendChild(document.createTextNode(strategy.teamStyle.note));
+    strategyNoteEl.appendChild(teamStyleP);
+  }
 
   if (megaAdvice) {
     const megaAdviceP = document.createElement("p");
@@ -3466,7 +3481,7 @@ function renderStrategyNote(strategy, alreadyApplied, megaAdvice, antiSynergyWar
     changeBtn.textContent = "Make changes";
     changeBtn.addEventListener("click", handleMakeChanges);
     strategyNoteEl.appendChild(changeBtn);
-  } else if (strategy.archetype !== "balanced") {
+  } else if (strategy.archetype !== "independent") {
     const already = document.createElement("p");
     already.className = "hint";
     already.textContent = "Your current build already fits this strategy — no changes needed.";

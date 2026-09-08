@@ -415,6 +415,15 @@ function wcCarryPlanBonus(plan, specsByName, typeChart) {
       // instead would credit the wrong coverage entirely.
       bonus += wcTypeCoverBonus(carrySpec.types, spec.types, typeChart) * 0.08;
       bonus += wcStatCoverBonus(carrySpec.baseStats, spec.ability) * 0.15;
+      // Milestone 51 (Phoenix: a fragile carry-partner "wont hold out for
+      // the length of a battle" is a real cost this scoring never
+      // credited before -- wcSurvivabilityBonus (strategy.js) is a real,
+      // computed worst-case-bulk measure (hp*min(def,spd), not a raw
+      // Defense stat that can hide a genuinely weak other side), scored
+      // independently of the carry's own typing. Weighted smaller than
+      // type-cover (0.08) and stat-cover (0.15) since it's a
+      // supplementary signal, not a replacement for either.
+      bonus += wcSurvivabilityBonus(spec.baseStats) * 0.06;
     });
     return bonus;
   };

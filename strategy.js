@@ -1411,7 +1411,7 @@ function wcBuildStrategyOption(candidate, builds, movesData, threats, typeChart,
  * consider when the team supports more than one. `notes` (a team's
  * free-text notes field, Milestone 11) can boost or outright suppress
  * specific archetypes before this ranking happens — see wcApplyNotesBias.
- * If none clears zero (or notes suppressed everything), "balanced" (no
+ * If none clears zero (or notes suppressed everything), "independent" (no
  * shared strategy) is returned with an explanation of why, and no
  * alternative. Each option's amendments (if any) come from
  * wcProposeSetterAmendment — empty means the team already fits as-is.
@@ -1912,10 +1912,16 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
 
   const candidates = wcBuildStrategyCandidates(members, builds, movesData, threats, typeChart, format, notes, abilitiesData);
   const biasedCandidates = wcApplyNotesBias(candidates, notes);
+  // Milestone 51: the team's overall macro STYLE (Balance/Weather/Hyper
+  // Offense/Tailwind/Trick Room/Dual Room -- wcClassifyTeamStyle), a
+  // separate, additive read from the single tactical archetype this
+  // function already picks below -- attached to both return branches so
+  // it's never lost just because no single tactical tool stood out.
+  const teamStyleResult = wcClassifyTeamStyle(members, abilitiesData);
 
   if (biasedCandidates.length === 0) {
     return {
-      archetype: "balanced",
+      archetype: "independent",
       setterName: null,
       note:
         candidates.length > 0
@@ -1925,6 +1931,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
       amendments: [],
       metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
       alternative: null,
+      teamStyle: teamStyleResult,
     };
   }
 
@@ -1939,6 +1946,7 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     ...winnerOption,
     metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
     alternative: alternativeOption,
+    teamStyle: teamStyleResult,
   };
 }
 
@@ -2348,6 +2356,270 @@ function wcStatCoverBonus(carryBaseStats, candidateAbility) {
 }
 
 /**
+ * Milestone 51 (Phoenix: "sceptile is weak with low defence... and wont
+ * hold out for the length of a battle" -- a real gap she caught in the
+ * Milestone 49 carry-synergy scoring above, which credits typing/
+ * Intimidate but has no concept of a candidate simply surviving). A
+ * Pokemon is only ever as bulky as its WEAKER defensive stat -- a real
+ * opponent attacks whichever side is softer -- so `hp * min(def, spd)`
+ * is the standard "worst-case bulk" measure, not hp+def+spd (which lets
+ * one huge defense hide a genuinely weak other side). Verified against
+ * the real data this actually inverts the naive read on Phoenix's own
+ * team: Steelix's 200 Defense looks like a wall, but its 65 Special
+ * Defense drags its real bulk score down to the same range as Sceptile's
+ * (4,875 vs 4,550, both bottom quartile), while Incineroar's more
+ * balanced 90/90 defenses score 8,550 -- comfortably top quartile. A
+ * real, sometimes counterintuitive finding, not a hand-picked outcome.
+ */
+function wcBulkPoints(baseStats) {
+  if (!baseStats) return 0;
+  return (baseStats.hp || 0) * Math.min(baseStats.def || 0, baseStats.spd || 0);
+}
+
+// Real percentiles of hp*min(def,spd) across all 298 species in
+// data/base-stats.json: p25=4875, p50=6150, p75=7475, p90=8800. p75 is
+// the same "genuine minority" bar WINCON_STRATEGY_MOVES' own move-
+// learnability signals hold to (Trick Room ~18%, Wide Guard ~8%) --
+// scoring only the top quartile as a real wall, with a smaller credit
+// down to the median, rather than rewarding above-average bulk as if it
+// were exceptional.
+const WC_GENUINE_WALL_BULK_THRESHOLD = 7475;
+const WC_MEDIAN_BULK_THRESHOLD = 6150;
+function wcSurvivabilityBonus(baseStats) {
+  const pts = wcBulkPoints(baseStats);
+  if (pts >= WC_GENUINE_WALL_BULK_THRESHOLD) return 2;
+  if (pts >= WC_MEDIAN_BULK_THRESHOLD) return 1;
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 51 -- macro Team Style archetypes (Phoenix: "Balance... Weather...
+// Hyper offence... Tailwind... Trick room... Tail room [both fast and slow
+// options]"). Deliberately a SEPARATE layer from WINCON_STRATEGY_MOVES/
+// wcArchetypeSignalsFor above -- that system detects one TACTICAL TOOL at a
+// time (does anyone know Trick Room, is a weather ability on the field).
+// This one classifies the team's overall SHAPE. Real per-species traits
+// below are all computed from data/base-stats.json (298 species) -- max(atk,
+// spa) >= 100 alone is 72.8% of the whole roster (far too common to be a
+// real signal on its own, the same problem Helping Hand's 68.5% learnability
+// already forced this file to solve differently), so every trait here pairs
+// a hard-hitter check with a genuinely rarer Speed or bulk condition, same
+// discipline as WINCON_WEATHER_SETTING_ABILITIES keeping weather ability-only.
+// ---------------------------------------------------------------------------
+
+function wcIsHardHitter(baseStats) {
+  return Boolean(baseStats) && Math.max(baseStats.atk || 0, baseStats.spa || 0) >= 100;
+}
+
+/** Real p75 of Speed across all 298 species -- distinctly faster than wcPickRole's own 90 "fast" cutoff, reserved for a genuine Hyper Offense sweeper, not just an above-average one. */
+const WC_GENUINE_FAST_SPEED_THRESHOLD = 100;
+/** Real ~p35 of Speed -- distinctly slower than wcPickRole's 90 cutoff, reserved for a genuine Trick Room payoff. */
+const WC_GENUINE_SLOW_SPEED_THRESHOLD = 70;
+/** Real p50 bulk (wcBulkPoints) -- a glass-cannon sweeper needs to be below-average bulk, not just "not a wall." */
+const WC_GLASS_CANNON_BULK_THRESHOLD = 6150;
+
+function wcIsGenuineWall(baseStats) {
+  return wcBulkPoints(baseStats) >= WC_GENUINE_WALL_BULK_THRESHOLD;
+}
+function wcIsGlassCannonSweeper(baseStats) {
+  if (!baseStats) return false;
+  return wcIsHardHitter(baseStats) && (baseStats.spe || 0) >= WC_GENUINE_FAST_SPEED_THRESHOLD && wcBulkPoints(baseStats) < WC_GLASS_CANNON_BULK_THRESHOLD;
+}
+/** Hits hard but is naturally too slow to reliably move first without Tailwind's speed double -- the real payoff for carrying it. */
+function wcIsTailwindPayoff(baseStats) {
+  return Boolean(baseStats) && wcIsHardHitter(baseStats) && (baseStats.spe || 0) < 90;
+}
+/** Hits hard and is genuinely slow ON PURPOSE -- the real payoff for Trick Room's speed reversal, not just "not fast." */
+function wcIsTrickRoomPayoff(baseStats) {
+  return Boolean(baseStats) && wcIsHardHitter(baseStats) && (baseStats.spe || 0) < WC_GENUINE_SLOW_SPEED_THRESHOLD;
+}
+
+/**
+ * Classifies a team's (or in-progress pick's) overall macro style -- one
+ * label, with a real reasoning note naming the actual setters/payoff
+ * members involved, never just the name. Usable at Dream-Team PICK time
+ * (candidate.learnableNames/candidate.baseStats -- no build needed yet,
+ * same "known this early" reasoning wcArchetypeSignalsFor's own doc
+ * comment already relies on) and at Auto-build-strategy ANALYZE time
+ * (built members carry the same fields). Precedence is deliberate, not
+ * alphabetical: Dual Room and Weather are checked first because their
+ * setter conditions alone are already genuinely rare (both setters at
+ * once; a real weather-setting ABILITY at all -- only 14 of 298 species
+ * hold one); Trick Room/Tailwind need a real payoff check on top of
+ * their setter because the setter signal alone is common enough on its
+ * own (roughly 1 in 10 species can learn Tailwind) that it isn't
+ * sufficient by itself for a whole-team STYLE claim the way it is for
+ * the narrower "is this tactical tool active" question
+ * wcArchetypeSignalsFor already answers; Hyper Offense and Balance are
+ * the two shape-based (not setter-gated) styles and sit last since
+ * they're the closest thing to a fallback read of team composition.
+ * Returns null when nothing real stands out (honest, not a bug -- most
+ * teams early in picking, or teams that are just a normal mix).
+ */
+function wcClassifyTeamStyle(members, abilitiesData) {
+  if (!members || !members.length) return null;
+
+  const hasSetterMove = (moveName) => members.some((m) => (m.learnableNames || []).includes(moveName));
+  const hasTailwindSetter = hasSetterMove("Tailwind");
+  const hasTrickRoomSetter = hasSetterMove("Trick Room");
+
+  if (hasTailwindSetter && hasTrickRoomSetter) {
+    return {
+      style: "dualroom",
+      note: `Both a real Tailwind setter and a real Trick Room setter are on this team -- genuinely rare together, and it means you can invert the game's speed order either direction depending on matchup instead of committing to one plan.`,
+    };
+  }
+
+  const weatherSetters = {};
+  members.forEach((m) => {
+    const ability = wcAbilityOf(abilitiesData, m.name);
+    const weather = WINCON_WEATHER_SETTING_ABILITIES[ability];
+    if (weather) {
+      if (!weatherSetters[weather]) weatherSetters[weather] = [];
+      weatherSetters[weather].push(m.name);
+    }
+  });
+  const activeWeathers = Object.keys(weatherSetters);
+  for (let i = 0; i < activeWeathers.length; i++) {
+    const weather = activeWeathers[i];
+    const setterNames = weatherSetters[weather];
+    const boostedType = WINCON_WEATHER_BOOSTED_ATTACK_TYPE[weather];
+    const bulkType = WINCON_WEATHER_PASSIVE_BULK_TYPE[weather];
+    const benefitAbilities = WINCON_WEATHER_BENEFIT_ABILITIES[weather] || [];
+    const abuser = members.find((m) => {
+      if (setterNames.includes(m.name)) return false; // the setter itself doesn't count as its own abuser
+      const ability = wcAbilityOf(abilitiesData, m.name);
+      if (benefitAbilities.includes(ability)) return true;
+      if (boostedType && m.types && m.types.includes(boostedType)) return true;
+      if (bulkType && m.types && m.types.includes(bulkType)) return true;
+      return false;
+    });
+    if (abuser) {
+      return {
+        style: "weather",
+        weather,
+        note: `${setterNames.join(" and ")} genuinely set${setterNames.length === 1 ? "s" : ""} ${wcArchetypeDisplayName(weather)} the instant ${setterNames.length === 1 ? "it's" : "they're"} on the field, and ${abuser.name} is a real teammate that benefits from it -- a coherent weather core, not just a setter with nothing to protect.`,
+      };
+    }
+  }
+
+  const trickRoomPayoffMembers = members.filter((m) => wcIsTrickRoomPayoff(m.baseStats));
+  if (hasTrickRoomSetter && trickRoomPayoffMembers.length >= 2) {
+    return {
+      style: "trickroom",
+      note: `A real Trick Room setter plus ${trickRoomPayoffMembers.length} genuinely slow, hard-hitting members (${trickRoomPayoffMembers.map((m) => m.name).join(", ")}) that are built to move first only once speed is reversed -- a real Trick Room team, not just one member that happens to know the move.`,
+    };
+  }
+
+  const tailwindPayoffMembers = members.filter((m) => wcIsTailwindPayoff(m.baseStats));
+  if (hasTailwindSetter && tailwindPayoffMembers.length >= 2) {
+    return {
+      style: "tailwind",
+      note: `A real Tailwind setter plus ${tailwindPayoffMembers.length} hard-hitting members (${tailwindPayoffMembers.map((m) => m.name).join(", ")}) that are too slow to reliably move first on their own -- Tailwind's speed double is the real reason they get to act, not incidental.`,
+    };
+  }
+
+  const wallMembers = members.filter((m) => wcIsGenuineWall(m.baseStats));
+  const glassCannonMembers = members.filter((m) => wcIsGlassCannonSweeper(m.baseStats));
+  if (wallMembers.length === 0 && glassCannonMembers.length >= Math.ceil(members.length * 2 / 3)) {
+    return {
+      style: "hyperoffense",
+      note: `${glassCannonMembers.length} of your ${members.length} are genuinely fast, hard-hitting sweepers (${glassCannonMembers.map((m) => m.name).join(", ")}) with no real dedicated wall anywhere on the team -- this plays as Hyper Offense: apply immediate pressure with speed and power rather than setting up.`,
+    };
+  }
+
+  const hardHitterMembers = members.filter((m) => wcIsHardHitter(m.baseStats));
+  if (wallMembers.length >= 1 && hardHitterMembers.length >= 2) {
+    return {
+      style: "balance",
+      note: `A real defensive backbone (${wallMembers.map((m) => m.name).join(", ")}) alongside ${hardHitterMembers.length} genuine hard hitters -- flexible positioning between walls and sweepers rather than committing to one extreme.`,
+    };
+  }
+
+  return null;
+}
+
+/** Display labels for wcClassifyTeamStyle's style keys -- separate table from WC_ARCHETYPE_DISPLAY_NAMES since these are a different, macro-level vocabulary (a team's overall shape, not one tactical tool). */
+const WC_TEAM_STYLE_DISPLAY_NAMES = {
+  dualroom: "Dual Room",
+  weather: "Weather",
+  trickroom: "Trick Room",
+  tailwind: "Tailwind",
+  hyperoffense: "Hyper Offense",
+  balance: "Balance",
+};
+function wcTeamStyleDisplayName(style) {
+  return WC_TEAM_STYLE_DISPLAY_NAMES[style] || style;
+}
+
+/**
+ * Milestone 51: lets Phoenix's free-text team notes name a target STYLE
+ * directly ("build hyper offense"), so Generate Dream Team can bias
+ * toward it from the very first pick instead of only ever reacting once
+ * it's already forming organically (wcClassifyTeamStyle above). Same
+ * simple substring-match convention as WINCON_NOTES_KEYWORDS/
+ * wcPreferredSetter -- first matching style wins, or null if notes don't
+ * name one.
+ */
+const WINCON_TEAM_STYLE_NOTES_KEYWORDS = {
+  hyperoffense: ["hyper offense", "hyperoffense", "aggro team", "all-out offense", "offense team"],
+  balance: ["balance team", "balanced team", "flex team", "wide coverage team"],
+  weather: ["weather team"],
+  tailwind: ["tailwind team", "speed team"],
+  trickroom: ["trick room team", "slow team"],
+  dualroom: ["dual room", "dualroom", "both rooms", "flex speed"],
+};
+function wcRequestedTeamStyleFromNotes(notes) {
+  const text = (notes || "").toLowerCase();
+  if (!text.trim()) return null;
+  const styles = Object.keys(WINCON_TEAM_STYLE_NOTES_KEYWORDS);
+  for (let i = 0; i < styles.length; i++) {
+    const style = styles[i];
+    if (WINCON_TEAM_STYLE_NOTES_KEYWORDS[style].some((kw) => text.includes(kw))) return style;
+  }
+  return null;
+}
+
+/**
+ * Milestone 51: Generate Dream Team's own per-candidate nudge toward
+ * whichever macro style is either explicitly requested in team notes
+ * (wcRequestedTeamStyleFromNotes -- takes priority, since it's a
+ * deliberate ask) or already forming organically (wcClassifyTeamStyle).
+ * Small, real, and asymmetric where the style actually calls for it --
+ * Hyper Offense doesn't just fail to reward a wall, it genuinely works
+ * against one, so a wall candidate is penalized, not merely un-boosted.
+ * Weather deliberately returns 0 here -- wcWeatherCounterBonus/the
+ * existing weather archetype signal already score that well via
+ * wcArchetypeSynergyBonus, and double-counting it here would inflate
+ * the same real signal twice under two different names.
+ */
+function wcTeamStyleSynergyBonus(candidate, team, notes, abilitiesData) {
+  const requested = wcRequestedTeamStyleFromNotes(notes);
+  const detected = wcClassifyTeamStyle(team, abilitiesData);
+  const style = requested || (detected && detected.style);
+  if (!style || !candidate || !candidate.baseStats) return 0;
+
+  switch (style) {
+    case "hyperoffense":
+      if (wcIsGenuineWall(candidate.baseStats)) return -1.5;
+      return wcIsGlassCannonSweeper(candidate.baseStats) ? 1.5 : 0;
+    case "balance":
+      if (wcIsGenuineWall(candidate.baseStats)) return 1.5;
+      return wcIsHardHitter(candidate.baseStats) ? 1 : 0;
+    case "tailwind":
+      return wcIsTailwindPayoff(candidate.baseStats) ? 1 : 0;
+    case "trickroom":
+      return wcIsTrickRoomPayoff(candidate.baseStats) ? 1 : 0;
+    case "dualroom":
+      return wcIsTailwindPayoff(candidate.baseStats) || wcIsTrickRoomPayoff(candidate.baseStats) ? 1 : 0;
+    case "weather":
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+/**
  * Milestone 44: one well-known, honest real counter-mechanism per
  * archetype key this app can pick as a team's primary or alternative
  * strategy (see WC_ARCHETYPE_DISPLAY_NAMES) -- the single most commonly
@@ -2358,7 +2630,7 @@ function wcStatCoverBonus(carryBaseStats, candidateAbility) {
  * checks -- said here too, since a stated counter that sounds
  * authoritative but only covers one angle is exactly the kind of thing
  * this project is careful to flag rather than present as complete.
- * "balanced" (no single mechanism detected) deliberately has no entry --
+ * "independent" (no single mechanism detected) deliberately has no entry --
  * there's nothing specific here to counter.
  */
 const WINCON_ARCHETYPE_COUNTERS = {
@@ -2433,7 +2705,7 @@ const WINCON_ARCHETYPE_COUNTERS = {
   },
 };
 
-/** Returns WINCON_ARCHETYPE_COUNTERS' single stated counter line for an archetype key, or null if this archetype (e.g. "balanced") has no real, specific counter to state. */
+/** Returns WINCON_ARCHETYPE_COUNTERS' single stated counter line for an archetype key, or null if this archetype (e.g. "independent") has no real, specific counter to state. */
 function wcStatedCounterNote(archetypeType) {
   const entry = WINCON_ARCHETYPE_COUNTERS[archetypeType];
   if (!entry) return null;
@@ -2459,7 +2731,7 @@ function wcAssemblePilotGuide(strategy, megaAdvice, antiSynergyWarnings) {
   if (!strategy) return null;
   return {
     archetype: strategy.archetype,
-    archetypeLabel: strategy.archetype === "balanced" ? null : wcArchetypeDisplayName(strategy.archetype),
+    archetypeLabel: strategy.archetype === "independent" ? null : wcArchetypeDisplayName(strategy.archetype),
     setterName: strategy.setterName || null,
     mechanismNote: strategy.note,
     megaAdviceNote: (megaAdvice && megaAdvice.note) || null,
@@ -3350,10 +3622,17 @@ function wcDreamTeamCandidateScore(candidate, team, threats, typeChart, allTypes
     ? wcMetaBaselineArchetypeBonus(candidate.name, options.metaBaseline, options.format || "doubles")
     : 0;
   const archetypeBonus = wcArchetypeSynergyBonus(candidate, team, options.format || "doubles", options.abilitiesData);
+  // Milestone 51: a real, separate nudge toward the team's overall MACRO
+  // style (Balance/Weather/Hyper Offense/Tailwind/Trick Room/Dual Room --
+  // see wcClassifyTeamStyle) on top of archetypeBonus's existing single-
+  // TACTICAL-TOOL bonus just above. Small and additive, same spirit as
+  // every other term here -- never overrides the coverage/matchup scoring
+  // that already dominates this function.
+  const teamStyleBonus = wcTeamStyleSynergyBonus(candidate, team, options.notes, options.abilitiesData);
   const softPreferenceBonus = wcNotesSoftPreferenceBonus(candidate.name, options.notes);
   const spreadSafetyBonus = wcSpreadMoveSafetyBonus(candidate, team, options.format || "doubles", options.movesData, typeChart);
   const experienceDiversityBonus = wcExperienceDiversityBonus(candidate.name, options.experienceLookup);
-  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + softPreferenceBonus + spreadSafetyBonus + experienceDiversityBonus;
+  return coverageGain * 1.5 + weatherBonus * 1 + coverage * 0.5 + (bst / 600) * 0.5 - dup * 1.5 + metaBonus + liveMetaBonus + metaBaselineBonus + archetypeBonus + teamStyleBonus + softPreferenceBonus + spreadSafetyBonus + experienceDiversityBonus;
 }
 
 /**
@@ -4196,7 +4475,7 @@ function wcApplyMetaAnalystFixes(builds, fixes) {
  * trimmed down, not expanded. Hand-picked, not exhaustive, same
  * convention as WINCON_SPREAD_MOVES/WINCON_ARCHETYPE_COUNTERS. Weather
  * pairs are the real overwrite relationship (sun/rain, sand/snow);
- * "balanced" deliberately has no entry.
+ * "independent" deliberately has no entry.
  */
 const WINCON_BEST_MATCHUP_COUNTERS = {
   trickroom: "Taunt",
@@ -4284,7 +4563,7 @@ function wcActiveArchetypesForBuiltTeam(members, builds, abilitiesData) {
  * every archetype genuinely active on the built team (see
  * wcActiveArchetypesForBuiltTeam), each paired with its single terse
  * best-matchup answer from WINCON_BEST_MATCHUP_COUNTERS above. Returns
- * `null` for a "balanced" team with nothing active to counter, or if
+ * `null` for an "independent" team with nothing active to counter, or if
  * none of the active archetypes happen to have a mapped counter.
  */
 function wcBestMatchupAnalysis(members, builds, abilitiesData) {
@@ -4315,7 +4594,7 @@ function wcMetaAnalystReport(members, builds, movesData, threats, typeChart, for
   // screen. The old Trick-Room-specific audit mode is gone entirely,
   // replaced by the general best-matchup mode below.
   const modes = [];
-  if (strategyResult.archetype !== "balanced") {
+  if (strategyResult.archetype !== "independent") {
     modes.push({ title: `${wcArchetypeDisplayName(strategyResult.archetype)} Mode`, lines: [] });
   }
   if (bestMatchup) {

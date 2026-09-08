@@ -528,4 +528,57 @@ check("wcSimulatePlan never resolves two Mega-eligible members as Mega simultane
   }
 });
 
+// ---------------------------------------------------------------------------
+// 8. Milestone 51: real survivability scoring (Phoenix: base Sceptile "wont
+// hold out for the length of a battle" -- a real gap in Milestone 49's
+// carry-synergy scoring, which credited typing/Intimidate but nothing about
+// actually surviving). wcBulkPoints/wcSurvivabilityBonus use hp*min(def,spd)
+// -- a Pokemon is only as bulky as its WEAKER defensive stat -- and the real
+// numbers below were independently verified against data/base-stats.json
+// before writing these assertions.
+// ---------------------------------------------------------------------------
+
+check("wcBulkPoints uses hp*min(def,spd), not hp+def+spd -- so one huge defensive stat can't hide a genuinely weak other side", () => {
+  // Steelix: hp=75, def=200, spd=65 -- 200 Defense LOOKS like a wall, but
+  // its real weaker side (65 Special Defense) is what a smart opponent
+  // actually attacks, so its real bulk score is 75*65=4875, not 75*200.
+  assert.equal(context.wcBulkPoints({ hp: 75, def: 200, spd: 65 }), 4875);
+  // Incineroar: hp=95, def=90, spd=90 -- balanced across both sides, so its
+  // real bulk score (95*90=8550) is far higher than Steelix's despite a
+  // much lower raw Defense stat.
+  assert.equal(context.wcBulkPoints({ hp: 95, def: 90, spd: 90 }), 8550);
+  // Base (non-Mega) Sceptile: hp=70, def=65, spd=85 -- 70*65=4550, in the
+  // same fragile range as Steelix once you look at its real weaker side.
+  assert.equal(context.wcBulkPoints({ hp: 70, def: 65, spd: 85 }), 4550);
+});
+
+check("wcSurvivabilityBonus credits genuine top-quartile bulk (Incineroar) far above bottom-quartile bulk (Steelix, base Sceptile) -- the real inversion of the naive 'Steelix has 200 Defense so it must be the wall' read", () => {
+  const incineroarBonus = context.wcSurvivabilityBonus({ hp: 95, def: 90, spd: 90 });
+  const steelixBonus = context.wcSurvivabilityBonus({ hp: 75, def: 200, spd: 65 });
+  const sceptileBonus = context.wcSurvivabilityBonus({ hp: 70, def: 65, spd: 85 });
+  assert.equal(incineroarBonus, 2, "Incineroar's 8550 bulk points clear the real p75 threshold (7475) -- a genuine wall");
+  assert.equal(steelixBonus, 0, "Steelix's 4875 bulk points sit below the real p50 threshold (6150) -- despite its huge raw Defense stat");
+  assert.equal(sceptileBonus, 0, "base Sceptile's 4550 bulk points are just as fragile as Steelix by this real, weaker-side-aware measure");
+  assert.ok(incineroarBonus > steelixBonus, "Incineroar must score a real, higher survivability credit than Steelix");
+});
+
+check("wcCarryPlanBonus now includes a real survivability term, weighted smaller than type-cover/stat-cover", () => {
+  const carrySpec = { types: ["Fire", "Flying"], baseStats: { hp: 78, atk: 104, def: 78, spa: 159, spd: 115, spe: 100 }, ability: null };
+  const incineroarSpec = { name: "Incineroar", types: ["Fire", "Dark"], baseStats: { hp: 95, atk: 115, def: 90, spa: 80, spd: 90, spe: 60 }, ability: "Intimidate" };
+  const steelixSpec = { name: "Steelix", types: ["Steel", "Ground"], baseStats: { hp: 75, atk: 85, def: 200, spa: 55, spd: 65, spe: 30 }, ability: "Sturdy" };
+  const specsByName = { Carry: carrySpec, Incineroar: incineroarSpec, Steelix: steelixSpec };
+  const plan = { roleByName: { Carry: "carry", Incineroar: "support", Steelix: "support" } };
+  const bonusFn = context.wcCarryPlanBonus(plan, specsByName, typeChart);
+
+  const incineroarOnly = bonusFn(["Carry", "Incineroar"]);
+  const steelixOnly = bonusFn(["Carry", "Steelix"]);
+  // Incineroar contributes 0 type-cover (Fire/Dark resists none of
+  // Rock/Electric/Water) + 0.15 stat-cover (Intimidate) + 0.12 survivability
+  // (2 * 0.06, genuine wall) = 0.27. Steelix contributes 0.16 type-cover
+  // (2 * 0.08, resists Rock + immune to Electric) + 0 stat-cover (no
+  // Intimidate) + 0 survivability (below the real p50 bulk threshold) = 0.16.
+  assert.ok(Math.abs(incineroarOnly - 0.27) < 1e-9, `expected Incineroar-only bonus ~0.27, got ${incineroarOnly}`);
+  assert.ok(Math.abs(steelixOnly - 0.16) < 1e-9, `expected Steelix-only bonus ~0.16, got ${steelixOnly}`);
+});
+
 console.log(`\nAll ${checksRun} checks passed.`);

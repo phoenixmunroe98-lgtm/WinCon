@@ -56,8 +56,8 @@ check("wcStatedCounterNote returns a real, non-empty counter line for every real
   });
 });
 
-check("wcStatedCounterNote returns null for 'balanced' -- there's nothing specific to counter", () => {
-  assert.equal(context.wcStatedCounterNote("balanced"), null);
+check("wcStatedCounterNote returns null for 'independent' -- there's nothing specific to counter", () => {
+  assert.equal(context.wcStatedCounterNote("independent"), null);
 });
 
 check("wcStatedCounterNote returns null for an unknown/invalid archetype key", () => {
@@ -92,8 +92,8 @@ check("wcAssemblePilotGuide returns null when there's no strategy at all", () =>
   assert.equal(context.wcAssemblePilotGuide(undefined, null, []), null);
 });
 
-check("wcAssemblePilotGuide handles a 'balanced' strategy honestly -- no archetype label, no counter, mechanism note still passes through", () => {
-  const strategy = { archetype: "balanced", setterName: null, note: "Playing as six independent attackers." };
+check("wcAssemblePilotGuide handles an 'independent' strategy honestly -- no archetype label, no counter, mechanism note still passes through", () => {
+  const strategy = { archetype: "independent", setterName: null, note: "Playing as six independent attackers." };
   const guide = context.wcAssemblePilotGuide(strategy, null, []);
   assert.equal(guide.archetypeLabel, null);
   assert.equal(guide.counterNote, null);
