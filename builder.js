@@ -156,7 +156,7 @@ let dreamTeamOptionsState = null;
 let pendingRival = null;
 
 /** Simulated Win Rate state -- see refreshSimulatedWinRate()/runSimulatedWinRate() below.
- * simWinRateResult: the last { lineup, format, scenarios } from wcRunSimAsync("simulateWinRate", ...), or null if none has run yet for the current complete-team streak.
+ * simWinRateResult: the last { format, n, combos, averageWinRate } from wcRunSimAsync("simulateWinRate", ...) -- Milestone 57: `combos` has one entry per real n-of-6 combination the team can bring, sorted by win rate -- or null if none has run yet for the current complete-team streak.
  * simWinRateNeedsRerun: true once an edit has happened since simWinRateResult was computed -- shows a "team has changed" note on the Re-run button rather than silently re-simulating.
  * simWinRateWasComplete: isTeamComplete()'s value the last time refreshSimulatedWinRate() checked it -- the one-shot "incomplete -> complete" transition detector that triggers the auto-run.
  * simWinRateInFlight: guards against overlapping runs (e.g. a stray extra click on Re-run while one is already running). */
@@ -4021,17 +4021,20 @@ async function runSimulatedWinRate() {
 }
 
 /**
- * Milestone 48: `result.plans` is now always an array (see
- * wcSimulateTeamWinRate's own doc comment, battle-sim-lineup.js) -- one
- * entry for a team with no detected real archetype/anti-Trick-Room
- * signal ("Standard", rendered exactly like the old single-lineup
- * layout below with no plan heading, so a typical team's card looks
- * unchanged), or one entry PER real game plan the team can run (e.g.
- * Phoenix's own example team gets a separate "Tailwind (carry: Mega
- * Sceptile)" section and a separate "Tailwind (carry: Mega Charizard Y)"
- * section, each with its own best lineup and its own win rate) -- a
- * plan heading only appears at all once there's more than one plan to
- * tell apart.
+ * Milestone 57 (Phoenix: "run a win rate for each combination of 4...
+ * show the most successful combination then an average win rate
+ * percentage and then the remaining combinations collapsed underneath a
+ * drop down heading 'other win rates for this team'"). `result.combos`
+ * now has one entry per real n-of-6 combination the team can bring --
+ * every real C(6,4)=15 (Doubles) or C(6,3)=20 (Singles) combination,
+ * sorted by real win rate, most successful first (see
+ * wcSimulateTeamWinRate's own doc comment, battle-sim-lineup.js). The
+ * single most successful combination renders as a hero card, `result.
+ * averageWinRate` renders as a plain stat line right below it, and every
+ * other combination renders as a compact row inside a closed "Other win
+ * rates for this team" dropdown -- so a team's real successful lineups
+ * (the whole point of this rewrite) are always genuinely present in the
+ * result, never narrowed away before this page ever sees them.
  */
 function renderSimulatedWinRateResult(result) {
   simwinrateHintEl.hidden = true;
@@ -4041,43 +4044,46 @@ function renderSimulatedWinRateResult(result) {
   simwinrateRerunBtn.hidden = false;
   simwinrateRerunBtn.textContent = simWinRateNeedsRerun ? "Re-run simulation (your team has changed)" : "Re-run simulation";
 
-  const plans = result.plans || [];
-  const showPlanLabels = plans.length > 1;
+  const combos = result.combos || [];
+  if (combos.length === 0) return;
 
-  plans.forEach((plan) => {
-    const group = document.createElement("div");
-    group.className = "simwinrate-plan-group";
+  const [best, ...otherCombos] = combos;
 
-    if (showPlanLabels) {
-      const planHeading = document.createElement("h3");
-      planHeading.className = "section-title simwinrate-plan-heading";
-      planHeading.textContent = plan.label;
-      group.appendChild(planHeading);
-    }
+  const lineupNote = document.createElement("p");
+  lineupNote.className = "hint simwinrate-lineup-note";
+  lineupNote.textContent =
+    `WinCon tested every real bring-${result.n}-of-6 combination this team can make (${combos.length} total) against the reference field. Most successful: ${best.lineup.join(", ")}.` +
+    (sheetMode === "open" ? " Scored under your Open Team Sheet — the opponent AI gets full information from turn 1." : "");
+  simwinrateScenariosEl.appendChild(lineupNote);
 
-    const lineupNote = document.createElement("p");
-    lineupNote.className = "hint simwinrate-lineup-note";
-    lineupNote.textContent =
-      `WinCon's own best bring-${plan.lineup.length}-of-6 lineup for this${showPlanLabels ? " plan" : " team"}: ${plan.lineup.join(", ")}.` +
-      (sheetMode === "open" ? " Scored under your Open Team Sheet — the opponent AI gets full information from turn 1." : "");
-    group.appendChild(lineupNote);
+  simwinrateScenariosEl.appendChild(renderSimwinrateCard(best));
 
-    const cardsGrid = document.createElement("div");
-    cardsGrid.className = "simwinrate-cards-grid";
-    plan.scenarios.forEach((scenario) => {
-      cardsGrid.appendChild(renderSimwinrateCard(scenario));
+  const averageNote = document.createElement("p");
+  averageNote.className = "simwinrate-average-note";
+  averageNote.textContent = `Average win rate across all ${combos.length} real combinations tested: ${Math.round(result.averageWinRate * 100)}%.`;
+  simwinrateScenariosEl.appendChild(averageNote);
+
+  if (otherCombos.length > 0) {
+    const details = document.createElement("details");
+    details.className = "meta-analyst-collapsible";
+    const summary = document.createElement("summary");
+    summary.textContent = "Other win rates for this team";
+    details.appendChild(summary);
+    const list = document.createElement("div");
+    list.className = "simwinrate-combo-list";
+    otherCombos.forEach((combo) => {
+      list.appendChild(renderSimwinrateComboRow(combo));
     });
-    group.appendChild(cardsGrid);
-
-    simwinrateScenariosEl.appendChild(group);
-  });
+    details.appendChild(list);
+    simwinrateScenariosEl.appendChild(details);
+  }
 }
 
-function renderSimwinrateCard(scenario) {
+function renderSimwinrateCard(combo) {
   const card = document.createElement("div");
   card.className = "simwinrate-card";
 
-  const pct = Math.round(scenario.winRate * 100);
+  const pct = Math.round(combo.winRate * 100);
   const hero = document.createElement("div");
   hero.className = "score-hero";
   const ring = document.createElement("div");
@@ -4090,15 +4096,21 @@ function renderSimwinrateCard(scenario) {
   meta.className = "score-meta";
   const heading = document.createElement("h3");
   heading.className = "section-title";
-  heading.textContent = scenario.megaName ? `Mega Evolving ${scenario.megaName}` : "No Mega Evolution";
+  heading.textContent = combo.megaName ? `Mega Evolving ${combo.megaName}` : "No Mega Evolution";
   const summary = document.createElement("p");
   summary.className = "hint";
-  summary.textContent = `Won ${scenario.wins} of ${scenario.totalRuns} simulated battles (${scenario.draws} draws) against the reference field.`;
+  summary.textContent = `Won ${combo.wins} of ${combo.totalRuns} simulated battles (${combo.draws} draws) against the reference field.`;
   meta.append(heading, summary);
+  if (combo.planLabel) {
+    const planNote = document.createElement("p");
+    planNote.className = "hint simwinrate-plan-tag";
+    planNote.textContent = `Plan: ${combo.planLabel}`;
+    meta.appendChild(planNote);
+  }
   hero.append(ring, meta);
   card.appendChild(hero);
 
-  const toughest = [...(scenario.perOpponent || [])].sort((a, b) => a.winRate - b.winRate).slice(0, 3);
+  const toughest = [...(combo.perOpponent || [])].sort((a, b) => a.winRate - b.winRate).slice(0, 3);
   if (toughest.length > 0) {
     const toughPara = document.createElement("p");
     const strong = document.createElement("strong");
@@ -4111,6 +4123,38 @@ function renderSimwinrateCard(scenario) {
   }
 
   return card;
+}
+
+/** One compact row inside the "Other win rates for this team" dropdown -- the lineup, its real win rate, and (when applicable) its Mega/plan tags, without the full hero-card ring treatment (there can be up to 19 of these). */
+function renderSimwinrateComboRow(combo) {
+  const row = document.createElement("div");
+  row.className = "simwinrate-combo-row";
+
+  const pct = document.createElement("span");
+  pct.className = "simwinrate-combo-pct";
+  pct.textContent = `${Math.round(combo.winRate * 100)}%`;
+  row.appendChild(pct);
+
+  const lineup = document.createElement("span");
+  lineup.className = "simwinrate-combo-lineup";
+  lineup.textContent = combo.lineup.join(", ");
+  row.appendChild(lineup);
+
+  if (combo.megaName) {
+    const megaTag = document.createElement("span");
+    megaTag.className = "simwinrate-combo-tag";
+    megaTag.textContent = `Mega ${combo.megaName}`;
+    row.appendChild(megaTag);
+  }
+
+  if (combo.planLabel) {
+    const planTag = document.createElement("span");
+    planTag.className = "simwinrate-combo-tag";
+    planTag.textContent = combo.planLabel;
+    row.appendChild(planTag);
+  }
+
+  return row;
 }
 
 /**

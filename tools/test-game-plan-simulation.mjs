@@ -1,14 +1,22 @@
 // WinCon — tools/test-game-plan-simulation.mjs (Milestone 48)
 //
-// Regression test for the "WinCon Meta Analyst"-adjacent but separate
-// Milestone 48 feature: the Simulated Win Rate now detects a built team's
-// real game plans (wcBuildGamePlans, battle-sim-lineup.js) and simulates
-// each one separately with role-weighted AI and role-ordered leads,
-// instead of running one generic-AI battle and reporting a single blended
-// number. Also covers the two engine-correctness pieces this feature
-// needed as groundwork: Light Screen/Reflect/Aurora Veil's real damage
-// reduction (previously a complete no-op), and a real bug where Tailwind's
-// turn counter was silently decremented twice a turn in Doubles.
+// Regression test for wcBuildGamePlans (battle-sim-lineup.js) -- the
+// detector for a built team's real game plans (Tailwind/Trick Room per
+// real carry/setter candidate), and the two small primitives built on top
+// of it: wcRoleWeightsFor (role-weighted AI overlays) and
+// wcOrderLineupForPlan (setter/screener-first lead ordering). As of
+// Milestone 57, Simulated Win Rate no longer narrows to one lineup per
+// detected plan before simulating it -- it fully simulates every real
+// lineup combination, applying a plan's role-weighted AI only to the
+// specific combos that satisfy that plan's required pieces (see
+// tools/test-full-lineup-sweep.mjs for that full-sweep behavior). This
+// file's remaining coverage is the still-live pieces underneath that:
+// game-plan detection itself, wcBattlerSpecForSlot's forced base/mega
+// view resolution, and wcBulkPoints' real bulk scoring -- plus the two
+// engine-correctness pieces Milestone 48 needed as groundwork: Light
+// Screen/Reflect/Aurora Veil's real damage reduction (previously a
+// complete no-op), and a real bug where Tailwind's turn counter was
+// silently decremented twice a turn in Doubles.
 //
 // Run: node tools/test-game-plan-simulation.mjs
 
@@ -195,63 +203,6 @@ check("wcOrderLineupForPlan leads with setter then screener, benches support the
 });
 
 // ---------------------------------------------------------------------------
-// 3. wcSimulateTeamWinRate's new { format, plans } shape, end to end --
-// stubbing wcRunMonteCarlo (same technique tools/test-lineup-search.mjs
-// uses) so this stays fast and deterministic without needing thousands of
-// real simulated battles.
-// ---------------------------------------------------------------------------
-
-context.wcRunMonteCarlo = function fakeMonteCarlo(specs, oppPool, runsPerOpponent) {
-  const totalRuns = oppPool.length * runsPerOpponent;
-  return { winRate: 0.5, wins: Math.round(totalRuns * 0.5), losses: totalRuns - Math.round(totalRuns * 0.5), draws: 0, totalRuns, perOpponent: [] };
-};
-
-const metaBaseline = {
-  doubles: [
-    {
-      id: "test-reference-a",
-      label: "Test reference A",
-      members: [
-        { name: "Gholdengo", item: "Choice Specs", role: "fast-special", moves: ["Make It Rain", "Shadow Ball", "Trick", "Protect"] },
-        { name: "Torkoal", item: "Charcoal", role: "bulky-special", moves: ["Eruption", "Protect", "Rock Slide", "Yawn"] },
-      ],
-    },
-  ],
-  singles: [],
-};
-
-const payload = {
-  chosenSix: CHOSEN_SIX,
-  builds: BUILDS,
-  format: "doubles",
-  sheetMode: "open",
-  pokemonList, baseStatsData, abilitiesData, movesData,
-  moveEffects, abilityEffects, itemEffects, typeChart, natures,
-  metaBaseline, comboLookup: null, liveTierStats: null,
-};
-
-const result = JSON.parse(JSON.stringify(context.wcSimulateTeamWinRate(payload)));
-
-check("wcSimulateTeamWinRate returns one plan per real detected game plan, each with its own 4-of-6 lineup", () => {
-  assert.equal(result.format, "doubles");
-  assert.equal(result.plans.length, 3);
-  const byKey = {};
-  result.plans.forEach((p) => { byKey[p.key] = p; });
-  ["tailwind__Sceptile", "tailwind__Charizard", "trickroomdefense"].forEach((key) => {
-    assert.ok(byKey[key], `expected a plan for ${key}`);
-    assert.equal(byKey[key].lineup.length, 4);
-    assert.ok(byKey[key].scenarios.length >= 1);
-  });
-});
-
-check("each plan's own lineup actually contains that plan's required pieces", () => {
-  result.plans.forEach((plan) => {
-    const requiredNames = plans.find((p) => p.key === plan.key).requiredNames;
-    requiredNames.forEach((name) => assert.ok(plan.lineup.includes(name), `${plan.key}'s lineup [${plan.lineup}] is missing required ${name}`));
-  });
-});
-
-// ---------------------------------------------------------------------------
 // 4. Screens (Light Screen/Reflect/Aurora Veil) now really halves damage --
 // previously a complete no-op mechanically (no field state at all).
 // ---------------------------------------------------------------------------
@@ -361,53 +312,15 @@ check("wcApplyEndOfTurn no longer decrements tailwindTurns itself (that used to 
 });
 
 // ---------------------------------------------------------------------------
-// 6. Milestone 49: real, computed carry-synergy scoring for a plan's free
-// lineup slots -- the fix for Phoenix's observation that every plan's
-// free slots kept converging on the same two hardest hitters (Sceptile,
-// Charizard) regardless of which plan was asking. All values below were
-// independently verified against the real type chart/base stats before
-// writing these assertions (see this session's own scratch verification).
+// 6. Milestone 49: wcBuildGamePlans lets team notes override which real
+// setter candidate gets the role, instead of always defaulting to the
+// fastest candidate. (This section previously also covered
+// wcTypeCoverBonus/wcStatCoverBonus/wcCarryPlanBonus's carry-synergy
+// scoring for a plan's free lineup slots; those were removed in
+// Milestone 57's full-lineup-sweep rewrite, which no longer narrows to
+// one lineup per plan before scoring it -- every real combination is
+// simulated directly instead.)
 // ---------------------------------------------------------------------------
-
-check("wcTypeCoverBonus counts real covered weaknesses using each side's real types, nothing hand-picked", () => {
-  // Mega Charizard Y stays Fire/Flying (Y doesn't add a type) -- real
-  // weaknesses Rock/Electric/Water. Steelix (Steel/Ground) resists/blocks
-  // Rock and Electric (Ground is immune to Electric) but not Water.
-  assert.equal(context.wcTypeCoverBonus(["Fire", "Flying"], ["Steel", "Ground"], typeChart), 2);
-  // Mega Sceptile is Grass/Dragon (a real second type gained on Mega
-  // Evolution, not just base Sceptile's pure Grass) -- a huge, genuinely
-  // different weakness profile from its base form. Steelix covers 5 of
-  // those real weaknesses.
-  assert.equal(context.wcTypeCoverBonus(["Grass", "Dragon"], ["Steel", "Ground"], typeChart), 5);
-});
-
-check("wcStatCoverBonus only credits a real Intimidate-style cover when the carry's own real stats are genuinely lopsided toward weak Physical", () => {
-  // Mega Sceptile's real base Defense (75) is genuinely below its real
-  // base Special Defense (85) -- Intimidate is a real, relevant cover.
-  assert.equal(context.wcStatCoverBonus({ def: 75, spd: 85 }, "Intimidate"), 1);
-  assert.equal(context.wcStatCoverBonus({ def: 75, spd: 85 }, "Blaze"), 0, "no bonus for an ability that isn't the curated Intimidate cover");
-  assert.equal(context.wcStatCoverBonus({ def: 200, spd: 65 }, "Intimidate"), 0, "no bonus when the carry's weaker real side is Special, not Physical");
-});
-
-check("wcCarryPlanBonus resolves the carry's real EFFECTIVE (Mega) identity, not its base form, when scoring candidates", () => {
-  const plans49 = JSON.parse(JSON.stringify(context.wcBuildGamePlans(CHOSEN_SIX, BUILDS, pokemonList, baseStatsData, abilitiesData)));
-  const sceptilePlan = plans49.find((p) => p.key === "tailwind__Sceptile");
-  const specsByName = {};
-  CHOSEN_SIX.forEach((name) => {
-    specsByName[name] = context.wcBattlerSpecForSlot(name, BUILDS[name], pokemonList, baseStatsData, abilitiesData);
-  });
-  // wcBuildGamePlans itself only returns plain role data (JSON-safe), but
-  // wcCarryPlanBonus needs the real vm-context function/specs -- rebuild
-  // the plan object's roleByName is already plain data, safe to pass in.
-  const rawPlan = { roleByName: sceptilePlan.roleByName };
-  const bonusFn = context.wcCarryPlanBonus(rawPlan, specsByName, typeChart);
-  const steelixBonus = bonusFn(["Staraptor", "Primarina", "Steelix", "Sceptile"]);
-  const charizardBonus = bonusFn(["Staraptor", "Primarina", "Charizard", "Sceptile"]);
-  assert.ok(
-    steelixBonus > charizardBonus,
-    `Steelix should score a real, higher synergy bonus for the Sceptile carry (its Grass/Dragon typing has real, substantial weaknesses Steelix's Steel/Ground genuinely covers) -- got Steelix ${steelixBonus} vs Charizard ${charizardBonus}`
-  );
-});
 
 check("wcBuildGamePlans now genuinely lets team notes override which real setter candidate gets the role (previously hardcoded to \"\", a real gap this milestone closes)", () => {
   // A small dedicated fixture: two real, legal Tailwind learners on one
@@ -445,37 +358,15 @@ check("wcBuildGamePlans now genuinely lets team notes override which real setter
 // 7. Milestone 49 follow-up: Phoenix caught a real, pre-existing bug --
 // "using sceptile and charizard in a team would mean only one is a mega,
 // this means you should take into account sceptiles base stats not its
-// mega evolved and vice versa". wcBuildMegaScenarios already forced
-// exactly one Mega per scenario for the FINAL reported result, but the
-// lineup SEARCH phase before it (wcSelectBestLineupBySuccessiveHalving,
-// via wcSimulatePlan's specsByName) had no such discipline -- any search
-// candidate holding both Sceptile and Charizard (both real Mega Stone
-// holders in Phoenix's own fixture) got simulated as though BOTH were
-// simultaneously Mega-evolved, an impossible real-game state. Fixed via
-// wcMegaOverridesForSearch, wired into wcSimulatePlan's specsByName loop.
+// mega evolved and vice versa". wcBattlerSpecForSlot's forcedMegaView
+// param is what makes that possible -- forcing "base" or "mega" resolves
+// a member's real effective typing/stats for that specific view. (This
+// section previously also covered wcMegaOverridesForSearch and
+// wcSimulatePlan's search-phase Mega discipline; both were removed in
+// Milestone 57's full-lineup-sweep rewrite -- the same never-simultaneous-
+// Mega invariant is now covered directly against wcBuildMegaScenarios in
+// tools/test-full-lineup-sweep.mjs.)
 // ---------------------------------------------------------------------------
-
-check("wcMegaOverridesForSearch forces exactly one Mega-eligible member to \"mega\" and every other one to \"base\", preferring the named carry", () => {
-  const forSceptileCarry = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, BUILDS, pokemonList, "Sceptile")));
-  assert.deepEqual(forSceptileCarry, { Sceptile: "mega", Charizard: "base" });
-
-  const forCharizardCarry = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, BUILDS, pokemonList, "Charizard")));
-  assert.deepEqual(forCharizardCarry, { Sceptile: "base", Charizard: "mega" });
-});
-
-check("wcMegaOverridesForSearch falls back to the first Mega-eligible member in roster order when no carry is named (the \"Standard\" no-plan case)", () => {
-  // CHOSEN_SIX order is Staraptor, Primarina, Incineroar, Steelix,
-  // Sceptile, Charizard -- Sceptile appears first among the two real
-  // Mega-eligible members, so it's the one legal, consistent choice here.
-  const noCarry = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, BUILDS, pokemonList, undefined)));
-  assert.deepEqual(noCarry, { Sceptile: "mega", Charizard: "base" });
-});
-
-check("wcMegaOverridesForSearch returns {} when the team has no real Mega-eligible member at all", () => {
-  const noMegaBuilds = { ...BUILDS, Sceptile: { ...BUILDS.Sceptile, item: "Leftovers" }, Charizard: { ...BUILDS.Charizard, item: "Leftovers" } };
-  const result49c = JSON.parse(JSON.stringify(context.wcMegaOverridesForSearch(CHOSEN_SIX, noMegaBuilds, pokemonList, "Sceptile")));
-  assert.deepEqual(result49c, {});
-});
 
 check("wcBattlerSpecForSlot's forced \"base\" view genuinely resolves Sceptile's real base (non-Mega) typing, not Mega Sceptile's Grass/Dragon", () => {
   const forcedBase = JSON.parse(JSON.stringify(context.wcBattlerSpecForSlot("Sceptile", BUILDS.Sceptile, pokemonList, baseStatsData, abilitiesData, "base")));
@@ -485,57 +376,16 @@ check("wcBattlerSpecForSlot's forced \"base\" view genuinely resolves Sceptile's
   assert.deepEqual([...forcedMega.types].sort(), ["Dragon", "Grass"], "forcing \"mega\" must still resolve the real Mega Sceptile Grass/Dragon typing when explicitly asked for");
 });
 
-check("wcSimulatePlan never resolves two Mega-eligible members as Mega simultaneously during the search phase, for any of Phoenix's real detected plans", () => {
-  const capturedForcedViews = [];
-  const realBattlerSpecForSlot = context.wcBattlerSpecForSlot;
-  context.wcBattlerSpecForSlot = function spyBattlerSpecForSlot(baseName, build, pl, bsd, ad, forcedMegaView) {
-    capturedForcedViews.push({ baseName, forcedMegaView });
-    return realBattlerSpecForSlot(baseName, build, pl, bsd, ad, forcedMegaView);
-  };
-
-  try {
-    const plans49b = JSON.parse(JSON.stringify(context.wcBuildGamePlans(CHOSEN_SIX, BUILDS, pokemonList, baseStatsData, abilitiesData)));
-    const format = "doubles";
-    const n = 4;
-    const oppPool = [{ id: "test-reference-a", members: metaBaseline.doubles[0].members }];
-    const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode: "open", format };
-
-    plans49b.forEach((plan) => {
-      capturedForcedViews.length = 0;
-      context.wcSimulatePlan(plan, CHOSEN_SIX, BUILDS, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, null);
-
-      // wcSimulatePlan builds specsByName for the SEARCH phase exactly
-      // once, one wcBattlerSpecForSlot call per chosenSix member, in
-      // chosenSix's own order, before wcBuildMegaScenarios runs -- so the
-      // first CHOSEN_SIX.length captured calls are that one search-phase
-      // build. wcBuildMegaScenarios afterwards legitimately builds several
-      // MORE specsByName sets, one per real Mega candidate scenario
-      // (Sceptile-mega-alone, Charizard-mega-alone, etc.) -- correctly
-      // trying each candidate separately, never simultaneously, which is
-      // the whole reason this test must not also flatten those later
-      // calls into the same "were they both mega" check.
-      const searchPhaseCalls = capturedForcedViews.slice(0, CHOSEN_SIX.length);
-      const sceptileCall = searchPhaseCalls.find((c) => c.baseName === "Sceptile");
-      const charizardCall = searchPhaseCalls.find((c) => c.baseName === "Charizard");
-      assert.ok(sceptileCall && charizardCall, `expected both Sceptile and Charizard to be resolved in the search-phase specsByName build for plan ${plan.key}`);
-      assert.ok(
-        !(sceptileCall.forcedMegaView === "mega" && charizardCall.forcedMegaView === "mega"),
-        `plan ${plan.key}: Sceptile and Charizard were both forced to "mega" in the search-phase specsByName build -- an impossible real Doubles state`
-      );
-    });
-  } finally {
-    context.wcBattlerSpecForSlot = realBattlerSpecForSlot;
-  }
-});
-
 // ---------------------------------------------------------------------------
-// 8. Milestone 51: real survivability scoring (Phoenix: base Sceptile "wont
-// hold out for the length of a battle" -- a real gap in Milestone 49's
-// carry-synergy scoring, which credited typing/Intimidate but nothing about
-// actually surviving). wcBulkPoints/wcSurvivabilityBonus use hp*min(def,spd)
-// -- a Pokemon is only as bulky as its WEAKER defensive stat -- and the real
+// 8. Milestone 51: real bulk scoring (Phoenix: base Sceptile "wont hold
+// out for the length of a battle"). wcBulkPoints uses hp*min(def,spd) --
+// a Pokemon is only as bulky as its WEAKER defensive stat -- and the real
 // numbers below were independently verified against data/base-stats.json
-// before writing these assertions.
+// before writing these assertions. (This section previously also covered
+// wcSurvivabilityBonus, wcCarryPlanBonus's survivability term, and
+// Milestone 52's screens-aware survivability multiplier; all were removed
+// in Milestone 57's full-lineup-sweep rewrite, which no longer scores
+// candidate lineups with a synergy heuristic before simulating them.)
 // ---------------------------------------------------------------------------
 
 check("wcBulkPoints uses hp*min(def,spd), not hp+def+spd -- so one huge defensive stat can't hide a genuinely weak other side", () => {
@@ -550,108 +400,6 @@ check("wcBulkPoints uses hp*min(def,spd), not hp+def+spd -- so one huge defensiv
   // Base (non-Mega) Sceptile: hp=70, def=65, spd=85 -- 70*65=4550, in the
   // same fragile range as Steelix once you look at its real weaker side.
   assert.equal(context.wcBulkPoints({ hp: 70, def: 65, spd: 85 }), 4550);
-});
-
-check("wcSurvivabilityBonus credits genuine top-quartile bulk (Incineroar) far above bottom-quartile bulk (Steelix, base Sceptile) -- the real inversion of the naive 'Steelix has 200 Defense so it must be the wall' read", () => {
-  const incineroarBonus = context.wcSurvivabilityBonus({ hp: 95, def: 90, spd: 90 });
-  const steelixBonus = context.wcSurvivabilityBonus({ hp: 75, def: 200, spd: 65 });
-  const sceptileBonus = context.wcSurvivabilityBonus({ hp: 70, def: 65, spd: 85 });
-  assert.equal(incineroarBonus, 2, "Incineroar's 8550 bulk points clear the real p75 threshold (7475) -- a genuine wall");
-  assert.equal(steelixBonus, 0, "Steelix's 4875 bulk points sit below the real p50 threshold (6150) -- despite its huge raw Defense stat");
-  assert.equal(sceptileBonus, 0, "base Sceptile's 4550 bulk points are just as fragile as Steelix by this real, weaker-side-aware measure");
-  assert.ok(incineroarBonus > steelixBonus, "Incineroar must score a real, higher survivability credit than Steelix");
-});
-
-check("wcCarryPlanBonus now includes a real survivability term, weighted smaller than type-cover/stat-cover", () => {
-  const carrySpec = { types: ["Fire", "Flying"], baseStats: { hp: 78, atk: 104, def: 78, spa: 159, spd: 115, spe: 100 }, ability: null };
-  const incineroarSpec = { name: "Incineroar", types: ["Fire", "Dark"], baseStats: { hp: 95, atk: 115, def: 90, spa: 80, spd: 90, spe: 60 }, ability: "Intimidate" };
-  const steelixSpec = { name: "Steelix", types: ["Steel", "Ground"], baseStats: { hp: 75, atk: 85, def: 200, spa: 55, spd: 65, spe: 30 }, ability: "Sturdy" };
-  const specsByName = { Carry: carrySpec, Incineroar: incineroarSpec, Steelix: steelixSpec };
-  const plan = { roleByName: { Carry: "carry", Incineroar: "support", Steelix: "support" } };
-  const bonusFn = context.wcCarryPlanBonus(plan, specsByName, typeChart);
-
-  const incineroarOnly = bonusFn(["Carry", "Incineroar"]);
-  const steelixOnly = bonusFn(["Carry", "Steelix"]);
-  // Incineroar contributes 0 type-cover (Fire/Dark resists none of
-  // Rock/Electric/Water) + 0.15 stat-cover (Intimidate) + 0.12 survivability
-  // (2 * 0.06, genuine wall) = 0.27. Steelix contributes 0.16 type-cover
-  // (2 * 0.08, resists Rock + immune to Electric) + 0 stat-cover (no
-  // Intimidate) + 0 survivability (below the real p50 bulk threshold) = 0.16.
-  assert.ok(Math.abs(incineroarOnly - 0.27) < 1e-9, `expected Incineroar-only bonus ~0.27, got ${incineroarOnly}`);
-  assert.ok(Math.abs(steelixOnly - 0.16) < 1e-9, `expected Steelix-only bonus ~0.16, got ${steelixOnly}`);
-});
-
-// ---------------------------------------------------------------------------
-// 9. Milestone 52: screens-aware survivability (Phoenix: "the use of
-// reflect and light screen enable staraptor and incineroar to be able to
-// have more survivability"). wcSurvivabilityBonus now takes an optional
-// bulkMultiplier, and wcCarryPlanBonus derives a real one (not an
-// arbitrary bonus) from the same 0.5x singles / 0.66x doubles incoming-
-// damage reduction battle-sim-engine.js's wcScreensModifierFor already
-// models -- taking less damage is mechanically the same as having more
-// effective bulk.
-// ---------------------------------------------------------------------------
-
-check("wcSurvivabilityBonus's new bulkMultiplier defaults to 1 (no behavior change for every Milestone 51 call site)", () => {
-  const steelixStats = { hp: 75, def: 200, spd: 65 };
-  assert.equal(context.wcSurvivabilityBonus(steelixStats), 0);
-  assert.equal(context.wcSurvivabilityBonus(steelixStats, 1), 0);
-});
-
-check("wcSurvivabilityBonus's bulkMultiplier can genuinely flip a fragile teammate into a real bulk tier -- Steelix's own 4875 bulk points (0 credit alone) cross the real p50 threshold (6150) once a real Doubles screens multiplier (1/0.66) is applied", () => {
-  const steelixStats = { hp: 75, def: 200, spd: 65 };
-  const doublesMultiplier = context.wcScreensSurvivabilityMultiplier("doubles");
-  const singlesMultiplier = context.wcScreensSurvivabilityMultiplier("singles");
-  assert.ok(Math.abs(doublesMultiplier - 1 / 0.66) < 1e-9);
-  assert.equal(singlesMultiplier, 2);
-  // 4875 * (1/0.66) = 7386.36... -- clears the real p50 threshold (6150)
-  // but not the real p75 "genuine wall" threshold (7475): a real, honest
-  // partial credit, not an inflated free pass to top-tier bulk.
-  assert.equal(context.wcSurvivabilityBonus(steelixStats, doublesMultiplier), 1);
-  // 4875 * 2 = 9750 -- clears even the real p75 threshold in Singles,
-  // where screens block a full 50% of incoming damage instead of 34%.
-  assert.equal(context.wcSurvivabilityBonus(steelixStats, singlesMultiplier), 2);
-});
-
-check("wcRealScreensSetterPresent finds a real built Light Screen/Reflect anywhere in the lineup, and is false with no build or an unrelated moveset", () => {
-  const specsByName = {
-    Primarina: { build: { moves: ["Light Screen", "Moonblast", "Helping Hand", "Protect"] } },
-    Farigiraf: { build: { moves: ["Reflect", "Psychic", "Trick Room", "Protect"] } },
-    Steelix: { build: { moves: ["Rock Slide", "Earthquake", "Heavy Slam", "Wide Guard"] } },
-    NoBuild: {},
-  };
-  assert.equal(context.wcRealScreensSetterPresent(["Primarina", "Steelix"], specsByName), true);
-  assert.equal(context.wcRealScreensSetterPresent(["Farigiraf", "Steelix"], specsByName), true);
-  assert.equal(context.wcRealScreensSetterPresent(["Steelix", "NoBuild"], specsByName), false);
-  assert.equal(context.wcRealScreensSetterPresent(["Missing"], specsByName), false);
-});
-
-check("wcCarryPlanBonus now boosts a teammate's real survivability term specifically when a real screens-setter is anywhere in the lineup (including the carry itself)", () => {
-  const carrySpecNoScreens = { types: ["Fire", "Flying"], baseStats: { hp: 78, atk: 104, def: 78, spa: 159, spd: 115, spe: 100 }, ability: null };
-  const carrySpecWithScreens = { ...carrySpecNoScreens, build: { moves: ["Light Screen", "Flamethrower", "Protect", "Dragon Pulse"] } };
-  const steelixSpec = { name: "Steelix", types: ["Steel", "Ground"], baseStats: { hp: 75, atk: 85, def: 200, spa: 55, spd: 65, spe: 30 }, ability: "Sturdy" };
-
-  const plan = { roleByName: { Carry: "carry", Steelix: "support" } };
-
-  const specsWithoutScreens = { Carry: carrySpecNoScreens, Steelix: steelixSpec };
-  const bonusWithoutScreens = context.wcCarryPlanBonus(plan, specsWithoutScreens, typeChart, "doubles")(["Carry", "Steelix"]);
-  // Same as the Milestone 51 test above: 0.16 type-cover + 0 stat-cover + 0 survivability (Steelix's 4875 bulk points alone don't clear the real p50 threshold).
-  assert.ok(Math.abs(bonusWithoutScreens - 0.16) < 1e-9, `expected 0.16 with no screens-setter present, got ${bonusWithoutScreens}`);
-
-  const specsWithScreens = { Carry: carrySpecWithScreens, Steelix: steelixSpec };
-  const bonusWithScreensDoubles = context.wcCarryPlanBonus(plan, specsWithScreens, typeChart, "doubles")(["Carry", "Steelix"]);
-  // Now the carry's own real, built Light Screen is on the field: Steelix's
-  // survivability term scales up by the real Doubles multiplier (1/0.66),
-  // crossing into the p50 tier -- 0.16 type-cover + 1*0.06 survivability = 0.22.
-  assert.ok(Math.abs(bonusWithScreensDoubles - 0.22) < 1e-9, `expected ~0.22 with a real Doubles screens-setter present, got ${bonusWithScreensDoubles}`);
-
-  const bonusWithScreensSingles = context.wcCarryPlanBonus(plan, specsWithScreens, typeChart, "singles")(["Carry", "Steelix"]);
-  // In Singles, screens block a full 50% of incoming damage, so Steelix's
-  // 4875*2=9750 clears even the real p75 "genuine wall" threshold -- 0.16
-  // type-cover + 2*0.06 survivability = 0.28.
-  assert.ok(Math.abs(bonusWithScreensSingles - 0.28) < 1e-9, `expected ~0.28 with a real Singles screens-setter present, got ${bonusWithScreensSingles}`);
-
-  assert.ok(bonusWithScreensDoubles > bonusWithoutScreens, "a real screens-setter in the lineup must raise Steelix's real survivability credit, not leave it unchanged");
 });
 
 console.log(`\nAll ${checksRun} checks passed.`);

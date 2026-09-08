@@ -2363,56 +2363,6 @@ function wcSharedWeaknessWarnings(members, typeChart) {
 }
 
 /**
- * Milestone 49 (Phoenix: "the team needs to be catered to that strategy...
- * not just strong pokemon"). Every game-plan lineup search
- * (wcSimulatePlan, battle-sim-lineup.js) used to pick a plan's two free
- * slots by raw simulated win rate alone -- which, across a small
- * Monte-Carlo reference field, tends to just reward "bring your two
- * strongest attackers" regardless of which plan is asking, since raw
- * power wins battles in aggregate even when a specific teammate would
- * cover the carry's own real weaknesses better. wcTypeCoverBonus is the
- * exact mirror of wcSharedWeaknessWarnings above, run in reverse: instead
- * of flagging two members who share a real weakness, this rewards one
- * member for genuinely resisting (or blocking outright) a type the
- * OTHER member (the plan's carry) is genuinely weak to. Same "computed,
- * not hand-picked" discipline that check already established -- this
- * never hardcodes a specific pairing (no "Steelix covers Charizard" fact
- * anywhere in this function), it just runs the same real type-chart math
- * Phoenix's own real example (Steelix's Ground/Steel typing genuinely
- * resisting/blocking two of Mega Charizard Y's real weaknesses) happens
- * to satisfy.
- */
-function wcTypeCoverBonus(carryTypes, candidateTypes, typeChart) {
-  if (!typeChart || !Array.isArray(typeChart.types) || !carryTypes || !candidateTypes) return 0;
-  let bonus = 0;
-  typeChart.types.forEach((attackType) => {
-    const carryMult = wcEffectivenessOf(typeChart, attackType, carryTypes);
-    if (carryMult < 2) return; // not a real weakness for the carry, nothing to cover
-    const candidateMult = wcEffectivenessOf(typeChart, attackType, candidateTypes);
-    if (candidateMult <= 0.5) bonus += 1; // candidate genuinely resists or blocks the same type
-  });
-  return bonus;
-}
-
-/**
- * Milestone 49's other real example: Incineroar's real Intimidate
- * directly offsets Mega Sceptile's genuinely lopsided base stat split
- * (its real base Defense sits well below its real base Special Defense --
- * a fact about the actual numbers, not a hand-picked claim about this one
- * species). Intimidate is the only curated Attack-lowering switch-in
- * ability this project's ability-effects overlay tracks today (see
- * wcAbilityEffect) -- the mirror case (a real Special-side-lowering
- * ability for a carry whose real weaker side is Special) is left for
- * whenever this project curates one, same "hand-picked, not exhaustive"
- * honesty as everywhere else in this file.
- */
-function wcStatCoverBonus(carryBaseStats, candidateAbility) {
-  if (!carryBaseStats) return 0;
-  const weakerSideIsPhysical = (carryBaseStats.def || 0) < (carryBaseStats.spd || 0);
-  return weakerSideIsPhysical && candidateAbility === "Intimidate" ? 1 : 0;
-}
-
-/**
  * Milestone 51 (Phoenix: "sceptile is weak with low defence... and wont
  * hold out for the length of a battle" -- a real gap she caught in the
  * Milestone 49 carry-synergy scoring above, which credits typing/
@@ -2441,22 +2391,7 @@ function wcBulkPoints(baseStats) {
 // down to the median, rather than rewarding above-average bulk as if it
 // were exceptional.
 const WC_GENUINE_WALL_BULK_THRESHOLD = 7475;
-const WC_MEDIAN_BULK_THRESHOLD = 6150;
-function wcSurvivabilityBonus(baseStats, bulkMultiplier) {
-  // Milestone 52 (Phoenix: "the use of reflect and light screen enable
-  // staraptor and incineroar to be able to have more survivability") --
-  // bulkMultiplier is optional and defaults to 1, so every Milestone 51
-  // call site keeps working unchanged. A real screens-setter in the
-  // lineup scales this UP before the tier thresholds are applied (not
-  // after), so a genuinely fragile teammate whose own bulk alone scores 0
-  // can still cross into a real tier once screens are accounted for --
-  // see wcCarryPlanBonus (battle-sim-lineup.js) for where the multiplier
-  // itself is derived and passed in.
-  const pts = wcBulkPoints(baseStats) * (bulkMultiplier || 1);
-  if (pts >= WC_GENUINE_WALL_BULK_THRESHOLD) return 2;
-  if (pts >= WC_MEDIAN_BULK_THRESHOLD) return 1;
-  return 0;
-}
+
 
 // ---------------------------------------------------------------------------
 // Milestone 51 -- macro Team Style archetypes (Phoenix: "Balance... Weather...

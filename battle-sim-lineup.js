@@ -20,14 +20,6 @@
 const WC_REFERENCE_RUNS_PER_OPPONENT = 200;
 const WC_TEAMVSTEAM_RUNS_PER_OPPONENT = 3000;
 
-// Milestone 35, Task 1: how many lineups the two narrowing rounds below
-// keep sampling before the caller spends the full
-// WC_REFERENCE_RUNS_PER_OPPONENT count on a single finalist. Deliberately
-// small -- these rounds only need to be accurate enough to tell a clearly
-// weak lineup from a clearly strong one, not to produce a reportable win
-// rate on their own.
-const WC_SEARCH_ROUND1_RUNS_PER_OPPONENT = 20;
-const WC_SEARCH_ROUND2_RUNS_PER_OPPONENT = 60;
 
 /** Portable equivalent of builder.js's wcSlotEffective. */
 function wcResolveSlotIdentity(baseName, build, pokemonList) {
@@ -97,59 +89,6 @@ function wcBuildMegaScenarios(lineupNames, buildsByName, pokemonList, baseStatsD
   return eligible.slice(0, 3).map((name) => buildScenario(name));
 }
 
-/**
- * Milestone 35, Task 1 -- replaces the old "rank once with the cheap
- * non-mechanical wcScoreMatchup heuristic, simulate only its #1 pick"
- * shortcut. wcScoreMatchup never sees abilities, items, or a real damage
- * roll (type effectiveness + Speed only), so its ranking can be wrong --
- * and a wrong ranking meant the true best lineup was never even
- * simulated, while WinCon reported a confident win rate for one that
- * wasn't actually the best.
- *
- * This narrows the candidate lineups in two rounds, using the REAL
- * mechanical engine (wcRunMonteCarlo) at every round instead of the cheap
- * proxy -- a lineup is only ever eliminated by an actual (if lightly
- * sampled) simulated result, never by a metric that can't see abilities
- * or items. A real logged-battle combo bonus (wcComboSynergyBonus, when a
- * comboLookup is available) is folded into each round's score too, so a
- * combination with a real proven track record still gets its usual nudge
- * -- this is the same signal the old heuristic-only ranking used, just
- * layered on top of real simulated results instead of replacing them.
- *
- * Round 1 samples every candidate lightly and keeps the top half; round 2
- * samples those survivors more heavily and keeps a single winner. The
- * caller then spends the full WC_REFERENCE_RUNS_PER_OPPONENT count on
- * that one lineup (see wcSimulateTeamWinRate) -- total budget lands in
- * the low thousands of simulated battles, not the ~15,000-20,000 a true
- * brute force over every candidate at full accuracy would take.
- */
-function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, format, simData, comboLookup, rng, planBonusFn) {
-  const scoreRound = (candidateLineups, runsPerOpponent) =>
-    candidateLineups
-      .map((names) => {
-        const specs = names.map((name) => specsByName[name]);
-        const result = wcRunMonteCarlo(specs, oppPool, runsPerOpponent, format, simData, rng);
-        const synergyBonus = comboLookup && typeof wcComboSynergyBonus === "function" ? wcComboSynergyBonus(names, comboLookup) : 0;
-        // Milestone 49: an optional real-synergy nudge (wcCarryPlanBonus,
-        // this file) toward whichever free-slot teammate genuinely covers
-        // the plan's carry -- see that function's own doc comment. Small
-        // and additive, same spirit as synergyBonus above; undefined for
-        // every caller that hasn't opted in (none currently do besides
-        // wcSimulatePlan), so this is a strictly additive parameter.
-        const planBonus = typeof planBonusFn === "function" ? planBonusFn(names) : 0;
-        return { names, score: result.winRate + synergyBonus + planBonus };
-      })
-      .sort((a, b) => b.score - a.score);
-
-  const round1 = scoreRound(lineups, WC_SEARCH_ROUND1_RUNS_PER_OPPONENT);
-  const round1Survivors = round1.slice(0, Math.max(1, Math.ceil(round1.length / 2))).map((r) => r.names);
-  if (round1Survivors.length === 1) return round1Survivors[0];
-
-  const round2 = scoreRound(round1Survivors, WC_SEARCH_ROUND2_RUNS_PER_OPPONENT);
-  return round2[0].names;
-}
-
-
 // ---------------------------------------------------------------------------
 // Milestone 48 -- game plans (Phoenix: "look at how an individual team's
 // strategy would actually be played, then sim the battles after looking at
@@ -160,11 +99,15 @@ function wcSelectBestLineupBySuccessiveHalving(lineups, specsByName, oppPool, fo
 // for support, and who's the payoff (the carry) -- built from exactly the
 // same archetype detection already trusted for the Meta Analyst
 // (wcActiveArchetypesForBuiltTeam, wcAntiTrickRoomAudit -- strategy.js).
-// wcSimulateTeamWinRate below simulates EVERY detected plan separately and
-// reports a win rate for each, instead of one blended number from a single
-// generic-AI battle -- so a team that can genuinely run more than one real
-// line (Phoenix's example team can lead Tailwind into either Mega Sceptile
-// or Mega Charizard Y) gets both reported side by side.
+// wcSimulateTeamWinRate below fully simulates every real n-of-6 lineup
+// combination directly (Milestone 57) -- a plan's own role-weighted AI and
+// lead order (wcPlanForCombo/wcSimulateOneCombo) are applied to whichever
+// specific real combo genuinely satisfies that plan's required pieces, so
+// a team that can genuinely run more than one real line (Phoenix's example
+// team can lead Tailwind into either Mega Sceptile or Mega Charizard Y)
+// gets each of its real combos reported on its own honest merits, never
+// blended into one generic-AI number and never narrowed to a single
+// combo per plan before simulating it.
 //
 // This deliberately does NOT give the simulator any new "on purpose"
 // switching mid-battle (no scripted U-turn pivot, no mid-battle Mega-evolve
@@ -325,200 +268,67 @@ function wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abiliti
 }
 
 /**
- * Milestone 49: builds the per-lineup synergy nudge wcSimulatePlan passes
- * to wcSelectBestLineupBySuccessiveHalving as `planBonusFn` -- the fix for
- * Phoenix's real observation that every plan's free slots kept
- * converging on the same two hardest hitters (Sceptile, Charizard)
- * regardless of which plan was asking, since raw simulated win rate alone
- * doesn't know or reward "this teammate specifically covers the carry's
- * real weaknesses." Computed once per candidate lineup from real type-
- * chart/ability data (wcTypeCoverBonus/wcStatCoverBonus, strategy.js) --
- * never a hardcoded pairing. Deliberately small (0.02 per covered
- * weakness, 0.05 for a genuine Intimidate-style stat cover) relative to
- * win rate's own 0..1 scale -- enough to break a close call in favor of
- * real synergy, never enough to override a lineup that's actually much
- * stronger in simulated battle. Returns a no-op (always 0) function if
- * this plan has no carry role assigned (the "Standard" fallback plan).
+ * Milestone 57 (Phoenix: "run a win rate for each combination of 4...
+ * ensure that you attempt the sim with all combinations"). Which
+ * already-detected real game plan (if any) can THIS EXACT raw combo
+ * genuinely run -- checked directly against the combo's own real member
+ * names, not against whichever single lineup a search happened to settle
+ * on. Returns the first plan (in wcBuildGamePlans's own detection order)
+ * whose requiredNames are all present in this combo, or null when the
+ * combo doesn't fit any real detected archetype (a neutral combo --
+ * still simulated for real below, just with no role-weighted AI/lead-
+ * order applied). Each carry-specific plan variant names a different
+ * real carry, so a combo can only ever satisfy one per archetype in
+ * practice -- no ambiguity to resolve.
  */
-/**
- * Milestone 52 (Phoenix: "the use of reflect and light screen enable
- * staraptor and incineroar to be able to have more survivability") --
- * does any member of this lineup (checked against its REAL BUILT
- * moveset, spec.build.moves -- not mere learnability, since this runs
- * post-build during the actual Simulated Win Rate search) actually run
- * Light Screen or Reflect? Real screens protect the whole side, not just
- * the setter, so this checks every name in the lineup, not just non-carry
- * teammates.
- */
-function wcRealScreensSetterPresent(names, specsByName) {
-  return names.some((name) => {
-    const spec = specsByName[name];
-    return Boolean(
-      spec && spec.build && spec.build.moves && (spec.build.moves.includes("Light Screen") || spec.build.moves.includes("Reflect"))
-    );
-  });
+function wcPlanForCombo(comboNames, plans) {
+  return plans.find((plan) => plan.requiredNames.every((req) => comboNames.includes(req))) || null;
 }
 
 /**
- * Real damage reduction from an active Light Screen/Reflect -- reused
- * (not re-derived) from battle-sim-engine.js's own wcScreensModifierFor,
- * which the actual battle simulation already applies: 0.5x incoming
- * damage in Singles, 0.66x in Doubles. Taking less damage is mechanically
- * the same as having more effective bulk, so 1/modifier is exactly how
- * much a teammate's real bulk score should scale up when a genuine
- * screens-setter is in the same lineup -- not an arbitrary bonus number.
+ * Simulates one real n-of-6 combination end to end with the real engine
+ * -- no shortcut, no proxy score, no elimination round. Orders its
+ * members (wcOrderLineupForPlan) and attaches role-weighted AI
+ * (wcRoleWeightsFor) only when this exact combo genuinely matches a real
+ * detected plan (wcPlanForCombo); otherwise it's simulated with the
+ * plain default AI, same as the "Standard" case always was. Builds the
+ * real 1-3 Mega scenarios (wcBuildMegaScenarios -- exactly one real Mega
+ * per battle, never two at once) and runs the full
+ * WC_REFERENCE_RUNS_PER_OPPONENT-per-opponent simulation for EVERY
+ * scenario; this combo's own reported result is whichever scenario
+ * scored highest, the same "which Mega, if any, is genuinely best for
+ * this exact lineup" question Battle Plan/Battle Tracker already settle
+ * by real simulated result rather than a guess.
  */
-function wcScreensSurvivabilityMultiplier(format) {
-  return format === "singles" ? 2 : 1 / 0.66;
-}
+function wcSimulateOneCombo(rawNames, builds, format, pokemonList, baseStatsData, abilitiesData, oppPool, simData, plans) {
+  const plan = wcPlanForCombo(rawNames, plans);
+  const orderedNames = plan ? wcOrderLineupForPlan(rawNames, plan) : rawNames;
 
-function wcCarryPlanBonus(plan, specsByName, typeChart, format) {
-  const carryName = Object.keys(plan.roleByName).find((name) => plan.roleByName[name] === "carry");
-  const carrySpec = carryName && specsByName[carryName];
-  if (!carrySpec) return () => 0;
-
-  return (names) => {
-    // Milestone 52: screens protect everyone on the field, including the
-    // carry itself, so the full lineup (not just this scoring pass's
-    // non-carry names) is checked for a real screens-setter.
-    const fullLineup = [carryName, ...names];
-    const bulkMultiplier = wcRealScreensSetterPresent(fullLineup, specsByName)
-      ? wcScreensSurvivabilityMultiplier(format || "doubles")
-      : 1;
-
-    let bonus = 0;
-    names.forEach((name) => {
-      if (name === carryName) return;
-      const spec = specsByName[name];
-      if (!spec) return;
-      // specsByName[name]/carrySpec are already resolved to each member's
-      // real EFFECTIVE identity (wcBattlerSpecForSlot -- Mega form and
-      // its real types/stats/ability when that build actually holds its
-      // Mega Stone, same resolution the Mega-scenario branching already
-      // trusts) -- crucial here, since a Mega's real types/stats can
-      // differ substantially from its base form (Mega Sceptile gains a
-      // real second Dragon type over base Sceptile's pure Grass, for
-      // instance), and comparing against the base form's weaknesses
-      // instead would credit the wrong coverage entirely.
-      bonus += wcTypeCoverBonus(carrySpec.types, spec.types, typeChart) * 0.08;
-      bonus += wcStatCoverBonus(carrySpec.baseStats, spec.ability) * 0.15;
-      // Milestone 51 (Phoenix: a fragile carry-partner "wont hold out for
-      // the length of a battle" is a real cost this scoring never
-      // credited before -- wcSurvivabilityBonus (strategy.js) is a real,
-      // computed worst-case-bulk measure (hp*min(def,spd), not a raw
-      // Defense stat that can hide a genuinely weak other side), scored
-      // independently of the carry's own typing. Weighted smaller than
-      // type-cover (0.08) and stat-cover (0.15) since it's a
-      // supplementary signal, not a replacement for either.
-      // Milestone 52: bulkMultiplier folds in a real screens-setter's
-      // effect on this teammate's effective bulk, computed above.
-      bonus += wcSurvivabilityBonus(spec.baseStats, bulkMultiplier) * 0.06;
-    });
-    return bonus;
-  };
-}
-
-/**
- * Milestone 49 correctness fix (Phoenix: "using sceptile and charizard in
- * a team would mean only one is a mega... you should take into account
- * sceptile's base stats not its mega evolved and vice versa"). Real
- * Doubles rules allow only one Mega per battle, and wcBuildMegaScenarios
- * already respects that for the FINAL reported result -- but the lineup
- * SEARCH phase before it (wcSelectBestLineupBySuccessiveHalving) used to
- * build every member's spec with no Mega/base override at all, so a
- * candidate lineup holding two Mega Stones (Sceptile + Charizard, say)
- * got simulated as though BOTH were simultaneously Mega-evolved -- an
- * impossible battle state that artificially inflates exactly the
- * "bring your two biggest hitters together" combinations this milestone
- * is otherwise trying to stop rewarding by default. This was a real,
- * pre-existing bug (present since Milestone 35's search was first
- * written, well before this session), not something introduced by
- * wcCarryPlanBonus -- it just needed fixing here too, since that
- * function reads the same specsByName.
- *
- * Fix: exactly one Mega-eligible member of the lineup search's shared
- * roster gets to resolve as its Mega form -- the plan's own designated
- * carry when one exists (a plan already specifies which member is
- * MEANT to Mega Evolve; simulating anything else during ITS search
- * would be simulating a different plan), or the first Mega-eligible
- * member in roster order otherwise (the "Standard" fallback plan has no
- * carry role -- any single consistent, legal choice is fine here, since
- * wcBuildMegaScenarios tries every real candidate separately for the
- * actual reported result regardless). Every other Mega-eligible member
- * is forced to its real base form for the whole search.
- */
-function wcMegaOverridesForSearch(chosenSix, builds, pokemonList, preferredMegaName) {
-  const eligible = chosenSix.filter((name) => wcIsMegaEligible(name, builds[name], pokemonList));
-  if (!eligible.length) return {};
-  const primary = preferredMegaName && eligible.includes(preferredMegaName) ? preferredMegaName : eligible[0];
-  const overrides = {};
-  eligible.forEach((name) => { overrides[name] = name === primary ? "mega" : "base"; });
-  return overrides;
-}
-
-/**
- * Simulates one detected game plan end to end: filters the candidate
- * lineups down to only those containing every one of the plan's
- * requiredNames (a real efficiency win, not just a correctness one --
- * with 2 required names fixed, a Doubles search is only C(4,2)=6 lineups
- * instead of the full C(6,4)=15), reorders each survivor so the plan's
- * setter/screener lead (wcOrderLineupForPlan), attaches each member's
- * role-derived AI weights (wcRoleWeightsFor) to its spec, then runs the
- * exact same successive-halving search + Mega-scenario branching
- * wcSimulateTeamWinRate always has. Returns null (never a fabricated
- * result) if this plan's required pieces genuinely can't all fit in one
- * lineup for this format -- callers filter those out.
- */
-function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, comboLookup) {
-  const allLineups = wcEnumerateLineups(chosenSix, n);
-  const eligibleLineups = plan.requiredNames.length
-    ? allLineups.filter((names) => plan.requiredNames.every((req) => names.includes(req)))
-    : allLineups;
-  if (!eligibleLineups.length) return null;
-
-  const orderedLineups = eligibleLineups.map((names) => wcOrderLineupForPlan(names, plan));
-
-  // Correctness fix (Phoenix, Milestone 49 follow-up): real Doubles rules
-  // allow only one Mega per battle. Without this, a lineup search candidate
-  // holding two Mega Stones (e.g. Sceptile + Charizard) got simulated here
-  // as though BOTH were simultaneously Mega-evolved -- an impossible state
-  // that inflated exactly the "bring your two biggest hitters" lineups this
-  // milestone's whole point is to stop rewarding by default. The plan's own
-  // designated carry (when one exists) is who's actually meant to Mega
-  // Evolve for this plan, so it -- not roster order -- decides who gets
-  // forced to "mega" here; every other Mega-eligible member is forced to
-  // its real base form for the whole search. wcBuildMegaScenarios still
-  // tries every real candidate separately afterwards for the actual
-  // reported result, so this only affects which lineup the search picks.
-  const carryName = Object.keys(plan.roleByName).find((name) => plan.roleByName[name] === "carry");
-  const megaOverrides = wcMegaOverridesForSearch(chosenSix, builds, pokemonList, carryName);
-
-  const specsByName = {};
-  chosenSix.forEach((name) => {
-    const base = wcBattlerSpecForSlot(name, builds[name], pokemonList, baseStatsData, abilitiesData, megaOverrides[name]);
-    const roleWeights = wcRoleWeightsFor(plan.roleByName[name] || "neutral");
-    specsByName[name] = roleWeights ? { ...base, roleWeights } : base;
-  });
-
-  const planBonusFn = wcCarryPlanBonus(plan, specsByName, simData.typeChart, format);
-  const bestLineup = wcSelectBestLineupBySuccessiveHalving(orderedLineups, specsByName, oppPool, format, simData, comboLookup, undefined, planBonusFn);
-
-  // wcBuildMegaScenarios rebuilds specs from scratch (it needs to force
-  // each scenario's Mega/base identity), so it never sees specsByName's
-  // roleWeights above -- reattach them here the same way.
-  const scenarios = wcBuildMegaScenarios(bestLineup, builds, pokemonList, baseStatsData, abilitiesData).map((scenario) => ({
+  const scenarios = wcBuildMegaScenarios(orderedNames, builds, pokemonList, baseStatsData, abilitiesData).map((scenario) => ({
     megaName: scenario.megaName,
     specs: scenario.specs.map((spec) => {
-      const roleWeights = wcRoleWeightsFor(plan.roleByName[spec.name] || "neutral");
+      const roleWeights = plan ? wcRoleWeightsFor(plan.roleByName[spec.name] || "neutral") : null;
       return roleWeights ? { ...spec, roleWeights } : spec;
     }),
   }));
+
   const scenarioResults = scenarios.map((scenario) => ({
     megaName: scenario.megaName,
     ...wcRunMonteCarlo(scenario.specs, oppPool, WC_REFERENCE_RUNS_PER_OPPONENT, format, simData),
   }));
+  const best = scenarioResults.reduce((a, b) => (b.winRate > a.winRate ? b : a));
 
-  return { key: plan.key, label: plan.label, archetypeKeys: plan.archetypeKeys, lineup: bestLineup, scenarios: scenarioResults };
+  return {
+    lineup: orderedNames,
+    planLabel: plan ? plan.label : null,
+    megaName: best.megaName,
+    winRate: best.winRate,
+    wins: best.wins,
+    losses: best.losses,
+    draws: best.draws,
+    totalRuns: best.totalRuns,
+    perOpponent: best.perOpponent,
+  };
 }
 
 /**
@@ -532,22 +342,37 @@ function wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseSta
  * reference team gets sampled, never to add a new one (see
  * wcLiveUsageWeightForTeam in strategy.js).
  *
- * Milestone 48: rather than picking one lineup for the whole built 6 and
- * running one generic-AI simulation, this now detects every real game
- * plan the team can run (wcBuildGamePlans) and simulates each separately
- * (wcSimulatePlan -- same real-engine successive-halving search
- * (Milestone 35 Task 1) + Mega-scenario branching as always, just scoped
- * to that plan's own lineups and role-weighted AI). A team with no real
- * archetype/anti-Trick-Room signal still gets exactly one plan back
- * ("Standard", see wcBuildGamePlans), so `plans` is never empty and the
- * return shape below is uniform regardless of how many real plans exist.
+ * Milestone 57 (Phoenix: her own two real, tournament-successful lineups
+ * never showed up under the old Milestone 35/48 approach -- a cheap
+ * heuristic search narrowed 15/20 real candidates down to one lineup per
+ * detected plan before ever running a full simulation, so a real lineup
+ * either got eliminated by the light sampling rounds or was never even a
+ * candidate because it didn't match whichever single setter/carry
+ * pairing that plan required). This now runs the real engine on every
+ * single real C(6,4)=15 (Doubles) or C(6,3)=20 (Singles) combination
+ * directly -- nothing narrowed, nothing excluded for not fitting one
+ * detected strategy. Each combo still gets real, archetype-aware AI/lead
+ * order when it genuinely can run one of the team's detected game plans
+ * (wcBuildGamePlans/wcPlanForCombo/wcSimulateOneCombo), and its own real
+ * Mega-scenario branching exactly as before -- only the "narrow down to
+ * one via a cheap search" step is gone, replaced with "simulate all of
+ * them, honestly, and rank what comes back." `combos` always has exactly
+ * C(6,4)/C(6,3) entries, sorted by real win rate (most successful
+ * first); `averageWinRate` is the plain mean across all of them. Note:
+ * `payload.comboLookup` (the cross-user logged-battle combo synergy
+ * lookup) is no longer consumed here -- it existed only to nudge the old
+ * cheap search toward proven combos before a full simulation could run;
+ * now every combo gets a full, real simulation directly, so the real
+ * result itself is the authoritative signal and no proxy nudge is
+ * needed. wcRankLineupsHeuristic/wcBestLineupAgainstReference (used by
+ * the Battle Tracker's Team vs Team tool) still use it as before.
  */
 function wcSimulateTeamWinRate(payload) {
   const {
     chosenSix, builds, format, sheetMode, notes,
     pokemonList, baseStatsData, abilitiesData, movesData,
     moveEffects, abilityEffects, itemEffects, typeChart, natures,
-    metaBaseline, comboLookup, liveTierStats,
+    metaBaseline, liveTierStats,
   } = payload;
   const n = format === "singles" ? 3 : 4;
 
@@ -571,11 +396,15 @@ function wcSimulateTeamWinRate(payload) {
   // wcResolveOneHit/wcScreensModifierFor, battle-sim-engine.js.
   const simData = { movesData, moveEffects, abilityEffects, itemEffects, typeChart, natures, sheetMode, format };
 
-  const plans = wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData, notes)
-    .map((plan) => wcSimulatePlan(plan, chosenSix, builds, format, n, pokemonList, baseStatsData, abilitiesData, oppPool, simData, comboLookup))
-    .filter(Boolean);
+  const plans = wcBuildGamePlans(chosenSix, builds, pokemonList, baseStatsData, abilitiesData, notes);
+  const allLineups = wcEnumerateLineups(chosenSix, n);
+  const combos = allLineups
+    .map((rawNames) => wcSimulateOneCombo(rawNames, builds, format, pokemonList, baseStatsData, abilitiesData, oppPool, simData, plans))
+    .sort((a, b) => b.winRate - a.winRate);
 
-  return { format, plans };
+  const averageWinRate = combos.length ? combos.reduce((sum, c) => sum + c.winRate, 0) / combos.length : 0;
+
+  return { format, n, combos, averageWinRate };
 }
 
 /** Picks a team's own best lineup using the OTHER team's real built 6 as the reference set — a real head-to-head, not the general meta-baseline field. Used by wcSimulateTeamVsTeam (Battle Tracker). */

@@ -1712,12 +1712,15 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 
 /* ---------------------------------------------------------------------- */
 /* Simulated Win Rate -- replaces the old Matchup Score ring/matrix with a  */
-/* real mechanical battle simulation (see wcRunSimulatedWinRate() and      */
-/* renderSimulatedWinRateResult() in builder.js). One .simwinrate-card per */
-/* Mega-Evolution scenario (0-3), each reusing .score-hero/.score-ring/    */
-/* .score-meta -- the exact same ring markup Your Rival's own result       */
-/* builds -- so a Simulated Win Rate card and Your Rival's success-rate    */
-/* ring already look like the same family of result without new rules.    */
+/* real mechanical battle simulation (see runSimulatedWinRate() and        */
+/* renderSimulatedWinRateResult() in builder.js). Milestone 57: every real */
+/* n-of-6 combination the team can bring is now simulated directly, so    */
+/* the layout is one hero .simwinrate-card for the most successful combo  */
+/* (reusing .score-hero/.score-ring/.score-meta -- the exact same ring    */
+/* markup Your Rival's own result builds, so the two already look like    */
+/* the same family of result without new rules), a plain average-win-rate */
+/* stat line, then every other combination as a compact .simwinrate-      */
+/* combo-row inside a closed "Other win rates for this team" dropdown.    */
 /* ---------------------------------------------------------------------- */
 
 .simwinrate-scenarios {
@@ -1733,30 +1736,15 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
   font-size: 0.82rem;
 }
 
-/* Milestone 48: one .simwinrate-plan-group per detected game plan (see
-   renderSimulatedWinRateResult() in builder.js) -- the grid that used to
-   live directly on .simwinrate-scenarios now lives on the inner
-   .simwinrate-cards-grid instead, so a plan's own heading/lineup note sit
-   above its own grid of Mega-scenario cards rather than everything from
-   every plan being interleaved into one grid. */
-.simwinrate-plan-group {
-  margin-bottom: 24px;
-}
-
-.simwinrate-plan-group:last-child {
-  margin-bottom: 0;
-}
-
-.simwinrate-plan-heading {
-  margin: 0 0 4px;
-}
-
-.simwinrate-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
+/* Milestone 57: the most successful real combination renders as a single
+   hero .simwinrate-card (no more per-plan grouping/grid -- every real
+   combination is simulated directly now, so there's exactly one "best"
+   card to show up front, see renderSimulatedWinRateResult() in
+   builder.js), followed by .simwinrate-average-note's plain stat line,
+   then every other real combination as a compact .simwinrate-combo-row
+   inside the "Other win rates for this team" .meta-analyst-collapsible
+   dropdown (there can be up to 19 of these, hence the compact treatment
+   instead of a full card each). */
 .simwinrate-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1766,8 +1754,54 @@ input.move-input.type-stellar  { border-color: var(--type-stellar); border-width
 
 .simwinrate-card .score-hero { margin-bottom: 12px; }
 
+.simwinrate-plan-tag {
+  font-style: italic;
+}
+
 .simwinrate-lineup-note {
   margin: 4px 0 16px;
+}
+
+.simwinrate-average-note {
+  font-weight: 700;
+  margin: 4px 0 16px;
+}
+
+.simwinrate-combo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.simwinrate-combo-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.simwinrate-combo-row:last-child {
+  border-bottom: none;
+}
+
+.simwinrate-combo-pct {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-weight: 700;
+  min-width: 3.2em;
+}
+
+.simwinrate-combo-lineup {
+  flex: 1 1 auto;
+  color: var(--ink);
+}
+
+.simwinrate-combo-tag {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--ink-muted);
 }
 
 .matrix {
