@@ -209,11 +209,13 @@ const saveStatus = document.getElementById("save-status");
 const autobuildBtn = document.getElementById("autobuild-btn");
 const autostrategyBtn = document.getElementById("autostrategy-btn");
 const metaAnalystBtn = document.getElementById("meta-analyst-btn");
+const teamStrategyReportBtn = document.getElementById("team-strategy-report-btn");
 const autogenHint = document.getElementById("autogen-hint");
 const autostrategyHint = document.getElementById("autostrategy-hint");
 const strategyNoteEl = document.getElementById("strategy-note");
 const pilotGuideNoteEl = document.getElementById("pilot-guide-note");
 const metaAnalystNoteEl = document.getElementById("meta-analyst-note");
+const teamStrategyReportNoteEl = document.getElementById("team-strategy-report-note");
 const modalOverlay = document.getElementById("changes-modal");
 const modalTitle = document.getElementById("changes-modal-title");
 const modalBody = document.getElementById("changes-modal-body");
@@ -241,6 +243,8 @@ const rivalSectionEl = document.getElementById("rival-section");
 const rivalBtn = document.getElementById("rival-btn");
 const rivalNoteEl = document.getElementById("rival-note");
 const rivalResultEl = document.getElementById("rival-result");
+const rivalBreakdownBtn = document.getElementById("rival-breakdown-btn");
+const rivalBreakdownNoteEl = document.getElementById("rival-breakdown-note");
 
 init();
 
@@ -314,6 +318,8 @@ async function init() {
   autobuildBtn.addEventListener("click", autoBuildTeam);
   autostrategyBtn.addEventListener("click", autoBuildStrategy);
   metaAnalystBtn.addEventListener("click", runMetaAnalyst);
+  teamStrategyReportBtn.addEventListener("click", runTeamStrategyReport);
+  rivalBreakdownBtn.addEventListener("click", runRivalBreakdown);
   dreamTeamBtn.addEventListener("click", generateDreamTeam);
   rivalBtn.addEventListener("click", findYourRival);
   if (simwinrateRerunBtn) simwinrateRerunBtn.addEventListener("click", () => runSimulatedWinRate());
@@ -3192,6 +3198,7 @@ function refreshStrategyAvailability() {
   const complete = isTeamComplete();
   autostrategyBtn.disabled = !complete;
   metaAnalystBtn.disabled = !complete;
+  teamStrategyReportBtn.disabled = !complete;
   autostrategyHint.textContent = complete
     ? ""
     : "Complete every field for all 6 Pokémon first — Nature, item, all 4 moves, all 66 Stat Points, and no duplicate items — to unlock strategy analysis.";
@@ -3207,6 +3214,8 @@ function invalidateRival() {
   pendingRival = null;
   if (rivalResultEl) rivalResultEl.hidden = true;
   if (rivalNoteEl) rivalNoteEl.hidden = true;
+  if (rivalBreakdownBtn) rivalBreakdownBtn.hidden = true;
+  if (rivalBreakdownNoteEl) rivalBreakdownNoteEl.hidden = true;
 }
 
 function invalidateComputedNotes() {
@@ -3412,6 +3421,98 @@ function renderMetaAnalystNote(report) {
     openMetaAnalystExportModal(exportText);
   });
   metaAnalystNoteEl.appendChild(exportBtn);
+}
+
+/**
+ * Milestone 54, Part A: Team Strategy Report -- WinCon's own answer to a
+ * request for an AI team analyst, with no external AI involved (see
+ * README's Milestone 54 section). Mirrors runMetaAnalyst's exact guard/
+ * member-building pattern above -- same "analyze whatever's built right
+ * now" action, a different, three-section report at the end. See
+ * wcTeamStrategyReport in strategy.js for the actual logic.
+ */
+function runTeamStrategyReport() {
+  if (!wcRequireAccount((msg) => { autostrategyHint.textContent = msg; }, "run the Team Strategy Report")) return;
+  if (!isTeamComplete()) {
+    refreshStrategyAvailability();
+    return;
+  }
+
+  const members = [];
+  chosen.forEach((name) => {
+    const pokemon = data.pokemon.find((p) => p.name === name);
+    const baseStats = data.baseStats.find((b) => b.name === name);
+    const learnableNames = data.learnsets[name];
+    if (pokemon && baseStats && learnableNames) {
+      members.push(effectiveMemberFor(name, pokemon.types, baseStats, learnableNames, builds[name]));
+    }
+  });
+
+  if (members.length < chosen.length) {
+    teamStrategyReportNoteEl.hidden = false;
+    teamStrategyReportNoteEl.innerHTML = "";
+    const p = document.createElement("p");
+    p.textContent =
+      "Some of your 6 are missing base-stat/learnset data (Reg M-B additions without confirmed data yet), so the Team Strategy Report can't run until those are filled in by hand.";
+    teamStrategyReportNoteEl.appendChild(p);
+    return;
+  }
+
+  const threatsWithTypes = getThreatsWithTypes();
+  const report = wcTeamStrategyReport(members, builds, data.moves, threatsWithTypes, data.typeChart, WINCON_BUILDER_FORMAT, notes, data.abilities, metaBaselineData);
+  renderTeamStrategyReport(report);
+}
+
+/**
+ * Renders wcTeamStrategyReport's data in the exact three-headed-section
+ * shape ("Core Strategy & Roles" / "Threat Assessment" / "Type & Synergy
+ * Analysis", plus a final grade line) the sourced "Team Builder AI"
+ * prompt asked for -- same DOM-building pattern renderMetaAnalystNote
+ * uses just above, reusing its own CSS classes rather than inventing new
+ * ones.
+ */
+function renderTeamStrategyReport(report) {
+  teamStrategyReportNoteEl.innerHTML = "";
+  teamStrategyReportNoteEl.hidden = false;
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Team Strategy Report";
+  teamStrategyReportNoteEl.appendChild(heading);
+
+  const addHeading = (text) => {
+    const p = document.createElement("p");
+    p.className = "meta-analyst-section-heading";
+    const strong = document.createElement("strong");
+    strong.textContent = text;
+    p.appendChild(strong);
+    teamStrategyReportNoteEl.appendChild(p);
+  };
+
+  const addLines = (lines, className) => {
+    lines.forEach((line) => {
+      const p = document.createElement("p");
+      p.className = className;
+      p.textContent = line;
+      teamStrategyReportNoteEl.appendChild(p);
+    });
+  };
+
+  addHeading("Core Strategy & Roles");
+  addLines([report.winCondition], "meta-analyst-mode-line");
+  addLines(report.roleLines, "meta-analyst-mode-line");
+
+  addHeading("Threat Assessment");
+  addLines(report.threatLines, "meta-analyst-flag");
+
+  addHeading("Type & Synergy Analysis");
+  addLines(report.coverageLines, "meta-analyst-mode-line");
+
+  const gradeP = document.createElement("p");
+  gradeP.className = "meta-analyst-section-heading";
+  const gradeStrong = document.createElement("strong");
+  gradeStrong.textContent = `Synergy grade: ${report.grade.letter} (${report.grade.score}/100)`;
+  gradeP.appendChild(gradeStrong);
+  teamStrategyReportNoteEl.appendChild(gradeP);
 }
 
 /**
@@ -4609,6 +4710,102 @@ function renderRival(rival) {
   toughContainer.className = "tough-list";
   rivalResultEl.appendChild(toughContainer);
   renderToughList(toughContainer, worstAgainstMe);
+
+  // Milestone 54, Part B: "Rival Breakdown" is a separate, opt-in report
+  // (not auto-run here) so it never slows down the moment "Find Your
+  // Rival" itself finishes -- same relationship Meta Analyst/Team
+  // Strategy Report have to a finished build.
+  rivalBreakdownBtn.hidden = false;
+  rivalBreakdownNoteEl.hidden = true;
+  rivalBreakdownNoteEl.innerHTML = "";
+}
+
+/**
+ * Milestone 54, Part B: Rival Breakdown -- WinCon's own answer to a
+ * request for a "Rival Team Builder AI," with no external AI involved
+ * (see README's Milestone 54 section). Only ever callable once
+ * renderRival has already populated pendingRival's real
+ * rivalBuilds/reasoning -- the button that triggers this stays hidden
+ * until that's true (see renderRival above and invalidateRival's reset).
+ */
+function runRivalBreakdown() {
+  if (!pendingRival) return;
+
+  const userMembers = [];
+  chosen.forEach((name) => {
+    const pokemon = data.pokemon.find((p) => p.name === name);
+    const baseStats = data.baseStats.find((b) => b.name === name);
+    const learnableNames = data.learnsets[name];
+    if (pokemon && baseStats && learnableNames) {
+      userMembers.push(effectiveMemberFor(name, pokemon.types, baseStats, learnableNames, builds[name]));
+    }
+  });
+
+  const report = wcRivalBreakdownReport(
+    pendingRival.rivalMembers,
+    pendingRival.rivalBuilds,
+    pendingRival.reasoning,
+    userMembers,
+    builds,
+    data.moves,
+    data.typeChart,
+    WINCON_BUILDER_FORMAT,
+    data.abilities
+  );
+  renderRivalBreakdownReport(report);
+}
+
+/**
+ * Renders wcRivalBreakdownReport's data in the exact three-headed-
+ * section shape ("The Counter Strategy" / "Rival Roles" / "Type
+ * Superiority") the sourced "Rival Team Builder AI" prompt asked for --
+ * same DOM-building pattern renderTeamStrategyReport/renderMetaAnalystNote
+ * use, reusing their own CSS classes.
+ */
+function renderRivalBreakdownReport(report) {
+  rivalBreakdownNoteEl.innerHTML = "";
+  rivalBreakdownNoteEl.hidden = false;
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Rival Breakdown";
+  rivalBreakdownNoteEl.appendChild(heading);
+
+  const addHeading = (text) => {
+    const p = document.createElement("p");
+    p.className = "meta-analyst-section-heading";
+    const strong = document.createElement("strong");
+    strong.textContent = text;
+    p.appendChild(strong);
+    rivalBreakdownNoteEl.appendChild(p);
+  };
+
+  const addLines = (lines, className) => {
+    lines.forEach((line) => {
+      const p = document.createElement("p");
+      p.className = className;
+      p.textContent = line;
+      rivalBreakdownNoteEl.appendChild(p);
+    });
+  };
+
+  addHeading("The Counter Strategy");
+  addLines(report.counterStrategyLines, "meta-analyst-mode-line");
+
+  addHeading("Rival Roles");
+  if (report.rivalRoleLines.length === 0) {
+    addLines(["No per-pick reasoning available for this rival."], "hint");
+  } else {
+    const list = document.createElement("ol");
+    report.rivalRoleLines.forEach((line) => {
+      const li = document.createElement("li");
+      li.textContent = line;
+      list.appendChild(li);
+    });
+    rivalBreakdownNoteEl.appendChild(list);
+  }
+
+  addHeading("Type Superiority");
+  addLines(report.typeSuperiorityLines, "meta-analyst-mode-line");
 }
 
 /*

@@ -57,6 +57,7 @@ let matchupAbilitiesData = {};
 let matchupMovesData = [];
 let matchupNaturesData = [];
 let matchupTypeChartData = null;
+let matchupLearnsetsData = {};
 let matchupMoveEffectsData = {};
 let matchupAbilityEffectsData = {};
 let matchupItemEffectsData = {};
@@ -69,6 +70,7 @@ let matchupItemEffectsData = {};
 let matchupFormat = "doubles";
 let matchupTeamAId = null;
 let matchupTeamBId = null;
+let battlePlanTeamId = null;
 let matchupComboLookupByFormat = {};
 let matchupInFlight = false;
 
@@ -95,8 +97,14 @@ const matchupTeamASelect = document.getElementById("matchup-team-a");
 const matchupTeamBSelect = document.getElementById("matchup-team-b");
 const matchupRunBtn = document.getElementById("matchup-run-btn");
 const matchupHintEl = document.getElementById("matchup-hint");
+const battlePlanTeamSelect = document.getElementById("battle-plan-team-select");
+const battlePlanOpponentGridEl = document.getElementById("battle-plan-opponent-grid");
+const battlePlanRunBtn = document.getElementById("battle-plan-run-btn");
+const battlePlanHintEl = document.getElementById("battle-plan-hint");
+const battlePlanNoteEl = document.getElementById("battle-plan-note");
 const matchupLoadingEl = document.getElementById("matchup-loading");
 const matchupResultEl = document.getElementById("matchup-result");
+const matchupReadNoteEl = document.getElementById("matchup-read-note");
 
 const modalOverlay = document.getElementById("changes-modal");
 const modalTitle = document.getElementById("changes-modal-title");
@@ -113,7 +121,7 @@ async function fetchJSON(path) {
 
 async function init() {
   try {
-    const [pokemon, moves, natures, baseStats, typeChart, abilities, moveEffects, abilityEffects, itemEffects] = await Promise.all([
+    const [pokemon, moves, natures, baseStats, typeChart, abilities, moveEffects, abilityEffects, itemEffects, learnsets] = await Promise.all([
       fetchJSON("data/pokemon.json"),
       fetchJSON("data/moves.json"),
       fetchJSON("data/natures.json"),
@@ -123,6 +131,7 @@ async function init() {
       fetchJSON("data/move-effects.json"),
       fetchJSON("data/ability-effects.json"),
       fetchJSON("data/item-effects.json"),
+      fetchJSON("data/learnsets.json"),
     ]);
     allPokemonNames = pokemon.map((p) => p.name);
     matchupPokemonList = pokemon;
@@ -134,6 +143,7 @@ async function init() {
     matchupMoveEffectsData = moveEffects;
     matchupAbilityEffectsData = abilityEffects;
     matchupItemEffectsData = itemEffects;
+    matchupLearnsetsData = learnsets;
   } catch {
     // The opponent-name datalist just won't autocomplete, and Team vs Team
     // won't be able to run -- logging results/history still works either
@@ -141,6 +151,7 @@ async function init() {
     allPokemonNames = [];
   }
   setupOpponentGrid();
+  setupBattlePlanOpponentGrid();
 
   trackerLogWinBtn.addEventListener("click", () => logResult("win"));
   trackerLogLossBtn.addEventListener("click", () => logResult("loss"));
@@ -152,6 +163,8 @@ async function init() {
   if (matchupRunBtn) matchupRunBtn.addEventListener("click", runMatchup);
   if (matchupTeamASelect) matchupTeamASelect.addEventListener("change", () => { matchupTeamAId = matchupTeamASelect.value; });
   if (matchupTeamBSelect) matchupTeamBSelect.addEventListener("change", () => { matchupTeamBId = matchupTeamBSelect.value; });
+  if (battlePlanTeamSelect) battlePlanTeamSelect.addEventListener("change", () => { battlePlanTeamId = battlePlanTeamSelect.value; });
+  if (battlePlanRunBtn) battlePlanRunBtn.addEventListener("click", runBattlePlan);
   const lockedSigninBtn = document.getElementById("tracker-locked-signin-btn");
   if (lockedSigninBtn) {
     lockedSigninBtn.addEventListener("click", () => {
@@ -439,6 +452,32 @@ function clearOpponentTeam() {
   trackerOpponentDetails.open = false;
 }
 
+/**
+ * Milestone 54, Part D: a dedicated opponent-6 grid for Battle Plan --
+ * same datalist-autocomplete widget setupOpponentGrid builds above, own
+ * element ids since this is a genuinely separate moment (Team Preview,
+ * before a match, not "what do you remember after the fact").
+ */
+function setupBattlePlanOpponentGrid() {
+  if (!battlePlanOpponentGridEl) return;
+  const datalistId = "tracker-opponent-options"; // shared with setupOpponentGrid's own datalist -- same species list, no need for a second one
+  battlePlanOpponentGridEl.innerHTML = "";
+  for (let i = 0; i < OPPONENT_SLOT_COUNT; i++) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "tracker-opponent-input";
+    input.setAttribute("list", datalistId);
+    input.placeholder = `Opponent Pokémon ${i + 1}`;
+    battlePlanOpponentGridEl.appendChild(input);
+  }
+}
+
+/** Every non-empty, real (recognized in matchupPokemonList) name entered — an unrecognized typo is silently dropped rather than crashing the report, same forgiving spirit as collectOpponentTeam's own free-text fields. */
+function collectBattlePlanOpponentTeam() {
+  const names = [...battlePlanOpponentGridEl.querySelectorAll(".tracker-opponent-input")].map((input) => input.value.trim()).filter(Boolean);
+  return names.filter((name) => matchupPokemonList.some((p) => p.name === name));
+}
+
 function logResult(result) {
   const team = getSelectedTeam();
   if (!team || !signedIn) return;
@@ -626,6 +665,16 @@ function refreshMatchupTeamOptions() {
     matchupHintEl.textContent = "";
   }
   matchupRunBtn.disabled = teams.length < 2;
+
+  // Milestone 54, Part D: Battle Plan uses the same format-scoped team
+  // list as Team vs Team above -- one saved team, not two, since the
+  // "opponent" here is a free-text Team Preview roster, not another
+  // saved team.
+  if (battlePlanTeamSelect) {
+    battlePlanTeamId = fillSelect(battlePlanTeamSelect, battlePlanTeamId);
+    battlePlanRunBtn.disabled = teams.length === 0;
+    battlePlanHintEl.textContent = teams.length === 0 ? `You don't have any saved ${matchupFormat === "singles" ? "Singles" : "Doubles"} teams yet.` : "";
+  }
 }
 
 /**
@@ -662,6 +711,8 @@ async function runMatchup() {
   const teamB = teamState.teams.find((t) => t.id === matchupTeamBId);
   matchupResultEl.hidden = true;
   matchupResultEl.innerHTML = "";
+  matchupReadNoteEl.hidden = true;
+  matchupReadNoteEl.innerHTML = "";
 
   if (!teamA || !teamB) {
     matchupHintEl.textContent = "Pick two saved teams first.";
@@ -708,6 +759,22 @@ async function runMatchup() {
     };
     const result = await wcRunSimAsync("teamVsTeam", payload);
     renderMatchupResult(result, teamA.name || "Team A", teamB.name || "Team B");
+
+    // Milestone 54, Part C: "Matchup Read" narrates the real result just
+    // computed above -- a second, cheap worker call (no new simulation,
+    // just real spec-building + narration, see wcMatchupReadReport in
+    // battle-sim-lineup.js) rather than blocking the win/loss numbers on
+    // it. A failure here shouldn't hide the real simulation result that
+    // already rendered successfully, so it's caught on its own.
+    matchupReadNoteEl.hidden = true;
+    matchupReadNoteEl.innerHTML = "";
+    try {
+      const matchupReadReport = await wcRunSimAsync("matchupRead", { ...payload, result });
+      if (matchupReadReport) renderMatchupReadNote(matchupReadReport, teamA.name || "Team A", teamB.name || "Team B");
+    } catch (err) {
+      // Silent -- the real simulation result above is what matters most;
+      // losing just the narration isn't worth a second error message.
+    }
   } catch (err) {
     matchupHintEl.textContent = "The simulation didn't finish — try Run Matchup again, or reload the page if it keeps failing.";
   } finally {
@@ -784,4 +851,174 @@ function renderMatchupResult(result, labelA, labelB) {
     table.appendChild(row);
   });
   matchupResultEl.appendChild(table);
+}
+
+/**
+ * Milestone 54, Part C: renders wcMatchupReadReport's data in the exact
+ * three-part shape ("Win Rate Percentage" headline + confidence /
+ * "Simulation Logic" / "Pivot Points") the sourced "Win Rate Calculator
+ * AI" prompt asked for -- same DOM-building pattern the Builder page's
+ * Team Strategy Report/Meta Analyst panels use, reusing their own CSS
+ * classes. Every number here comes straight from the real Team-vs-Team
+ * simulation that already ran (renderMatchupResult, just above) -- this
+ * only narrates it.
+ */
+function renderMatchupReadNote(report, labelA, labelB) {
+  matchupReadNoteEl.innerHTML = "";
+  matchupReadNoteEl.hidden = false;
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Matchup Read";
+  matchupReadNoteEl.appendChild(heading);
+
+  const addHeading = (text) => {
+    const p = document.createElement("p");
+    p.className = "meta-analyst-section-heading";
+    const strong = document.createElement("strong");
+    strong.textContent = text;
+    p.appendChild(strong);
+    matchupReadNoteEl.appendChild(p);
+  };
+  const addLines = (lines, className) => {
+    lines.forEach((line) => {
+      const p = document.createElement("p");
+      p.className = className;
+      p.textContent = line;
+      matchupReadNoteEl.appendChild(p);
+    });
+  };
+
+  const headlineP = document.createElement("p");
+  headlineP.className = "meta-analyst-section-heading";
+  const headlineStrong = document.createElement("strong");
+  headlineStrong.textContent = `${labelA}'s estimated win rate: ${report.headlinePct}% (${report.confidence} confidence)`;
+  headlineP.appendChild(headlineStrong);
+  matchupReadNoteEl.appendChild(headlineP);
+  addLines([report.confidenceNote], "hint");
+
+  addHeading("Simulation Logic");
+  addLines(report.simulationLogicLines.length ? report.simulationLogicLines : ["No Speed/type read available for this matchup."], "meta-analyst-mode-line");
+
+  addHeading("Pivot Points");
+  addLines(report.pivotPointLines, "meta-analyst-mode-line");
+}
+
+/**
+ * Milestone 54, Part D: WinCon's own answer to a request for a "Battle
+ * Coach AI," with no external AI involved (see README's Milestone 54
+ * section). Runs entirely off a saved, sim-ready team plus whatever real
+ * opponent species were typed into the Team Preview grid above -- see
+ * wcBattlePlanReport in strategy.js for the actual logic (run inside the
+ * worker, same reason Matchup Read is -- strategy.js is only loaded
+ * there, not on this page's main thread).
+ */
+async function runBattlePlan() {
+  const team = teamState.teams.find((t) => t.id === battlePlanTeamId);
+  battlePlanNoteEl.hidden = true;
+  battlePlanNoteEl.innerHTML = "";
+
+  if (!team) {
+    battlePlanHintEl.textContent = "Pick a saved team first.";
+    return;
+  }
+  if (!wcTeamIsSimReady(team)) {
+    battlePlanHintEl.textContent =
+      "This team needs every field filled in first (Nature, item, all 4 moves, all 66 Stat Points on all 6) — finish building it on the Builder page, then come back here.";
+    return;
+  }
+  if (!matchupTypeChartData) {
+    battlePlanHintEl.textContent = "Reference data hasn't finished loading yet — try again in a moment.";
+    return;
+  }
+
+  const opponentNames = collectBattlePlanOpponentTeam();
+  if (opponentNames.length === 0) {
+    battlePlanHintEl.textContent = "Enter at least one of the opponent's revealed Pokémon above first.";
+    return;
+  }
+
+  battlePlanHintEl.textContent = "";
+  battlePlanRunBtn.disabled = true;
+
+  try {
+    const userMembers = team.chosen
+      .map((name) => {
+        const pokemon = matchupPokemonList.find((p) => p.name === name);
+        const baseStats = matchupBaseStatsData.find((b) => b.name === name);
+        if (!pokemon || !baseStats) return null;
+        return { name, slotName: name, types: pokemon.types, baseStats, learnableNames: matchupLearnsetsData[name] || [] };
+      })
+      .filter(Boolean);
+
+    const opponentThreats = opponentNames
+      .map((name) => {
+        const pokemon = matchupPokemonList.find((p) => p.name === name);
+        const baseStats = matchupBaseStatsData.find((b) => b.name === name);
+        if (!pokemon || !baseStats) return null;
+        return { name, types: pokemon.types, baseStats };
+      })
+      .filter(Boolean);
+
+    const report = await wcRunSimAsync("battlePlan", {
+      userMembers,
+      userBuilds: team.builds,
+      opponentThreats,
+      movesData: matchupMovesData,
+      typeChart: matchupTypeChartData,
+      format: matchupFormat,
+      abilitiesData: matchupAbilitiesData,
+      natures: matchupNaturesData,
+    });
+    renderBattlePlanNote(report);
+  } catch (err) {
+    battlePlanHintEl.textContent = "The Battle Plan didn't finish — try again, or reload the page if it keeps failing.";
+  } finally {
+    battlePlanRunBtn.disabled = false;
+  }
+}
+
+/**
+ * Renders wcBattlePlanReport's data in the exact three-headed-section
+ * shape ("The Core Four" / "Turn 1 Execution" / "Pivoting & Win
+ * Condition") the sourced "Battle Coach AI" prompt asked for -- same
+ * DOM-building pattern the other three Milestone 54 panels use.
+ */
+function renderBattlePlanNote(report) {
+  battlePlanNoteEl.innerHTML = "";
+  battlePlanNoteEl.hidden = false;
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Battle Plan";
+  battlePlanNoteEl.appendChild(heading);
+
+  const addHeading = (text) => {
+    const p = document.createElement("p");
+    p.className = "meta-analyst-section-heading";
+    const strong = document.createElement("strong");
+    strong.textContent = text;
+    p.appendChild(strong);
+    battlePlanNoteEl.appendChild(p);
+  };
+  const addLines = (lines, className) => {
+    lines.forEach((line) => {
+      const p = document.createElement("p");
+      p.className = className;
+      p.textContent = line;
+      battlePlanNoteEl.appendChild(p);
+    });
+  };
+
+  addHeading("The Core Four");
+  if (report.coreFourNames.length === 0) {
+    addLines(report.turn1Lines, "hint"); // the empty-opponent guard's own message lands here
+    return;
+  }
+  addLines(report.coreFourLines, "meta-analyst-mode-line");
+  addLines(report.benchLines, "hint");
+
+  addHeading("Turn 1 Execution");
+  addLines(report.turn1Lines, "meta-analyst-mode-line");
+
+  addHeading("Pivoting & Win Condition");
+  addLines(report.pivotLines, "meta-analyst-mode-line");
 }

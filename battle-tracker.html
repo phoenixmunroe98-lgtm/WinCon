@@ -136,6 +136,31 @@
           Simulating thousands of battles between these two lineups… this can take a few seconds.
         </p>
         <div id="matchup-result" hidden></div>
+        <div id="matchup-read-note" class="callout-box meta-analyst-note" hidden></div>
+      </section>
+
+      <!-- Milestone 54, Part D: "Battle Plan" -- a real, computed
+           draft/lead/pivot read for one of your saved teams against an
+           opponent's revealed Team Preview 6 (species only, no build
+           guessing -- same honest floor myTeamAsThreats()/
+           starter-threats.json already use everywhere else in this app).
+           See wcBattlePlanReport in strategy.js and runBattlePlan/
+           renderBattlePlanNote in battle-tracker.js. -->
+      <section id="battle-plan-section" class="tracker-block">
+        <h2 class="section-title">Battle Plan (Team Preview)</h2>
+        <p class="hint">
+          Enter your opponent's revealed 6 from Team Preview and get a real, computed Core Four / lead / pivot plan
+          for this specific matchup — no external AI, just WinCon's own type-chart math and archetype signals (see
+          README's Milestone 54 section).
+        </p>
+        <label class="field">
+          <span class="field-label">Your team</span>
+          <select id="battle-plan-team-select"></select>
+        </label>
+        <div id="battle-plan-opponent-grid" class="tracker-opponent-grid"></div>
+        <button type="button" id="battle-plan-run-btn" class="btn-primary">Get Battle Plan</button>
+        <p id="battle-plan-hint" class="hint"></p>
+        <div id="battle-plan-note" class="callout-box meta-analyst-note" hidden></div>
       </section>
 
       <section id="team-select-section" class="tracker-block">

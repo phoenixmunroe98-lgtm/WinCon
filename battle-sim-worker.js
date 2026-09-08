@@ -32,7 +32,25 @@ self.onmessage = (event) => {
     let result;
     if (type === "simulateWinRate") result = wcSimulateTeamWinRate(payload);
     else if (type === "teamVsTeam") result = wcSimulateTeamVsTeam(payload);
-    else throw new Error(`battle-sim-worker: unknown message type "${type}"`);
+    else if (type === "matchupRead") {
+      // Milestone 54, Part C: narrates an ALREADY-COMPUTED teamVsTeam
+      // result (payload.result) -- runs no new simulation, just builds
+      // the same real wcBattlerSpecForSlot specs the simulator itself
+      // used and hands them to wcMatchupReadReport (battle-sim-lineup.js).
+      const { teamA, teamB, result: simResult, pokemonList, baseStatsData, abilitiesData, natures, typeChart } = payload;
+      const specsFor = (lineup, team) =>
+        lineup.map((name) => wcBattlerSpecForSlot(name, team.builds[name], pokemonList, baseStatsData, abilitiesData));
+      const teamASpecs = specsFor(simResult.lineupA, teamA);
+      const teamBSpecs = specsFor(simResult.lineupB, teamB);
+      result = wcMatchupReadReport(simResult, teamA.label || "Team A", teamB.label || "Team B", teamASpecs, teamBSpecs, natures, typeChart);
+    } else if (type === "battlePlan") {
+      // Milestone 54, Part D -- wcBattlePlanReport lives in strategy.js
+      // (only loaded here in the worker, see this file's own header), so
+      // this routes through the same postMessage pattern as the other
+      // report types above rather than duplicating it on the main thread.
+      const { userMembers, userBuilds, opponentThreats, movesData, typeChart, format, abilitiesData, natures } = payload;
+      result = wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData, typeChart, format, abilitiesData, natures);
+    } else throw new Error(`battle-sim-worker: unknown message type "${type}"`);
     self.postMessage({ requestId, type: "result", result });
   } catch (err) {
     self.postMessage({ requestId, type: "error", error: (err && err.message) || String(err) });

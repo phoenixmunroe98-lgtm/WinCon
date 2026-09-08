@@ -4757,3 +4757,414 @@ function wcMetaAnalystReport(members, builds, movesData, threats, typeChart, for
     fixes,
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Milestone 54, Part A: Team Strategy Report -- a WinCon-native answer to
+// a request for an AI team analyst ("act as an expert VGC analyst,
+// output Core Strategy & Roles / Threat Assessment / Type & Synergy
+// Analysis"), with no external AI involved (see README's Milestone 54
+// section for the reasoning). Every sentence below comes from a real,
+// already-computed WinCon signal: wcAnalyzeTeamStrategy's own real
+// archetype/mechanism read, each member's own real built role
+// (wcActualRole, from its actual Stat Point spread) and real
+// archetype/support signals (wcArchetypeSignalsFor/
+// wcHasRealSupportAbility), the existing anti-synergy/shared-weakness/
+// best-matchup checks, and a real offensive/defensive coverage sweep
+// over the team's own actual built moves and typing -- assembled into
+// the exact three-section shape that kind of request specified, plus a
+// computed grade.
+// ---------------------------------------------------------------------------
+
+/**
+ * Every type at least 2 of `members` are weak to (2x or worse) with
+ * nobody on the team resisting or blocking it -- reads out
+ * wcTeamNetScoreForType (already used by wcDefenseCoverageBonus during
+ * Dream Team picking) as a named list of real defensive gaps, rather
+ * than folding it into a single candidate's score. net <= -2 means at
+ * least two more weaknesses than resists among the 6 real typings.
+ */
+function wcDefensiveCoverageGaps(members, typeChart) {
+  if (!typeChart || !Array.isArray(typeChart.types) || !members) return [];
+  const teamTypesList = members.map((m) => m.types).filter(Boolean);
+  return typeChart.types.filter((type) => wcTeamNetScoreForType(type, teamTypesList, typeChart) <= -2);
+}
+
+/**
+ * Every type nobody on the team has a real damaging (category !==
+ * "Status", power > 0) BUILT move of -- a genuine gap in what this team
+ * can actually hit for damage, not just what it resists. Only ever
+ * looks at moves actually chosen in `builds`, never learnable-but-unused
+ * moves -- an honest "what can this team do right now" read.
+ */
+function wcOffensiveCoverageGaps(members, builds, movesData, typeChart) {
+  if (!typeChart || !Array.isArray(typeChart.types) || !movesData || !members) return [];
+  const covered = new Set();
+  members.forEach((m) => {
+    const build = builds && (builds[m.slotName || m.name] || builds[m.name]);
+    if (!build || !Array.isArray(build.moves)) return;
+    build.moves.forEach((moveName) => {
+      const move = movesData.find((mv) => mv.name === moveName);
+      if (move && move.category !== "Status" && move.power > 0) covered.add(move.type);
+    });
+  });
+  return typeChart.types.filter((type) => !covered.has(type));
+}
+
+// Grade rubric (S/A/B/C/D) -- a fixed, documented point scale rather
+// than an invented number. There's no cross-team dataset to compute a
+// real percentile from the way species-level thresholds elsewhere in
+// this file are (e.g. WC_CHAMPIONS_STAT_SPREAD_MIN_PERCENT), so this is
+// honestly a rubric, not a live statistic -- said plainly here rather
+// than dressed up as more than it is. The bonus magnitudes are scaled
+// off WC_SUPPORT_ABILITY_WEIGHT/the archetype-beneficiary bonus already
+// used elsewhere in this file (x5-x10, since a whole-team grade needs to
+// move more per real signal than one candidate's score does), not picked
+// at random.
+const WC_TEAM_GRADE_START = 100;
+const WC_TEAM_GRADE_PENALTY_PER_WARNING = 8; // each real anti-synergy or shared-weakness warning is a concrete, exploitable problem
+const WC_TEAM_GRADE_PENALTY_PER_DEFENSE_GAP = 6; // each type 2+ members are weak to with nobody resisting
+const WC_TEAM_GRADE_PENALTY_PER_OFFENSE_GAP = 3; // each type nobody's real moveset can hit for damage
+const WC_TEAM_GRADE_MAX_OFFENSE_GAP_PENALTY = 24; // most legal teams miss several of 18 types by design -- capped so this alone can't sink the grade
+const WC_TEAM_GRADE_ARCHETYPE_BONUS = 10; // a real, forming shared win condition (not "independent")
+const WC_TEAM_GRADE_ASSISTING_BONUS = 5; // per real curated Assisting Pokemon ability on the team (WC_SUPPORT_ABILITY_WEIGHT's own signal, at grade scale)
+
+function wcTeamSynergyGrade(warningCount, defenseGapCount, offenseGapCount, hasRealArchetype, assistingCount) {
+  let score = WC_TEAM_GRADE_START;
+  score -= warningCount * WC_TEAM_GRADE_PENALTY_PER_WARNING;
+  score -= defenseGapCount * WC_TEAM_GRADE_PENALTY_PER_DEFENSE_GAP;
+  score -= Math.min(offenseGapCount * WC_TEAM_GRADE_PENALTY_PER_OFFENSE_GAP, WC_TEAM_GRADE_MAX_OFFENSE_GAP_PENALTY);
+  if (hasRealArchetype) score += WC_TEAM_GRADE_ARCHETYPE_BONUS;
+  score += assistingCount * WC_TEAM_GRADE_ASSISTING_BONUS;
+  score = Math.max(0, Math.min(100, score));
+  let letter;
+  if (score >= 90) letter = "S";
+  else if (score >= 78) letter = "A";
+  else if (score >= 62) letter = "B";
+  else if (score >= 45) letter = "C";
+  else letter = "D";
+  return { score, letter };
+}
+
+/**
+ * The report itself. Same input shape as wcMetaAnalystReport (this is
+ * meant to be called right alongside it, with the same `members`/
+ * `builds`/etc. the Builder page already has on hand for that report) --
+ * see runMetaAnalyst in builder.js for exactly how those are built.
+ */
+function wcTeamStrategyReport(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaselineData) {
+  const fmt = wcNormalizeFormat(format);
+  const strategyResult = wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, fmt, notes, abilitiesData, metaBaselineData);
+  const megaAdvice = wcMegaMatchupAdvice(members, threats, typeChart);
+  const bestMatchup = wcBestMatchupAnalysis(members, builds, abilitiesData);
+  const antiSynergyWarnings = wcAntiSynergyWarnings(members, builds, abilitiesData);
+  const sharedWeaknessWarnings = wcSharedWeaknessWarnings(members, typeChart);
+  const defenseGaps = wcDefensiveCoverageGaps(members, typeChart);
+  const offenseGaps = wcOffensiveCoverageGaps(members, builds, movesData, typeChart);
+  const assistingMembers = members.filter((m) => wcHasRealSupportAbility(m.name, abilitiesData));
+
+  // ---- Core Strategy & Roles ----
+  const winCondition =
+    strategyResult.archetype === "independent"
+      ? "No single shared win condition -- this team plays as six independent attackers rather than leaning on one shared mechanism."
+      : `Win condition: ${wcArchetypeDisplayName(strategyResult.archetype)}${strategyResult.setterName ? `, set by ${strategyResult.setterName}` : ""}. ${strategyResult.note}`;
+
+  const roleLines = members.map((m) => {
+    const build = (builds && (builds[m.slotName || m.name] || builds[m.name])) || {};
+    if (strategyResult.setterName && m.name === strategyResult.setterName) {
+      return `${m.name} sets ${wcArchetypeDisplayName(strategyResult.archetype)} -- the team's real win condition.`;
+    }
+    const ability = wcAbilityOf(abilitiesData, m.name);
+    if (ability && WINCON_SUPPORT_ABILITIES.has(ability)) {
+      return `${m.name}'s real ${ability} is an Assisting Pokemon trait: it ${WINCON_SUPPORT_ABILITY_DESCRIPTIONS[ability]}, supporting the plan beyond its own raw stats.`;
+    }
+    const ownSignals = wcArchetypeSignalsFor(m, fmt, abilitiesData);
+    if (ownSignals.length > 0) {
+      return `${m.name} can also back up ${ownSignals.map(wcArchetypeDisplayName).join("/")} if the primary setter goes down.`;
+    }
+    const role = wcActualRole(build);
+    const primaryOffense = wcPickPrimaryOffense(m.baseStats);
+    const offenseLabel = primaryOffense === "attack" ? "physical" : "special";
+    return `${m.name} is built as a ${role === "fast" ? "fast" : "bulky"} ${offenseLabel} attacker -- its real contribution here is offense/coverage, not a shared setup role.`;
+  });
+
+  // ---- Threat Assessment ----
+  const threatLines = [];
+  if (bestMatchup) {
+    threatLines.push(`${bestMatchup.line} -- know this before you queue up, since it's the real counter to your own team's mechanism.`);
+  }
+  if (megaAdvice && megaAdvice.note) threatLines.push(megaAdvice.note);
+  antiSynergyWarnings.forEach((w) => threatLines.push(w));
+  // Shared-weakness pairs can run long on a full 6 -- capped at 3 here,
+  // same "don't drown the report" spirit as Meta Analyst's own
+  // collapsible section for the same data.
+  sharedWeaknessWarnings.slice(0, 3).forEach((w) => threatLines.push(w));
+  if (threatLines.length === 0) {
+    threatLines.push("No concrete anti-synergy, shared-weakness, or best-matchup-counter signal found for this team right now.");
+  }
+
+  // ---- Type & Synergy Analysis ----
+  const coverageLines = [
+    offenseGaps.length === 0
+      ? "Offensive coverage is complete -- at least one real damaging move on this team hits every type."
+      : `No damaging move on this team hits: ${offenseGaps.join(", ")}.`,
+    defenseGaps.length === 0
+      ? "No defensive gap found -- no type has 2+ teammates weak to it with nobody resisting."
+      : `Defensive gap: ${defenseGaps.join(", ")} -- 2 or more teammates are weak to ${defenseGaps.length === 1 ? "this type" : "each of these types"} and nobody on the team resists or blocks it.`,
+  ];
+
+  const grade = wcTeamSynergyGrade(
+    antiSynergyWarnings.length + sharedWeaknessWarnings.length,
+    defenseGaps.length,
+    offenseGaps.length,
+    strategyResult.archetype !== "independent",
+    assistingMembers.length
+  );
+
+  return { winCondition, roleLines, threatLines, coverageLines, grade };
+}
+
+
+// ---------------------------------------------------------------------------
+// Milestone 54, Part B: Rival Breakdown -- a WinCon-native answer to a
+// request for a "Rival Team Builder AI," with no external AI involved
+// (see README's Milestone 54 section). "Your Rival" (Milestone 14,
+// findYourRival()/pendingRival, builder.js) already IS this feature's
+// real engine: wcPickDreamTeam run in reverse against the user's own
+// team, producing a synthesized 6, a real `reasoning` array explaining
+// each pick, and a real `rivalSuccessRate`. This function narrates that
+// already-real data into the exact three-section shape a "Rival Team
+// Builder AI" request asked for -- it doesn't invent a new matchup read,
+// it explains the one WinCon already computed.
+// ---------------------------------------------------------------------------
+
+/**
+ * @param rivalMembers - pendingRival.rivalMembers (the synthesized 6)
+ * @param rivalBuilds - pendingRival.rivalBuilds (their real built sets)
+ * @param reasoning - pendingRival's own real per-pick reasoning array
+ * @param userMembers/userBuilds - the user's own real built 6
+ */
+function wcRivalBreakdownReport(rivalMembers, rivalBuilds, reasoning, userMembers, userBuilds, movesData, typeChart, format, abilitiesData) {
+  const fmt = wcNormalizeFormat(format);
+
+  // Each side's own real win condition, read with the OTHER side as its
+  // real threats list -- the natural "who is this team actually built to
+  // fight" framing for a head-to-head breakdown.
+  const rivalAsThreats = rivalMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
+  const userAsThreats = userMembers.map((m) => ({ name: m.name, types: m.types, baseStats: m.baseStats }));
+  const userStrategy = wcAnalyzeTeamStrategy(userMembers, userBuilds, movesData, rivalAsThreats, typeChart, fmt, "", abilitiesData, null);
+  const rivalStrategy = wcAnalyzeTeamStrategy(rivalMembers, rivalBuilds, movesData, userAsThreats, typeChart, fmt, "", abilitiesData, null);
+
+  // ---- The Counter Strategy ----
+  const counterStrategyLines = [];
+  counterStrategyLines.push(
+    userStrategy.archetype === "independent"
+      ? "Your team has no single shared win condition for this rival to specifically break -- it's already playing as six independent attackers."
+      : `Your win condition: ${wcArchetypeDisplayName(userStrategy.archetype)}${userStrategy.setterName ? `, set by ${userStrategy.setterName}` : ""}.`
+  );
+  counterStrategyLines.push(
+    rivalStrategy.archetype === "independent"
+      ? "This rival has no single shared win condition of its own -- it was synthesized purely to answer your team's real weak points, not to run a matching strategy."
+      : `The rival's own real plan: ${wcArchetypeDisplayName(rivalStrategy.archetype)}${rivalStrategy.setterName ? `, set by ${rivalStrategy.setterName}` : ""}. ${rivalStrategy.note}`
+  );
+
+  // The real, named mechanism -- wcBestMatchupAnalysis already computes
+  // "what beats a team running your archetype" (see Part A above); this
+  // checks honestly whether the rival's own real built moveset actually
+  // carries that literal counter, rather than just asserting it does.
+  const bestMatchupVsUser = wcBestMatchupAnalysis(userMembers, userBuilds, abilitiesData);
+  let mechanismLine;
+  if (bestMatchupVsUser) {
+    const rivalHasCounterMove = rivalMembers.some((m) => {
+      const build = rivalBuilds[m.slotName || m.name] || rivalBuilds[m.name];
+      return build && Array.isArray(build.moves) && bestMatchupVsUser.counters.some((c) => build.moves.includes(c));
+    });
+    mechanismLine = rivalHasCounterMove
+      ? `${bestMatchupVsUser.line} -- and this rival's real built moveset already carries it, so the mechanism isn't theoretical.`
+      : `${bestMatchupVsUser.line}. No rival member's real built moveset happens to carry that exact move, but the rival was still picked specifically to answer your team's real typing and stats (see Rival Roles below), so the pressure is real even without that literal counter.`;
+  } else {
+    mechanismLine =
+      "Your team doesn't cleanly read as one of the archetypes this app tracks a textbook counter for, so there's no single named mechanism here -- the rival's real edge comes from the per-member matchups below instead.";
+  }
+  counterStrategyLines.push(mechanismLine);
+
+  // ---- Rival Roles ----
+  // findYourRival()'s own reasoning array already ties every pick to a
+  // specific real gap in the user's team (that's what the reverse-
+  // Dream-Team picker's own per-candidate reasoning notes say) -- reused
+  // verbatim rather than regenerated.
+  const rivalRoleLines = (reasoning || []).slice();
+
+  // ---- Type Superiority ----
+  const rivalDefenseGaps = wcDefensiveCoverageGaps(rivalMembers, typeChart);
+  const rivalOffenseGaps = wcOffensiveCoverageGaps(rivalMembers, rivalBuilds, movesData, typeChart);
+  const rivalSharedWeaknesses = wcSharedWeaknessWarnings(rivalMembers, typeChart);
+
+  const typeSuperiorityLines = [
+    rivalOffenseGaps.length === 0
+      ? "This rival's real moveset offensively covers all 18 types between its 6 members -- nothing on your team is safe purely by typing."
+      : `This rival has no real damaging move covering: ${rivalOffenseGaps.join(", ")} -- a teammate of yours resisting or blocking one of those types has a real, typing-based opening against it.`,
+    rivalDefenseGaps.length === 0
+      ? "No clean defensive gap in the rival's own typing -- no type hits 2+ of its members with nobody on its side resisting."
+      : `Where this rival is genuinely still beatable: ${rivalDefenseGaps.join(", ")} -- 2 or more of its own members are weak to ${rivalDefenseGaps.length === 1 ? "this type" : "each of these types"} with nobody on its side resisting or blocking it.`,
+  ];
+  // One concrete real example, not a wall of every pair -- same
+  // "don't drown the report" cap Part A's Threat Assessment uses.
+  if (rivalSharedWeaknesses.length > 0) typeSuperiorityLines.push(rivalSharedWeaknesses[0]);
+
+  return { counterStrategyLines, rivalRoleLines, typeSuperiorityLines };
+}
+
+
+// ---------------------------------------------------------------------------
+// Milestone 54, Part D: Battle Plan -- a WinCon-native answer to a
+// request for a "Battle Coach AI," with no external AI involved (see
+// README's Milestone 54 section). The one genuinely new engine of the
+// four -- nothing else in WinCon drafts a Core Four, picks a lead, or
+// sequences Turn 1 -- so this is deliberately scoped as real-signal-
+// driven heuristics (the same threat-ranking heuristic "Your Rival" and
+// the Matchup Score already use, plus the same archetype-signal
+// detectors wcAnalyzeTeamStrategy already uses elsewhere in this file),
+// not an exhaustive tactical solver, and it says so honestly when the
+// opponent's revealed 6 doesn't cleanly point to one plan.
+// ---------------------------------------------------------------------------
+
+/**
+ * @param userMembers/userBuilds - the user's own real built 6
+ * @param opponentThreats - the opponent's revealed species as real
+ *   "threats" ({name, types, baseStats} only -- no build guessing, same
+ *   minimal shape myTeamAsThreats()/starter-threats.json already use
+ *   everywhere else in this app)
+ */
+function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData, typeChart, format, abilitiesData, natures) {
+  const fmt = wcNormalizeFormat(format);
+  const n = fmt === "singles" ? 3 : 4;
+
+  if (!opponentThreats || opponentThreats.length === 0) {
+    return {
+      coreFourNames: [],
+      coreFourLines: [],
+      benchLines: [],
+      turn1Lines: ["No opponent species entered yet -- fill in at least one revealed Pokemon to get a real Core Four/lead read."],
+      pivotLines: [],
+    };
+  }
+
+  const names = userMembers.map((m) => m.slotName || m.name);
+  const specsByName = {};
+  userMembers.forEach((m) => {
+    const key = m.slotName || m.name;
+    specsByName[key] = { name: m.name, types: m.types, baseStats: m.baseStats, build: userBuilds[key] || userBuilds[m.name] };
+  });
+  const heuristicData = { typeChart, natures, movesData, sheetMode: "closed" };
+
+  // ---- The Core Four ----
+  const lineups = wcEnumerateLineups(names, Math.min(n, names.length));
+  const ranked = wcRankLineupsHeuristic(lineups, specsByName, [opponentThreats], heuristicData, null);
+  const coreFourNames = ranked.length ? ranked[0].names : names.slice(0, n);
+  const benchedNames = names.filter((nm) => !coreFourNames.includes(nm));
+
+  const avgMatchupScore = (name) => {
+    const spec = specsByName[name];
+    let total = 0;
+    let count = 0;
+    opponentThreats.forEach((threat) => {
+      const result = wcScoreMatchup(
+        { name: spec.name, types: spec.types },
+        spec.build,
+        spec.baseStats,
+        { name: threat.name, types: threat.types },
+        threat.baseStats,
+        natures,
+        typeChart,
+        movesData,
+        { sheetMode: "closed" }
+      );
+      total += result.points;
+      count += 1;
+    });
+    return count > 0 ? total / count : 0;
+  };
+
+  const coreFourLines = coreFourNames.map((name) => {
+    const avg = avgMatchupScore(name);
+    const edgeWord = avg > 0 ? "a real net edge" : avg < 0 ? "a real net disadvantage, but still the best available pick" : "roughly even, but still the best available pick";
+    return `${name}: average matchup score ${avg.toFixed(1)} against the revealed 6 -- ${edgeWord}.`;
+  });
+  const benchLines = benchedNames.map((name) => {
+    const avg = avgMatchupScore(name);
+    return `${name} is benched: its own average matchup score against this revealed 6 (${avg.toFixed(1)}) is weaker than the Core Four's picks.`;
+  });
+
+  // ---- Turn 1 Execution ----
+  const coreFourLineups = wcEnumerateLineups(coreFourNames, Math.min(2, coreFourNames.length));
+  const leadRanked = wcRankLineupsHeuristic(coreFourLineups, specsByName, [opponentThreats], heuristicData, null);
+  const leadNames = leadRanked.length ? leadRanked[0].names : coreFourNames.slice(0, 2);
+
+  const turn1Lines = [`Lead with ${leadNames.join(" and ")} -- the strongest real matchup pairing against the opponent's revealed 6 among your Core Four.`];
+
+  // A small, explicit, documented rule set on signals this app already
+  // detects elsewhere (wcArchetypeSignalsFor's own move/ability list) --
+  // not an exhaustive tactical read, just the real, concrete cases where
+  // a Core Four member's own actual built kit says something specific
+  // about how Turn 1 should go.
+  let mechanismFired = false;
+  coreFourNames.forEach((name) => {
+    const build = specsByName[name].build || {};
+    const moves = build.moves || [];
+    const ability = wcAbilityOf(abilitiesData, name);
+    if (moves.includes("Trick Room")) {
+      mechanismFired = true;
+      turn1Lines.push(
+        `${name} carries a real built Trick Room -- if the revealed 6 skews faster on paper, opening with it (Protect on the partner while it goes up) flips turn order in your favor for the rest of the game.`
+      );
+    }
+    if (fmt !== "singles" && (moves.includes("Follow Me") || moves.includes("Rage Powder"))) {
+      const moveName = moves.includes("Follow Me") ? "Follow Me" : "Rage Powder";
+      mechanismFired = true;
+      turn1Lines.push(`${name} carries real redirection (${moveName}) -- pulling single-target attacks onto it Turn 1 protects a fragile partner's opening move.`);
+    }
+    if (moves.includes("Light Screen") || moves.includes("Reflect")) {
+      const moveName = moves.includes("Light Screen") ? "Light Screen" : "Reflect";
+      mechanismFired = true;
+      turn1Lines.push(`${name} carries a real built ${moveName} -- setting it Turn 1 softens whatever the revealed 6 opens with for the rest of the game.`);
+    }
+    if (ability && WINCON_WEATHER_SETTING_ABILITIES[ability]) {
+      mechanismFired = true;
+      turn1Lines.push(`${name}'s real ${ability} sets its weather Turn 1 automatically -- free value on the opening turn no matter what the opponent leads with.`);
+    }
+  });
+  if (!mechanismFired) {
+    turn1Lines.push(
+      "The revealed 6 doesn't cleanly point to one extra Turn 1 mechanism beyond the lead matchup itself -- play the real type/Speed read above rather than forcing a setup line that isn't really there."
+    );
+  }
+
+  // ---- Pivoting & Win Condition ----
+  const pivotLines = [];
+  benchedNames.forEach((name) => {
+    const build = specsByName[name].build || {};
+    const moves = build.moves || [];
+    const ability = wcAbilityOf(abilitiesData, name);
+    const hasSupportSignal =
+      moves.includes("Follow Me") ||
+      moves.includes("Rage Powder") ||
+      moves.includes("Light Screen") ||
+      moves.includes("Reflect") ||
+      moves.includes("Tailwind") ||
+      moves.includes("Trick Room") ||
+      Boolean(ability && WINCON_WEATHER_SETTING_ABILITIES[ability]);
+    if (hasSupportSignal) {
+      pivotLines.push(`${name} is on the bench but still carries real support value -- bring it in once the Core Four's opener has done its job, rather than leaving it unused for the whole game.`);
+    }
+  });
+
+  const userStrategy = wcAnalyzeTeamStrategy(userMembers, userBuilds, movesData, opponentThreats, typeChart, fmt, "", abilitiesData, null);
+  pivotLines.push(
+    userStrategy.archetype === "independent"
+      ? "No single shared win condition for this team -- close the game out by grinding the real per-member matchup edges above, not one shared mechanism."
+      : `Win condition: ${wcArchetypeDisplayName(userStrategy.archetype)}${userStrategy.setterName ? `, set by ${userStrategy.setterName}` : ""}. ${userStrategy.note}`
+  );
+
+  return { coreFourNames, coreFourLines, benchLines, turn1Lines, pivotLines };
+}

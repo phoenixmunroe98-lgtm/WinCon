@@ -689,3 +689,120 @@ function wcSimulateTeamVsTeam(payload) {
 
   return { lineupA, lineupB, format, grid };
 }
+
+
+// ---------------------------------------------------------------------------
+// Milestone 54, Part C: Matchup Read -- a WinCon-native answer to a
+// request for a "Win Rate Calculator AI," with no external AI involved
+// (see README's Milestone 54 section). Per this session's own earlier
+// decision, this narrates the REAL simulated result wcSimulateTeamVsTeam
+// just above already computed -- nothing here runs a new simulation,
+// guesses a number, or reasons independently about the matchup; it only
+// reads the real grid back out in plain English, plus a confidence read
+// computed from that grid's own real spread and a real Speed/type
+// comparison between the two chosen lineups.
+// ---------------------------------------------------------------------------
+
+/**
+ * @param result - wcSimulateTeamVsTeam's own return value ({lineupA, lineupB, format, grid})
+ * @param teamASpecs/teamBSpecs - wcBattlerSpecForSlot(...) for every member of result.lineupA/lineupB (name/types/baseStats/build)
+ */
+function wcMatchupReadReport(result, teamALabel, teamBLabel, teamASpecs, teamBSpecs, natures, typeChart) {
+  const grid = result && result.grid;
+  if (!grid || grid.length === 0) return null;
+
+  // The headline: the "neither side has committed to a Mega" cell when
+  // one exists (the real, unforced default), else just the grid's own
+  // first real cell.
+  const defaultCell = grid.find((c) => !c.megaA && !c.megaB) || grid[0];
+  const headlinePct = Math.round(defaultCell.winRateA * 100);
+
+  // Confidence: the real spread across every already-computed cell's win
+  // rate. A tight spread means the Mega choice barely moves the number
+  // (high confidence in the headline); a wide spread means the headline
+  // depends heavily on a Mega decision that hasn't happened yet in-game
+  // (honestly lower confidence in that one number, not in the engine).
+  const winRates = grid.map((c) => c.winRateA);
+  const spreadPct = (Math.max(...winRates) - Math.min(...winRates)) * 100;
+  const confidence = spreadPct <= 10 ? "high" : spreadPct <= 25 ? "medium" : "low";
+
+  // ---- Simulation Logic ----
+  const simulationLogicLines = [];
+  const speedOf = (spec) => {
+    if (!spec || !spec.build || !spec.build.sp || !spec.baseStats) return null;
+    return wcCalcStat(spec.baseStats.spe, "speed", spec.build.sp.speed || 0, spec.build.nature, natures);
+  };
+  const speedsA = (teamASpecs || []).map((s) => ({ name: s.name, speed: speedOf(s) })).filter((s) => s.speed != null);
+  const speedsB = (teamBSpecs || []).map((s) => ({ name: s.name, speed: speedOf(s) })).filter((s) => s.speed != null);
+  if (speedsA.length && speedsB.length) {
+    const fastestA = speedsA.reduce((a, b) => (b.speed > a.speed ? b : a));
+    const fastestB = speedsB.reduce((a, b) => (b.speed > a.speed ? b : a));
+    if (fastestA.speed === fastestB.speed) {
+      simulationLogicLines.push(
+        `${teamALabel}'s fastest real Speed (${fastestA.name}, ${fastestA.speed}) exactly ties ${teamBLabel}'s fastest (${fastestB.name}, ${fastestB.speed}) -- a real speed tie, decided by the game's own tiebreak rather than a clean edge.`
+      );
+    } else if (fastestA.speed > fastestB.speed) {
+      simulationLogicLines.push(
+        `${teamALabel}'s fastest real Speed (${fastestA.name}, ${fastestA.speed}) outpaces ${teamBLabel}'s fastest (${fastestB.name}, ${fastestB.speed}) -- a real Speed-tier edge on paper.`
+      );
+    } else {
+      simulationLogicLines.push(
+        `${teamBLabel}'s fastest real Speed (${fastestB.name}, ${fastestB.speed}) outpaces ${teamALabel}'s fastest (${fastestA.name}, ${fastestA.speed}) -- ${teamALabel} is at a real Speed-tier disadvantage on paper.`
+      );
+    }
+  }
+
+  if (typeChart && teamASpecs && teamBSpecs) {
+    let favorsA = 0;
+    let favorsB = 0;
+    teamASpecs.forEach((a) => {
+      teamBSpecs.forEach((b) => {
+        const aAdvantage = (a.types || []).some((t) => wcEffectivenessOf(typeChart, t, b.types) > 1);
+        const bAdvantage = (b.types || []).some((t) => wcEffectivenessOf(typeChart, t, a.types) > 1);
+        if (aAdvantage && !bAdvantage) favorsA += 1;
+        else if (bAdvantage && !aAdvantage) favorsB += 1;
+      });
+    });
+    simulationLogicLines.push(
+      favorsA === favorsB
+        ? `Type matchups across both lineups are roughly balanced by typing alone (${favorsA} pairings favor ${teamALabel}, ${favorsB} favor ${teamBLabel}).`
+        : favorsA > favorsB
+          ? `${teamALabel}'s typing has more real one-sided advantages across this matchup (${favorsA} pairings favor ${teamALabel} by typing vs. ${favorsB} for ${teamBLabel}).`
+          : `${teamBLabel}'s typing has more real one-sided advantages across this matchup (${favorsB} pairings favor ${teamBLabel} by typing vs. ${favorsA} for ${teamALabel}).`
+    );
+  }
+
+  // ---- Pivot Points ----
+  // Not invented -- read directly off the real grid. Every other cell
+  // already computed becomes a candidate pivot sentence; the ones with
+  // the largest real delta from the headline are surfaced.
+  const pivotCandidates = grid
+    .filter((c) => c !== defaultCell)
+    .map((c) => ({ cell: c, newPct: Math.round(c.winRateA * 100), deltaPct: Math.round(c.winRateA * 100) - headlinePct }))
+    .filter((p) => p.deltaPct !== 0)
+    .sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct))
+    .slice(0, 3);
+
+  const pivotPointLines = pivotCandidates.map((p) => {
+    const megaAText = p.cell.megaA ? `${teamALabel} Mega-Evolves ${p.cell.megaA}` : null;
+    const megaBText = p.cell.megaB ? `${teamBLabel} Mega-Evolves ${p.cell.megaB}` : null;
+    const conditionText = [megaAText, megaBText].filter(Boolean).join(" and ");
+    const directionWord = p.deltaPct > 0 ? "rises to" : "drops to";
+    return conditionText
+      ? `If ${conditionText}, ${teamALabel}'s win rate ${directionWord} ~${p.newPct}%.`
+      : `A different real scenario in the simulated grid moves the win rate to ~${p.newPct}%.`;
+  });
+  if (pivotPointLines.length === 0) {
+    pivotPointLines.push(
+      "No Mega-Evolution choice meaningfully changes the win rate here -- every scenario this app actually simulated landed close to the headline number."
+    );
+  }
+
+  return {
+    headlinePct,
+    confidence,
+    confidenceNote: `A simulated estimate from ${grid.length * WC_TEAMVSTEAM_RUNS_PER_OPPONENT} real battles (${WC_TEAMVSTEAM_RUNS_PER_OPPONENT} Monte-Carlo runs per real Mega scenario), not a guaranteed outcome.`,
+    simulationLogicLines,
+    pivotPointLines,
+  };
+}
