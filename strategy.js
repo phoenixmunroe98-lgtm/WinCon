@@ -5198,13 +5198,25 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
   });
   const benchLines = benchedNames.map((name) => {
     const avg = avgMatchupScore(name);
-    return `${name} is benched: its own average matchup score against this revealed 6 (${avg.toFixed(1)}) is weaker than the Core Four's picks.`;
+    return `${name} didn't make the Core Four for this matchup and can't be brought into this battle at all -- its own average matchup score against this revealed 6 (${avg.toFixed(1)}) is weaker than the Core Four's picks.`;
   });
 
   // ---- Turn 1 Execution ----
   const coreFourLineups = wcEnumerateLineups(coreFourNames, Math.min(2, coreFourNames.length));
   const leadRanked = wcRankLineupsHeuristic(coreFourLineups, specsByName, [opponentThreats], heuristicData, null);
   const leadNames = leadRanked.length ? leadRanked[0].names : coreFourNames.slice(0, 2);
+  // Milestone 58 (Phoenix: "you have a two team opener and 2 benched
+  // pokemon and 2 unusable pokemon" -- her real report told her to
+  // "bring in" a Pokemon that was never selected into the Core Four at
+  // all, which is impossible under real Team Preview rules). Three real
+  // tiers exist among the original 6: the 2 leading Turn 1 (leadNames),
+  // the other 2 real Core Four members -- picked, just not leading, and
+  // genuinely switch-in-able later this battle (reserveNames, below),
+  // and the 2 not selected into the Core Four at all (benchedNames,
+  // above) -- those can never be used this battle under any
+  // circumstance. Turn 1 Execution and Pivoting below now each draw
+  // from the correct one of these instead of conflating them.
+  const reserveNames = coreFourNames.filter((name) => !leadNames.includes(name));
 
   const turn1Lines = [`Lead with ${leadNames.join(" and ")} -- the strongest real matchup pairing against the opponent's revealed 6 among your Core Four.`];
 
@@ -5213,8 +5225,14 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
   // not an exhaustive tactical read, just the real, concrete cases where
   // a Core Four member's own actual built kit says something specific
   // about how Turn 1 should go.
+  // Milestone 58: restricted to leadNames, not the full Core Four --
+  // this section is specifically about what happens on Turn 1, so a
+  // real mechanism carried by a Core Four member who ISN'T leading
+  // (e.g. a screens-setter held back for a later pivot) doesn't belong
+  // here; the Pivoting section below now correctly surfaces exactly
+  // that case instead.
   let mechanismFired = false;
-  coreFourNames.forEach((name) => {
+  leadNames.forEach((name) => {
     const build = specsByName[name].build || {};
     const moves = build.moves || [];
     const ability = wcAbilityOf(abilitiesData, name);
@@ -5246,8 +5264,15 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
   }
 
   // ---- Pivoting & Win Condition ----
+  // Milestone 58: reads reserveNames -- the real in-battle reserve (2 of
+  // the Core Four, picked but not leading Turn 1) -- never benchedNames
+  // (the 2 not selected into the Core Four at all, which can't be
+  // brought into this battle under any circumstance; see their own line
+  // above). Reusing benchedNames here was the real bug Phoenix caught:
+  // it told her to "bring in" a Pokemon that was never part of this
+  // battle to begin with.
   const pivotLines = [];
-  benchedNames.forEach((name) => {
+  reserveNames.forEach((name) => {
     const build = specsByName[name].build || {};
     const moves = build.moves || [];
     const ability = wcAbilityOf(abilitiesData, name);
@@ -5260,7 +5285,7 @@ function wcBattlePlanReport(userMembers, userBuilds, opponentThreats, movesData,
       moves.includes("Trick Room") ||
       Boolean(ability && WINCON_WEATHER_SETTING_ABILITIES[ability]);
     if (hasSupportSignal) {
-      pivotLines.push(`${name} is on the bench but still carries real support value -- bring it in once the Core Four's opener has done its job, rather than leaving it unused for the whole game.`);
+      pivotLines.push(`${name} is in your Core Four but not leading Turn 1 -- it still carries real support value, so bring it in once the opener has done its job rather than leaving it unused for the whole game.`);
     }
   });
 

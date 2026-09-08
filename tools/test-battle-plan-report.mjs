@@ -23,6 +23,22 @@
 // the real Core Four's own archetype (grassyterrain, set by Sceptile) --
 // the win-condition line must now say the latter.
 //
+// Milestone 58 fixed a second real bug Phoenix caught directly from a
+// real Battle Plan output she pasted: "Pivoting & Win Condition" told
+// her to "bring in" a Pokemon that was one of the 2 real members never
+// selected into the Core Four at all (real-game-impossible under actual
+// Team Preview rules -- those 2 can't be used this battle under any
+// circumstance). The pivot-line generator was reusing benchedNames (the
+// excluded-from-Core-Four pool) where it should have used a genuine
+// in-battle reserve pool (the OTHER 2 real Core Four members -- picked,
+// just not leading Turn 1, and genuinely switch-in-able later). Turn 1
+// Execution had the same class of bug in the other direction: its own
+// mechanism scan read the full Core Four instead of just the 2 real
+// Turn-1 leads, so a reserve member's built move could get a false
+// "Turn 1" claim. realTiers() below independently reproduces
+// wcBattlePlanReport's own real lead/reserve/bench split so the new
+// checks never hardcode a name.
+//
 // Run: node tools/test-battle-plan-report.mjs
 
 import fs from "node:fs";
@@ -95,6 +111,28 @@ const opponentThreats = threatsFor(["Kingambit", "Garchomp", "Incineroar", "Sylv
 
 function runReport(builds) {
   return context.wcBattlePlanReport(userTeam.members, builds || userTeam.builds, opponentThreats, movesData, typeChart, "doubles", abilitiesData, natures);
+}
+
+// Milestone 58: independently reproduces wcBattlePlanReport's own real
+// lead/reserve/bench split (never hardcoded) -- the 2 real Turn-1 leads,
+// the other 2 real Core Four members (picked, not leading, genuinely
+// switch-in-able later this battle), and the 2 not selected into the
+// Core Four at all (can never be used this battle under any
+// circumstance). Used to build fixtures that force a signal onto
+// exactly the right real tier, whichever real members the ranking
+// heuristic actually puts there for a given build set.
+function realTiers(members, builds, threats) {
+  const lineup = context.wcPickBestLineup(members, builds, threats, "doubles", natures, movesData, typeChart);
+  const specsByName = {};
+  members.forEach((m) => {
+    const key = m.slotName || m.name;
+    specsByName[key] = { name: m.name, types: m.types, baseStats: m.baseStats, build: builds[key] || builds[m.name] };
+  });
+  const coreFourLineups = context.wcEnumerateLineups(lineup.lineupNames, Math.min(2, lineup.lineupNames.length));
+  const leadRanked = context.wcRankLineupsHeuristic(coreFourLineups, specsByName, [threats], { typeChart, natures, movesData, sheetMode: "closed" }, null);
+  const leadNames = leadRanked.length ? leadRanked[0].names : lineup.lineupNames.slice(0, 2);
+  const reserveNames = lineup.lineupNames.filter((n) => !leadNames.includes(n));
+  return { coreFourNames: lineup.lineupNames, benchedNames: lineup.benchedNames, leadNames, reserveNames };
 }
 
 check("wcBattlePlanReport's empty-opponent guard returns the honest fallback shape with no crash", () => {
@@ -193,23 +231,60 @@ check("wcBattlePlanReport's Turn 1 line correctly detects a real, built weather-
   }
 });
 
-check("wcBattlePlanReport's Pivoting section flags a real benched support-signal member (Steelix with a forced real Tailwind) for a later pivot", () => {
-  const forcedBuilds = { ...userTeam.builds };
-  // Steelix and Farigiraf are this fixture's real, independently-confirmed
-  // weakest average matchup scores against this revealed 6 (see the Core
-  // Four test above), so Steelix reliably lands on the bench here --
-  // forcing a real support move onto it then tests the report's own
-  // bench-pivot detection, not the ranking heuristic's pick.
-  const benchCandidate = "Steelix";
-  forcedBuilds[benchCandidate] = { ...userTeam.builds[benchCandidate], moves: ["Tailwind", ...userTeam.builds[benchCandidate].moves.slice(1)] };
-  const report = runReport(forcedBuilds);
-  if (!report.coreFourNames.includes(benchCandidate)) {
-    const pivotLine = report.pivotLines.find((l) => l.startsWith(benchCandidate));
-    assert.ok(pivotLine, `expected a real pivot line for the benched ${benchCandidate}, got: ${JSON.stringify(report.pivotLines)}`);
-    assert.ok(pivotLine.includes("still carries real support value"));
-  } else {
-    console.log(`    (skipped: the real ranking heuristic placed ${benchCandidate} in the Core Four for this matchup, so it can't be a bench pivot here)`);
+check("Milestone 58: wcBattlePlanReport's Pivoting section flags a real IN-BATTLE RESERVE support-signal member (a real Core Four pick who isn't leading Turn 1) for a later pivot", () => {
+  const tiers = realTiers(userTeam.members, userTeam.builds, opponentThreats);
+  if (tiers.reserveNames.length === 0) {
+    console.log("    (skipped: this fixture's real Core Four has no in-battle reserve slot to test)");
+    return;
   }
+  const reserveCandidate = tiers.reserveNames[0];
+  const forcedBuilds = { ...userTeam.builds };
+  forcedBuilds[reserveCandidate] = { ...userTeam.builds[reserveCandidate], moves: ["Tailwind", ...userTeam.builds[reserveCandidate].moves.slice(1)] };
+  const report = runReport(forcedBuilds);
+  const pivotLine = report.pivotLines.find((l) => l.startsWith(reserveCandidate));
+  assert.ok(pivotLine, `expected a real pivot line for the real in-battle reserve ${reserveCandidate}, got: ${JSON.stringify(report.pivotLines)}`);
+  assert.ok(pivotLine.includes("still carries real support value"));
+  assert.ok(pivotLine.includes("in your Core Four but not leading Turn 1"), `expected the pivot line to correctly describe ${reserveCandidate} as a real Core Four member, not a bench member, got: ${pivotLine}`);
+});
+
+check("Milestone 58 regression (Phoenix: her real report told her to \"bring in\" a Pokemon that was never selected into the Core Four at all): a real BENCHED (excluded-from-Core-Four) support-signal member never gets a pivot line -- it can't be brought into this battle under any circumstance", () => {
+  const tiers = realTiers(userTeam.members, userTeam.builds, opponentThreats);
+  assert.equal(tiers.benchedNames.length, 2, "expected exactly 2 real benched members for this fixture");
+  const benchCandidate = tiers.benchedNames[0];
+  const forcedBuilds = { ...userTeam.builds };
+  // Force every real support signal this function tracks onto the real
+  // benched member -- if even one of these leaked through as a pivot
+  // line, that would be Phoenix's exact real bug again.
+  forcedBuilds[benchCandidate] = {
+    ...userTeam.builds[benchCandidate],
+    moves: ["Tailwind", "Trick Room", "Light Screen", "Follow Me"],
+  };
+  const report = runReport(forcedBuilds);
+  assert.ok(!report.coreFourNames.includes(benchCandidate), `sanity check: ${benchCandidate} must genuinely be excluded from this fixture's real Core Four`);
+  const leaked = report.pivotLines.find((l) => l.startsWith(benchCandidate));
+  assert.ok(!leaked, `${benchCandidate} was never selected into the Core Four and can't be brought into this battle at all -- it must never appear in a pivot line, got: ${JSON.stringify(report.pivotLines)}`);
+});
+
+check("Milestone 58: Turn 1 Execution's mechanism scan only reads the real Turn-1 leads, never a real Core Four member sitting in reserve", () => {
+  const tiers = realTiers(userTeam.members, userTeam.builds, opponentThreats);
+  if (tiers.reserveNames.length === 0) {
+    console.log("    (skipped: this fixture's real Core Four has no in-battle reserve slot to test)");
+    return;
+  }
+  const reserveCandidate = tiers.reserveNames[0];
+  const forcedBuilds = { ...userTeam.builds };
+  // Light Screen is one of Turn 1 Execution's own tracked mechanisms --
+  // forcing it onto a real reserve member (not a real Turn-1 lead) must
+  // NOT produce a false "carries a real built Light Screen ... Turn 1"
+  // claim about a Pokemon that isn't actually being sent out Turn 1;
+  // it should surface in Pivoting instead (checked above's own sibling
+  // signal list already covers Light Screen too).
+  forcedBuilds[reserveCandidate] = { ...userTeam.builds[reserveCandidate], moves: ["Light Screen", ...userTeam.builds[reserveCandidate].moves.slice(1)] };
+  const report = runReport(forcedBuilds);
+  const falseTurn1Claim = report.turn1Lines.find((l) => l.startsWith(reserveCandidate));
+  assert.ok(!falseTurn1Claim, `${reserveCandidate} isn't one of this matchup's real Turn-1 leads -- Turn 1 Execution must not claim it's setting anything Turn 1, got: ${JSON.stringify(report.turn1Lines)}`);
+  const pivotLine = report.pivotLines.find((l) => l.startsWith(reserveCandidate));
+  assert.ok(pivotLine, `expected ${reserveCandidate}'s real Light Screen to surface as a Pivoting signal instead, got: ${JSON.stringify(report.pivotLines)}`);
 });
 
 check("wcBattlePlanReport's final line states the real Core Four's OWN win condition, matching wcAnalyzeTeamStrategy run independently against just the real lineup members -- not the full 6-member roster", () => {
