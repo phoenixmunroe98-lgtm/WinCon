@@ -2707,16 +2707,19 @@ function generateDreamTeam() {
 
   // Milestone 45: two genuinely different candidate teams instead of one.
   // wcPickDreamTeamOptions runs wcPickDreamTeam once normally to get
-  // Option 1, then re-runs it with Option 1's own mechanism-defining
-  // picks excluded from the pool -- its guaranteed-Mega core plus
-  // whichever setter Milestone 43's baked-in wcAssignTeamSynergy chose
-  // for its primary archetype -- so Option 2 is forced to find a
-  // genuinely different Mega core and a different mechanism, not just
-  // reshuffle whichever flex slots were left over. See
-  // wcPickDreamTeamOptions's own doc comment in strategy.js for the full
-  // reasoning, and buildDreamTeamOptionRenderData/selectDreamTeamOption
-  // below for how each option becomes a real, fully-built, fully-
-  // strategized team a click away from the other.
+  // Option 1, then re-runs it with Option 1's own mechanism-defining pick
+  // excluded from the pool -- whichever setter Milestone 43's baked-in
+  // wcAssignTeamSynergy chose for its primary archetype (Milestone 55
+  // removed the old guaranteed-Mega-core half of this exclusion, along
+  // with the force-reservation it was built on -- see wcPickDreamTeam's
+  // own comment in strategy.js) -- so Option 2 is forced to find a
+  // genuinely different mechanism, not just reshuffle whichever flex
+  // slots were left over. See wcPickDreamTeamOptions's own doc comment
+  // in strategy.js for the full reasoning (including its honest
+  // option2: null when there's no real setter to exclude), and
+  // buildDreamTeamOptionRenderData/selectDreamTeamOption below for how
+  // each option becomes a real, fully-built, fully-strategized team a
+  // click away from the other.
   const dreamOptions = wcPickDreamTeamOptions(
     eligible,
     threatsWithTypes,

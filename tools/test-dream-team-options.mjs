@@ -4,12 +4,17 @@
 // Depends on two earlier-phase primitives already being in place --
 // topCandidatesFromRemaining/wcWeightedPickFromTop (Milestone 42) and
 // wcAssignTeamSynergy's baked-in strategy assignment (Milestone 43) --
-// confirmed present below before anything else runs. Tests
-// wcPickDreamTeam's new guaranteedMegaNames field and the new
+// confirmed present below before anything else runs. Tests the
 // wcPickDreamTeamOptions wrapper: Option 1 built normally, Option 2 built
-// from a pool with Option 1's mechanism-defining picks (its guaranteed-
-// Mega picks + wcAssignTeamSynergy's chosen setter for its primary
-// archetype) excluded entirely.
+// from a pool with Option 1's mechanism-defining pick (wcAssignTeamSynergy's
+// chosen setter for its primary archetype) excluded entirely.
+//
+// Milestone 55 removed wcPickDreamTeam's old guaranteed-Mega-slot
+// mechanism (see strategy.js's own comment on wcPickDreamTeam) -- this
+// file used to also test a guaranteedMegaNames field and a Mega-core half
+// of the exclusion set; both are gone now, and mechanismDefiningNames is
+// just the real setter (or empty, for an "independent" archetype with no
+// setter -- see the new option2:null guard this exposed, tested below).
 //
 // Run: node tools/test-dream-team-options.mjs
 
@@ -85,18 +90,6 @@ function poolMember(name) {
 const THREATS = [{ name: "Grass Threat", types: ["Grass"] }, { name: "Steel Threat", types: ["Steel"] }];
 
 // ---------------------------------------------------------------------------
-// wcPickDreamTeam: the new, additive guaranteedMegaNames field.
-// ---------------------------------------------------------------------------
-
-check("wcPickDreamTeam returns guaranteedMegaNames as an array (additive, doesn't disturb the existing return shape)", () => {
-  const pool = [poolMember("Staraptor"), poolMember("Charizard"), poolMember("Slowbro"), poolMember("Gengar"), poolMember("Kingambit"), poolMember("Steelix")];
-  const result = context.wcPickDreamTeam(pool, [], typeChart, 6, "", [], null, null, abilitiesData, null, null, "doubles", null, null);
-  assert.ok(Array.isArray(result.guaranteedMegaNames));
-  // Only Staraptor and Charizard have real curated Mega sets in this pool.
-  result.guaranteedMegaNames.forEach((name) => assert.ok(["Staraptor", "Charizard"].includes(name)));
-});
-
-// ---------------------------------------------------------------------------
 // wcPickDreamTeamOptions: the real, full-roster integration test. Fully
 // deterministic (no diversify sampling anywhere in this call chain), so
 // this is a genuine regression-safe check, not a flaky one.
@@ -137,11 +130,11 @@ check("wcPickDreamTeamOptions produces two full, real, genuinely different 6-mem
   );
 });
 
-check("Option 2's roster is built from a pool with NONE of Option 1's mechanism-defining picks in it -- the core disjointness guarantee", () => {
+check("Option 2's roster is built from a pool with NONE of Option 1's mechanism-defining pick in it -- the core disjointness guarantee", () => {
   const result = context.wcPickDreamTeamOptions(
     FULL_POOL, THREATS, typeChart, 6, "", [], null, movesData, abilitiesData, null, null, "doubles", null, null, null, "closed", null
   );
-  assert.ok(result.mechanismDefiningNames.length > 0, "a real full-pool team should always have at least a setter or a guaranteed Mega pick");
+  assert.ok(result.mechanismDefiningNames.length > 0, "a real full-pool team against a real threat list should have a real strategy setter");
 
   const option2Names = new Set(result.option2.pick.chosen);
   result.mechanismDefiningNames.forEach((name) => {
@@ -149,22 +142,17 @@ check("Option 2's roster is built from a pool with NONE of Option 1's mechanism-
   });
 
   // And the mechanism-defining set is itself exactly Option 1's real
-  // guaranteed-Mega picks plus its real strategy setter -- not some
-  // unrelated list.
-  const expected = new Set(result.option1.pick.guaranteedMegaNames || []);
+  // strategy setter -- not some unrelated list (Milestone 55 removed the
+  // old guaranteed-Mega-picks half of this set entirely).
+  const expected = new Set();
   if (result.option1.strategy && result.option1.strategy.setterName) expected.add(result.option1.strategy.setterName);
   assert.deepEqual(new Set(result.mechanismDefiningNames), expected);
 });
 
-check("Option 1 and Option 2 genuinely differ in mechanism -- different Mega core and/or a different primary strategy setter", () => {
+check("Option 1 and Option 2 genuinely differ in mechanism -- a different primary strategy setter", () => {
   const result = context.wcPickDreamTeamOptions(
     FULL_POOL, THREATS, typeChart, 6, "", [], null, movesData, abilitiesData, null, null, "doubles", null, null, null, "closed", null
   );
-  const option1Mega = new Set(result.option1.pick.guaranteedMegaNames || []);
-  const option2Mega = new Set(result.option2.pick.guaranteedMegaNames || []);
-  const sharedMega = [...option1Mega].filter((n) => option2Mega.has(n));
-  assert.equal(sharedMega.length, 0, "Option 2's guaranteed-Mega picks must never overlap Option 1's real Mega core");
-
   const setter1 = result.option1.strategy && result.option1.strategy.setterName;
   const setter2 = result.option2.strategy && result.option2.strategy.setterName;
   if (setter1 && setter2) {
@@ -186,27 +174,60 @@ check("both options come with a real, already-baked-in strategy (Milestone 43) a
 });
 
 // ---------------------------------------------------------------------------
-// The honest null case: not enough remaining eligible Pokemon after
-// excluding Option 1's mechanism-defining picks to build a genuinely
-// different second team. Deterministic by construction: this 7-member
-// pool has exactly 2 real curated-Mega species (Staraptor, Charizard), so
-// the guaranteed-Mega step alone always takes 2 of them, and 7 - 2 = 5
-// (or 7 - 3 with a distinct setter too) is always below the 6 needed --
-// regardless of which archetype happens to win the strategy analysis.
+// The honest null case #1: not enough remaining eligible Pokemon after
+// excluding Option 1's real strategy setter to build a genuinely
+// different second team. Deterministic by construction: with `size`
+// (6) real species in the pool, Option 1 must use every single one of
+// them, so excluding even just its one setter always leaves 5 -- below
+// the 6 needed -- regardless of which archetype happens to win the
+// strategy analysis. (Confirmed empirically against this exact fixture
+// during Milestone 55's implementation, not assumed: option1 here picks
+// Steelix as its real setter.)
 // ---------------------------------------------------------------------------
 
-check("wcPickDreamTeamOptions returns option2: null (not a worse, incomplete option) when the pool is too small after exclusion", () => {
+check("wcPickDreamTeamOptions returns option2: null (not a worse, incomplete option) when the pool is too small after excluding the real setter", () => {
   const smallPool = [
     poolMember("Staraptor"), poolMember("Charizard"), poolMember("Slowbro"),
-    poolMember("Gengar"), poolMember("Kingambit"), poolMember("Steelix"), poolMember("Whimsicott"),
+    poolMember("Gengar"), poolMember("Kingambit"), poolMember("Steelix"),
   ];
   const result = context.wcPickDreamTeamOptions(
     smallPool, THREATS, typeChart, 6, "", [], null, movesData, abilitiesData, null, null, "doubles", null, null, null, "closed", null
   );
-  assert.ok(result.option1, "Option 1 should still build fine from 7 real species");
+  assert.ok(result.option1, "Option 1 should still build fine from exactly 6 real species");
   assert.equal(result.option1.pick.chosen.length, 6);
-  assert.equal(result.option2, null, "only 1 species would remain after excluding the 2 guaranteed Megas -- nowhere near enough for a real Option 2");
-  assert.ok(result.mechanismDefiningNames.length >= 2);
+  assert.equal(result.option2, null, "only 5 species would remain after excluding the 1 real setter -- below the 6 needed for a real Option 2");
+  assert.ok(result.mechanismDefiningNames.length >= 1);
+});
+
+// ---------------------------------------------------------------------------
+// The honest null case #2 (Milestone 55, new): an "independent" Option 1
+// with no real strategy setter at all -- since the old guaranteed-Mega
+// exclusion is gone, there's nothing left to exclude, so re-running the
+// exact same, unexcluded pool would just silently return an identical
+// team rather than a real second option. wcPickDreamTeamOptions must
+// return option2: null here instead, same honest-null philosophy as
+// case #1 above. A neutral fixture (identical stats/typing, no threats --
+// same convention test-archetype-synergy-picking.mjs already
+// established) reliably produces "independent" with no setterName.
+// ---------------------------------------------------------------------------
+
+check("wcPickDreamTeamOptions returns option2: null when Option 1 has no real strategy setter to exclude (an 'independent' archetype)", () => {
+  const stats = { hp: 70, atk: 70, def: 70, spa: 70, spd: 70, spe: 70 };
+  const neutralPool = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"].map((name) => ({
+    name,
+    types: ["Normal"],
+    baseStats: stats,
+    learnableNames: [],
+  }));
+  const result = context.wcPickDreamTeamOptions(
+    neutralPool, [], typeChart, 6, "", [], null, movesData, abilitiesData, null, null, "doubles", null, null, null, "closed", null
+  );
+  assert.ok(result.option1, "Option 1 should still build fine from 8 real (synthetic) species");
+  assert.equal(result.option1.pick.chosen.length, 6);
+  assert.equal(result.option1.strategy.archetype, "independent", "this neutral fixture should produce no shared win condition");
+  assert.equal(result.option1.strategy.setterName, null);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.mechanismDefiningNames)), []);
+  assert.equal(result.option2, null, "nothing real to exclude means no genuinely different Option 2 -- must be an honest null, not a silent duplicate of Option 1");
 });
 
 console.log("");

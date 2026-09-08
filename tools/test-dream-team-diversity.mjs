@@ -18,8 +18,11 @@
 //    integration checks control Math.random directly on the vm context
 //    (a real, isolated realm -- see the harness below -- so this can't
 //    leak into any other test file) to prove the sampling actually wires
-//    all the way through the guaranteed-Mega step and the main greedy
-//    loop, not just that the standalone helpers work in isolation.
+//    all the way through the main greedy loop, not just that the
+//    standalone helpers work in isolation. (Milestone 55 removed
+//    wcPickDreamTeam's old guaranteed-Mega step entirely -- these checks
+//    used to also prove the wiring reached that step; now there's only
+//    the one loop for diversify to wire through.)
 //
 // 2. wcExperienceDiversityBonus -- a small, bounded nudge away from
 //    species the player has already used a lot, computed from real
@@ -226,7 +229,7 @@ check("wcPickDreamTeam with diversify omitted picks the single best candidate ev
 
 // ---------------------------------------------------------------------------
 // wcPickDreamTeam end-to-end, diversify: true -- proves the sampling
-// actually wires through the guaranteed-Mega step. Math.random is
+// actually wires through the main greedy loop. Math.random is
 // monkey-patched on THIS vm context only (a genuinely isolated realm --
 // see the harness at the top of this file), restored after each check, so
 // this can never affect any other test file's randomness.
@@ -249,51 +252,40 @@ function withFixedRandom(value, fn) {
   }
 }
 
-function megaEligiblePool() {
+function rankedPool() {
   const stats = (bst) => ({ hp: bst / 6, atk: bst / 6, def: bst / 6, spa: bst / 6, spd: bst / 6, spe: bst / 6 });
-  // Three synthetic candidates, each carrying a real Mega-stone form name
-  // (Charizardite Y) so wcHasKnownMegaOption qualifies them via a
-  // synthetic liveMetaBuilds entry keyed by each one's own (synthetic)
-  // name -- real species identity doesn't matter to wcHasKnownMegaOption/
-  // wcLiveMegaSetFor, only the mega-form name (a real WINCON_MEGA_STONES
-  // key) and a qualifying liveMetaBuilds entry for that candidate's name.
-  const names = ["MegaTop", "MegaMid", "MegaBottom"];
-  const bsts = [700, 600, 500]; // widely separated so (bst/600)*0.5 alone decides rank, unambiguously
-  const pool = names.map((name, i) => ({
-    name,
-    types: ["Normal"],
-    baseStats: stats(bsts[i]),
-    learnableNames: [],
-    megaForms: [{ name: "Mega Charizard Y" }],
-  }));
-  const liveMetaBuilds = {};
-  names.forEach((name) => {
-    liveMetaBuilds[name] = [{ item: "Charizardite Y", timesUsed: 50, moves: ["Flamethrower"], winRate: 60 }];
-  });
-  return { pool, liveMetaBuilds };
+  // Three plain candidates with widely-separated base stat totals, so
+  // (bst/600)*0.5 alone decides rank, unambiguously -- no Mega framing
+  // needed here since Milestone 55 removed the guaranteed-Mega step this
+  // fixture used to specifically target; diversify sampling in the main
+  // greedy loop doesn't care what kind of candidates it's ranking.
+  const names = ["Top", "Mid", "Bottom"];
+  const bsts = [700, 600, 500];
+  const pool = names.map((name, i) => ({ name, types: ["Normal"], baseStats: stats(bsts[i]), learnableNames: [] }));
+  return pool;
 }
 
-check("wcPickDreamTeam with diversify:true and Math.random forced to 0 picks the true top Mega-eligible candidate (matches diversify:false)", () => {
-  const { pool, liveMetaBuilds } = megaEligiblePool();
+check("wcPickDreamTeam with diversify:true and Math.random forced to 0 picks the true top candidate (matches diversify:false)", () => {
+  const pool = rankedPool();
   withFixedRandom(0, () => {
-    const result = context.wcPickDreamTeam(pool, [], typeChart, 3, "", [], null, null, abilitiesData, null, null, "doubles", null, liveMetaBuilds, null, true);
-    assert.equal(result.chosen[0], "MegaTop");
+    const result = context.wcPickDreamTeam(pool, [], typeChart, 3, "", [], null, null, abilitiesData, null, null, "doubles", null, null, null, true);
+    assert.equal(result.chosen[0], "Top");
   });
 });
 
-check("wcPickDreamTeam with diversify:true and Math.random forced high picks a LOWER-ranked candidate from the guaranteed-Mega tier, never the pool's true top", () => {
-  const { pool, liveMetaBuilds } = megaEligiblePool();
+check("wcPickDreamTeam with diversify:true and Math.random forced high picks a LOWER-ranked candidate from the tier, never the pool's true top", () => {
+  const pool = rankedPool();
   withFixedRandom(0.999999, () => {
-    const result = context.wcPickDreamTeam(pool, [], typeChart, 3, "", [], null, null, abilitiesData, null, null, "doubles", null, liveMetaBuilds, null, true);
-    assert.equal(result.chosen[0], "MegaBottom", `expected the guaranteed-Mega step to actually sample away from the top when told to, got: ${JSON.stringify(result.chosen)}`);
-    assert.notEqual(result.chosen[0], "MegaTop");
+    const result = context.wcPickDreamTeam(pool, [], typeChart, 3, "", [], null, null, abilitiesData, null, null, "doubles", null, null, null, true);
+    assert.equal(result.chosen[0], "Bottom", `expected the main greedy loop to actually sample away from the top when told to, got: ${JSON.stringify(result.chosen)}`);
+    assert.notEqual(result.chosen[0], "Top");
   });
 });
 
-check("wcPickDreamTeam: diversify:true still only ever picks from the real pool -- both guaranteed Mega slots are genuinely Mega-eligible members, nothing invented", () => {
-  const { pool, liveMetaBuilds } = megaEligiblePool();
+check("wcPickDreamTeam: diversify:true still only ever picks from the real pool, nothing invented", () => {
+  const pool = rankedPool();
   withFixedRandom(0.999999, () => {
-    const result = context.wcPickDreamTeam(pool, [], typeChart, 3, "", [], null, null, abilitiesData, null, null, "doubles", null, liveMetaBuilds, null, true);
+    const result = context.wcPickDreamTeam(pool, [], typeChart, 3, "", [], null, null, abilitiesData, null, null, "doubles", null, null, null, true);
     const poolNames = pool.map((p) => p.name);
     result.chosen.forEach((name) => assert.ok(poolNames.includes(name), `${name} isn't a real pool member`));
     assert.equal(result.chosen.length, 3);

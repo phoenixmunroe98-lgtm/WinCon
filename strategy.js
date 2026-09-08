@@ -3989,15 +3989,17 @@ function wcNotesIncludedSpecies(notes, pool) {
 /**
  * Milestone 42: the root-cause fix for Dream Team collapsing onto the
  * same handful of Pokemon every run. Two real mechanisms caused it: (1)
- * the guaranteed-Mega step below always took the single top-scoring
- * candidate from an inherently small pool (curated/live-confirmed Mega
- * sets only); (2) real win-rate weights (WC_META_USAGE_WEIGHT,
+ * the guaranteed-Mega step below (removed entirely by Milestone 55 --
+ * see wcPickDreamTeam's own comment -- since it turned out to guarantee
+ * the very collapse this fix was working around, for any roster where
+ * only a couple of species had a curated/live-confirmed Mega set) always
+ * took the single top-scoring candidate from an inherently small pool;
+ * (2) real win-rate weights (WC_META_USAGE_WEIGHT,
  * WC_LIVE_META_CANDIDATE_WEIGHT) are large enough to keep pulling the
  * ordinary greedy loop toward the same "confirmed good" names too.
- * Neither mechanism is wrong to have -- every team SHOULD get a real
- * Mega option, and a real logged win rate IS genuinely useful signal --
- * so neither is removed. What changes is how a tie among several
- * legitimately-strong candidates gets broken: instead of always
+ * Mechanism (2) is still a real, useful signal, so diversify still
+ * matters for it even with (1) gone. What changes is how a tie among
+ * several legitimately-strong candidates gets broken: instead of always
  * deterministically taking the single #1 scorer, this pulls the top `n`
  * distinct candidates (by score, descending) so a caller can sample
  * across them instead.
@@ -4053,7 +4055,7 @@ function wcWeightedPickFromTop(tier, randomFn) {
   return tier[tier.length - 1];
 }
 
-/** How many distinct candidates the guaranteed-Mega step and the main greedy loop below sample from when `diversify` is on -- small enough that every candidate in the tier is still a genuinely strong pick, big enough to actually break the "always the same one or two names" pattern. */
+/** How many distinct candidates the main greedy loop below samples from when `diversify` is on -- small enough that every candidate in the tier is still a genuinely strong pick, big enough to actually break the "always the same one or two names" pattern. */
 const WC_DIVERSIFY_TOP_TIER = 3;
 
 /**
@@ -4079,13 +4081,12 @@ const WC_DIVERSIFY_TOP_TIER = 3;
  * builder.js's own per-species logged-match-count lookup (see
  * buildExperienceLookup there and wcExperienceDiversityBonus above) --
  * passed through into scoreOpts the same way metaUsage/liveMeta are.
- * `diversify` (optional, trailing, defaults falsy) switches the
- * guaranteed-Mega step and the main greedy loop below from always taking
- * the single top-scoring candidate to sampling from the top
- * WC_DIVERSIFY_TOP_TIER via wcWeightedPickFromTop -- every existing call
- * site leaves this unset, so a plain single-team generate is completely
- * unchanged; it exists for a future "give me multiple team options"
- * feature to opt into.
+ * `diversify` (optional, trailing, defaults falsy) switches the main
+ * greedy loop below from always taking the single top-scoring candidate
+ * to sampling from the top WC_DIVERSIFY_TOP_TIER via
+ * wcWeightedPickFromTop -- every existing call site leaves this unset,
+ * so a plain single-team generate is completely unchanged; it exists for
+ * a future "give me multiple team options" feature to opt into.
  */
 function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedNames, natures, movesData, abilitiesData, metaUsage, metaBaseline, format, liveMeta, liveMetaBuilds, experienceLookup, diversify) {
   const allTypes = typeChart.types;
@@ -4179,50 +4180,27 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
       : `${candidate.name} — the best remaining fit alongside ${team.map((m) => m.name).join(", ")}, balancing matchup strength, type coverage, and raw stats.`;
   };
 
-  // Milestone 12: guarantee at least one Mega-capable pick — two, when
-  // two genuinely fit — before the ordinary greedy loop runs, so the
-  // finished team always has a real Mega option to build around rather
-  // than however the type-coverage-driven picks happened to land. Two
-  // matters specifically because Champions (like real VGC) only lets you
-  // actually Mega Evolve one Pokémon per battle even if several hold
-  // their own stone — so two Mega-capable teammates means a genuine
-  // matchup-by-matchup choice of which one to bring out as this game's
-  // Mega, not just a single fixed answer every game.
-  // Milestone 19: a forced pick (already-selected or notes-included) can
-  // itself be Mega-capable, so this now counts those in already, both to
-  // avoid guaranteeing MORE than two total and to never try to guarantee
-  // past however many slots the forced picks left open.
-  // Milestone 21: which TWO Mega-capable picks win this guaranteed spot
-  // now also depends on the coverage-aware score above -- so a rival (or
-  // Dream Team) doesn't always reach for the same one or two "generically
-  // best" Mega options regardless of what they're actually up against.
-  const megaAlreadyOnTeam = team.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds)).length;
-  const eligibleInPool = remaining.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
-  const guaranteedMegaCount = Math.max(0, Math.min(2 - megaAlreadyOnTeam, eligibleInPool.length, size - team.length));
-  // Milestone 45: which names THIS loop specifically picked (not just
-  // "any Mega-capable pick that happens to be on the final team," which
-  // could also include a forced/already-selected name) -- exposed so a
-  // caller building a genuinely different second option (see
-  // wcPickDreamTeamOptions below) knows exactly which picks defined this
-  // team's actual Mega core.
-  const guaranteedMegaNames = [];
-  for (let g = 0; g < guaranteedMegaCount; g++) {
-    const best = bestFromRemaining((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
-    if (!best) break;
-    const archetypeNote = wcArchetypeSynergyReasoningNote(best, team, format || "doubles", abilitiesData);
-    const supportAbilityNote = wcSupportAbilityReasoningNote(best, abilitiesData);
-    team.push(best);
-    guaranteedMegaNames.push(best.name);
-    remaining.splice(remaining.indexOf(best), 1);
-    reasoning.push(
-      `${best.name} — guaranteed a spot here specifically because it has a real, tournament-informed Mega build (see the "Meta-informed auto-build" note in README.md): this team should always have ${megaAlreadyOnTeam + guaranteedMegaCount >= 2 ? "a Mega option, and with a second one here, an actual choice of which to bring depending on the matchup" : "at least one real Mega option to build around"}.` +
-        wcMetaUsageReasoningNote(best.name, metaUsage) +
-        wcLiveMetaReasoningNote(best.name, liveMeta) +
-        wcMetaBaselineReasoningNote(best.name, metaBaseline, format || "doubles") +
-        archetypeNote +
-        supportAbilityNote
-    );
-  }
+  // Milestone 55: a real Mega-capable pick is no longer forced onto the
+  // team ahead of the ordinary greedy loop below. That force-reservation
+  // (originally Milestone 12, tuned in 19/21/45) guaranteed 1-2 slots to
+  // whichever candidates wcHasKnownMegaOption called "known" -- but for
+  // a roster where only a couple of species clear that bar (the
+  // hand-curated WINCON_META_KNOWN_SETS Mega list is deliberately just 4
+  // entries, and most species don't yet have enough real live Limitless
+  // data to qualify via wcLiveMegaSetFor either), it meant the exact same
+  // 1-2 names got force-picked onto nearly every real team regardless of
+  // matchup or actual merit -- reported directly by Phoenix (real
+  // example: Sceptile/Charizard on her own obtained roster) and confirmed
+  // against the code rather than assumed. Mega-capable candidates now
+  // compete in the same per-pick loop as everyone else, on the same real
+  // signals wcDreamTeamCandidateScore already weighs (type coverage,
+  // live/curated meta usage, archetype synergy, support ability, ...) --
+  // still get picked when they're genuinely the best fit, never just for
+  // holding a known Mega build. See README.md's Milestone 55 section.
+  // Auto-build's own use of WINCON_META_KNOWN_SETS (a real, hand-curated
+  // BUILD for a pick however it got on the team) and wcPickAutoMegaForm
+  // are both completely unaffected by this -- only this force-reservation
+  // loop is gone.
 
   for (let i = team.length; i < size && remaining.length > 0; i++) {
     const best = bestFromRemaining();
@@ -4259,13 +4237,25 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     }
   }
 
+  // Milestone 55: purely descriptive now -- nothing above forces a Mega
+  // pick onto the team anymore, so this just reports what real signals
+  // already produced. The 0-picks case is now honest about which of two
+  // real reasons applies: no Mega-eligible candidate existed in the pool
+  // at all, vs. one did exist but didn't score well enough on its own
+  // merits to make the final six -- a distinction that couldn't happen
+  // before, since the old forced-reservation made the first case the
+  // only possible one. `usablePool` (not `remaining`, which is emptied
+  // out as picks happen) is the real, full pool this team was drawn from.
   const finalMegaCount = team.filter((c) => wcHasKnownMegaOption(c, liveMetaBuilds)).length;
+  const anyMegaEligibleInPool = usablePool.some((c) => wcHasKnownMegaOption(c, liveMetaBuilds));
   const megaNote =
     finalMegaCount >= 2
       ? `This team includes two Mega-capable picks — you can choose which one to actually Mega Evolve depending on the matchup, rather than being locked into one every game.`
       : finalMegaCount === 1
-        ? `This team includes one Mega-capable pick — the only currently-obtained option with a real, tournament-informed Mega build (the others don't have confirmed data yet — see README.md).`
-        : `None of your currently obtained, eligible Pokémon have a real, tournament-informed Mega build yet — either hand-curated or confirmed by real Regulation M-B tournament results (see README.md) — so this team has no guaranteed Mega option this time.`;
+        ? `This team includes one Mega-capable pick, with a real, tournament-informed Mega build (see README.md) — it earned its spot on its own merits, same as every other pick here.`
+        : anyMegaEligibleInPool
+          ? `This team doesn't include a Mega-capable pick this time — at least one real, tournament-informed Mega option existed in the pool, but didn't score well enough on its own merits to make the final six (see the reasoning above for what did).`
+          : `None of your currently obtained, eligible Pokémon have a real, tournament-informed Mega build yet — either hand-curated or confirmed by real Regulation M-B tournament results (see README.md) — so this team doesn't have a Mega option this time.`;
 
   return {
     chosen: team.map((m) => m.name),
@@ -4276,7 +4266,6 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
     keepSelectedNames,
     droppedForcedNames,
     weatherInfo,
-    guaranteedMegaNames,
   };
 }
 
@@ -4289,21 +4278,29 @@ function wcPickDreamTeam(pool, threats, typeChart, size, notes, alreadySelectedN
  * as a plain single generate would (no diversify sampling needed here --
  * excluding Option 1's own mechanism-defining picks from the pool below
  * is what forces real structural difference, not randomness). Then
- * re-runs it with Option 1's guaranteed-Mega picks (the actual Mega CORE
- * this team was built around, not just any Mega-capable name that
- * happened to land on it -- see wcPickDreamTeam's own guaranteedMegaNames)
- * plus whichever setter wcAssignTeamSynergy chose for Option 1's primary
- * archetype (the same setterName wcAnalyzeTeamStrategy itself surfaces,
- * since its own winner is always wcAssignTeamSynergy's first accepted
- * candidate) excluded from the candidate pool entirely -- so Option 2 is
- * forced to find a genuinely different Mega core and a different
- * mechanism, not just reshuffle whichever flex slots were left over.
+ * re-runs it with whichever setter wcAssignTeamSynergy chose for Option
+ * 1's primary archetype (the same setterName wcAnalyzeTeamStrategy
+ * itself surfaces, since its own winner is always wcAssignTeamSynergy's
+ * first accepted candidate) excluded from the candidate pool entirely --
+ * so Option 2 is forced to find a genuinely different mechanism, not
+ * just reshuffle whichever flex slots were left over.
+ *
+ * Milestone 55: this used to also exclude wcPickDreamTeam's own
+ * guaranteed-Mega picks (that force-reservation mechanism is gone now --
+ * see wcPickDreamTeam's own comment). With only the setter left to
+ * exclude, a team with no single shared archetype ("independent", no
+ * setterName) leaves nothing to exclude at all -- re-running the exact
+ * same, unexcluded pool would just return an identical team, not a real
+ * second option. Guarded below: an empty mechanismDefiningNames returns
+ * option2: null immediately, same honest-null philosophy as the
+ * too-few-candidates-remain case just after it.
  *
  * Returns { option1, option2, mechanismDefiningNames }. option1 is
  * always populated ({ pick, builds, strategy }); option2 is the same
- * shape or `null` when there simply aren't enough remaining eligible
- * Pokemon after the exclusion to build a genuinely different full team
- * -- an honest null rather than forcing a worse, incomplete option.
+ * shape or `null` when there's no real setter to exclude, or there
+ * simply aren't enough remaining eligible Pokemon after the exclusion,
+ * to build a genuinely different full team -- an honest null rather than
+ * forcing a worse, incomplete, or silently-duplicate option.
  * `sheetMode`/`lockedBuildsLookup` are passed straight through to
  * wcGenerateTeamBuilds exactly like every real call site already does;
  * both fully optional.
@@ -4321,14 +4318,17 @@ function wcPickDreamTeamOptions(pool, threats, typeChart, size, notes, alreadySe
   const { builds: option1Builds } = wcGenerateTeamBuilds(option1Members, movesData, threats, typeChart, format, abilitiesData, sheetMode, liveMetaBuilds, lockedBuildsLookup, notes, liveChampionsStats);
   const option1Strategy = wcAnalyzeTeamStrategy(option1Members, option1Builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline);
 
-  const mechanismDefiningNames = [
-    ...new Set([
-      ...(option1Pick.guaranteedMegaNames || []),
-      ...(option1Strategy.setterName ? [option1Strategy.setterName] : []),
-    ]),
-  ];
+  const mechanismDefiningNames = option1Strategy.setterName ? [option1Strategy.setterName] : [];
 
   const option1 = { pick: option1Pick, builds: option1Builds, strategy: option1Strategy };
+
+  if (mechanismDefiningNames.length === 0) {
+    // No real setter to exclude (an "independent" Option 1, and no more
+    // guaranteed-Mega core to fall back on since Milestone 55) -- nothing
+    // left to force real structural difference, so don't pretend a
+    // silently-identical re-run is a genuine second option.
+    return { option1, option2: null, mechanismDefiningNames };
+  }
 
   const poolForOption2 = pool.filter((c) => !mechanismDefiningNames.includes(c.name));
   if (poolForOption2.length < size) {
