@@ -199,6 +199,35 @@ function wcHasTypeImmunity(defender, moveType, abilityEffects) {
   return Boolean(ae && ae.trigger === "passive" && ae.effect === "typeImmunity" && ae.type === moveType);
 }
 
+/**
+ * Milestone 61 (Regulation M-C, Mega Lucario Z's real Aura Break: "halves
+ * the damage it takes from any attack that makes contact"). Whether a
+ * `damageTakenMult` ability's own real condition genuinely applies to this
+ * exact hit -- a real, pre-existing gap fixed here, not introduced by it:
+ * before this milestone, EVERY `damageTakenMult` ability except the one
+ * with `condition: "fullHp"` (Multiscale) got its multiplier applied on
+ * EVERY hit unconditionally, since the old dispatcher only ever compared
+ * against the literal string "fullHp" and treated every other condition
+ * value as "not fullHp, so apply it regardless." That silently made Solid
+ * Rock/Filter (meant to only reduce super-effective hits) and Fur Coat
+ * (meant to only reduce Physical hits) reduce ALL damage taken, and
+ * Thick Fat/Purifying Salt's own `types`/`type` fields were never read at
+ * all. Generalized here so each of the 6 real `damageTakenMult` abilities
+ * in data/ability-effects.json is checked against its own genuine
+ * condition -- `effectiveMoveType`/`typeChart` are exactly what
+ * wcResolveOneHit already has in scope for its own super-effective
+ * lookup (wcEffectivenessOf, type-utils.js).
+ */
+function wcDamageTakenMultApplies(ability, move, defender, effectiveMoveType, typeChart) {
+  if (ability.condition === "fullHp") return defender.hp === defender.maxHp;
+  if (ability.condition === "superEffective") return wcEffectivenessOf(typeChart, effectiveMoveType, defender.types) > 1;
+  if (ability.condition === "physicalMove") return move.category === "Physical";
+  if (ability.condition === "contact") return Boolean(move.flags && move.flags.contact);
+  if (Array.isArray(ability.types)) return ability.types.includes(effectiveMoveType);
+  if (ability.type) return ability.type === effectiveMoveType;
+  return true; // no condition/types/type field at all -- an unconditional damage-taken multiplier.
+}
+
 function wcResolveOneHit(attacker, move, defender, field, data, rng) {
   const { typeChart, abilityEffects, itemEffects, format } = data;
   if (wcHasTypeImmunity(defender, move.type, abilityEffects)) return { damage: 0, isCrit: false, immune: true };
@@ -230,7 +259,10 @@ function wcResolveOneHit(attacker, move, defender, field, data, rng) {
 
   const defenderAbility = wcAbilityEffect(defender, abilityEffects);
   if (defenderAbility && defenderAbility.trigger === "passive" && defenderAbility.effect === "damageTakenMult") {
-    if (defenderAbility.condition !== "fullHp" || defender.hp === defender.maxHp) extraModifiers.push(defenderAbility.mult);
+    if (wcDamageTakenMultApplies(defenderAbility, move, defender, effectiveMoveType, typeChart)) extraModifiers.push(defenderAbility.mult);
+  }
+  if (attackerAbility && attackerAbility.trigger === "passive" && attackerAbility.effect === "damageDealtMultForMoveList" && attackerAbility.moves.includes(move.name)) {
+    extraModifiers.push(attackerAbility.mult);
   }
 
   const burnHalves = Boolean(

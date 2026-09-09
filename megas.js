@@ -55,6 +55,15 @@ const WINCON_MEGA_STONES = {
   "Mega Absol": "Absolite", "Mega Glalie": "Glalitite", "Mega Metagross": "Metagrossite",
   "Mega Staraptor": "Staraptite", "Mega Lopunny": "Lopunnite", "Mega Garchomp": "Garchompite",
   "Mega Lucario": "Lucarionite", "Mega Abomasnow": "Abomasite", "Mega Gallade": "Galladite",
+  // Milestone 61 (Regulation M-C, Phoenix: "Mega Z stones are to react like
+  // mega stones"): a real, distinct SECOND Mega form for a species that
+  // already had one, confirmed by real data/items.json entries (Absolite Z/
+  // Garchompite Z/Lucarionite Z) already sitting in this project's own item
+  // pool with blank descriptions before this milestone -- same "Mega X"/
+  // "Mega Y" split-form pattern this map already used for Charizard/Raichu,
+  // just named "Z" instead. See README's Milestone 61 section for what's
+  // confirmed vs still a real data gap (exact stat blocks aren't sourced yet).
+  "Mega Absol Z": "Absolite Z", "Mega Garchomp Z": "Garchompite Z", "Mega Lucario Z": "Lucarionite Z",
   "Mega Froslass": "Froslassite", "Mega Emboar": "Emboarite", "Mega Excadrill": "Excadrite",
   "Mega Audino": "Audinite", "Mega Scolipede": "Scolipite", "Mega Scrafty": "Scraftinite",
   "Mega Eelektross": "Eelektrossite", "Mega Chandelure": "Chandelurite", "Mega Golurk": "Golurkite",

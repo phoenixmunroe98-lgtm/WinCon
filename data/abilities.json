@@ -1214,5 +1214,17 @@
   "Zoroark": {
     "ability": "Illusion",
     "description": "Lets it enter battle disguised as the last Pokémon in its party until it's hit by a move or the disguise is otherwise broken."
+  },
+  "Mega Absol Z": {
+    "ability": "Sharpness",
+    "description": "Boosts the power of slicing moves (like Night Slash and Shadow Claw) by 50%."
+  },
+  "Mega Garchomp Z": {
+    "ability": "Levitate",
+    "description": "Grants full immunity to Ground-type moves, and removes the effect of entry hazards like Stealth Rock, Toxic Spikes, and Sticky Web."
+  },
+  "Mega Lucario Z": {
+    "ability": "Aura Break",
+    "description": "Halves the damage it takes from any attack that makes contact."
   }
 }

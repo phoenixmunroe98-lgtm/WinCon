@@ -3038,3 +3038,45 @@ body.wc-signed-out #tracker-log-loss-btn {
 .welcome-banner-close:hover { color: var(--ink); }
 
 .welcome-banner[hidden] { display: none; }
+
+/* ---------- Milestone 61: Regulation M-C data-gap banner ---------- */
+/* Same dismiss-and-remember pattern as .welcome-banner above (own
+   localStorage key, own inline script per page), just on the two Builder
+   pages instead of the homepage -- a real, honest heads-up that some of
+   this regulation's new content is still being confirmed, not a purely
+   welcoming note. */
+.regulation-banner {
+  position: relative;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: 14px 44px 14px 18px;
+  margin-bottom: 20px;
+}
+
+.regulation-banner p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.regulation-banner strong { color: var(--ink); }
+
+.regulation-banner-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.regulation-banner-close:hover { color: var(--ink); }
+
+.regulation-banner[hidden] { display: none; }

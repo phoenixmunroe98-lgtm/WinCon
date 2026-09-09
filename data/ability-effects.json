@@ -452,5 +452,35 @@
     "trigger": "onContact",
     "effect": "stealAttackerItem",
     "target": "attacker"
+  },
+  "Aura Break": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "condition": "contact",
+    "mult": 0.5
+  },
+  "Sharpness": {
+    "trigger": "passive",
+    "effect": "damageDealtMultForMoveList",
+    "moves": [
+      "Aerial Ace",
+      "Air Cutter",
+      "Air Slash",
+      "Aqua Cutter",
+      "Bitter Blade",
+      "Ceaseless Edge",
+      "Cross Poison",
+      "Guillotine",
+      "Kowtow Cleave",
+      "Leaf Blade",
+      "Night Slash",
+      "Psycho Cut",
+      "Razor Shell",
+      "Sacred Sword",
+      "Solar Blade",
+      "Stone Axe",
+      "X-Scissor"
+    ],
+    "mult": 1.5
   }
 }

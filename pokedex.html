@@ -114,6 +114,22 @@
   </header>
 
   <main class="shell">
+    <!-- Milestone 61: Regulation M-C rolled out Sept 9 2026 -- some new
+         content (the full new-Pokemon roster, exact stat blocks for the
+         3 new Mega Z forms) is still being confirmed against official
+         sources. Dismissing just sets a localStorage flag
+         (wincon.regulationMCBannerDismissed), same "local to this
+         browser, never comes back" rule as the homepage welcome banner. -->
+    <section class="regulation-banner" id="regulation-banner" aria-label="Regulation M-C notice">
+      <button type="button" class="regulation-banner-close" id="regulation-banner-close" aria-label="Dismiss">&times;</button>
+      <p>
+        <strong>Regulation M-C is live (started Sept 9, 2026).</strong>
+        Mega Absol Z, Mega Garchomp Z and Mega Lucario Z are in and simulate for real (Sharpness/Levitate/Aura Break
+        abilities included) -- but their exact Stat Point spreads aren't officially confirmed yet, so they currently
+        reuse their non-Z Mega's own numbers as a placeholder. The regulation's other new Pokemon and Mega forms
+        aren't in the roster yet either, pending confirmed data. See the README for what's confirmed vs still a gap.
+      </p>
+    </section>
     <section class="progress-bar" aria-live="polite">
       <div class="progress-track">
         <div class="progress-fill" id="progress-fill"></div>
@@ -168,5 +184,22 @@
   <!-- Milestone 23: Vercel Web Analytics -- see index.html's copy of this
        comment for what it does and why it's safe to leave in everywhere. -->
   <script defer src="/_vercel/insights/script.js"></script>
+  <script>
+    // Milestone 61: dismiss/remember the Regulation M-C banner above --
+    // same pattern as the homepage welcome banner's own inline script.
+    (function () {
+      var KEY = "wincon.regulationMCBannerDismissed";
+      var banner = document.getElementById("regulation-banner");
+      var closeBtn = document.getElementById("regulation-banner-close");
+      if (!banner || !closeBtn) return;
+      try {
+        if (localStorage.getItem(KEY) === "1") banner.hidden = true;
+      } catch (e) {}
+      closeBtn.addEventListener("click", function () {
+        banner.hidden = true;
+        try { localStorage.setItem(KEY, "1"); } catch (e) {}
+      });
+    })();
+  </script>
 </body>
 </html>

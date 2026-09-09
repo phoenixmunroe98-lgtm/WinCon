@@ -2584,5 +2584,32 @@
       "Dragon"
     ],
     "form": "Base"
+  },
+  {
+    "name": "Mega Absol Z",
+    "dexNumber": 359,
+    "types": [
+      "Dark",
+      "Ghost"
+    ],
+    "form": "Mega Z"
+  },
+  {
+    "name": "Mega Garchomp Z",
+    "dexNumber": 445,
+    "types": [
+      "Dragon",
+      "Ground"
+    ],
+    "form": "Mega Z"
+  },
+  {
+    "name": "Mega Lucario Z",
+    "dexNumber": 448,
+    "types": [
+      "Fighting",
+      "Steel"
+    ],
+    "form": "Mega Z"
   }
 ]
