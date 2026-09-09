@@ -198,5 +198,19 @@
   "Water Bubble": "Doubles the power of its own Water-type moves and halves the damage it takes from Fire-type moves.",
   "Weak Armor": "Lowers its own Defense but sharply raises its Speed each time it's hit by a physical move.",
   "White Smoke": "Prevents stats from being lowered by other Pokémon.",
-  "Zero to Hero": "Permanently transforms Palafin from its weak Zero Form into its far more powerful Hero Form the first time it switches out of battle."
+  "Zero to Hero": "Permanently transforms Palafin from its weak Zero Form into its far more powerful Hero Form the first time it switches out of battle.",
+  "Liquid Ooze": "Damages any Pokémon that tries to drain its HP by the same amount it would have healed, instead of healing them.",
+  "Grass Pelt": "Boosts its Defense by 50% while Grassy Terrain is active.",
+  "Grassy Surge": "Summons Grassy Terrain as soon as it enters battle, which gradually heals grounded Pokémon and boosts the power of their Grass-type moves.",
+  "Steely Spirit": "Boosts the power of every Steel-type move used by itself and its allies by 50%.",
+  "Seed Sower": "Turns the terrain into Grassy Terrain when the Pokémon is hit by an attack.",
+  "Libero": "Changes the Pokémon's type to match the type of the move it's about to use.",
+  "Run Away": "Guarantees an escape from wild Pokémon.",
+  "Stakeout": "Doubles the damage dealt to a Pokémon that just switched into battle.",
+  "Punk Rock": "Boosts the power of its sound-based moves by 30%, and halves the damage it takes from sound-based moves.",
+  "Psychic Surge": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Psychic-type moves and blocks priority moves from hitting grounded Pokémon.",
+  "Guard Dog": "Raises its Attack by one stage instead of being lowered if hit by an Attack-dropping effect like Intimidate, and can't be forced to switch out while it's on the field.",
+  "Emergency Exit": "Switches the Pokémon out automatically once its HP drops to half or less.",
+  "Thermal Exchange": "Raises its Attack by one stage when hit by a Fire-type move, and can't be burned.",
+  "Rattled": "Raises its Speed by one stage when hit by a Dark-, Bug-, or Ghost-type move, or when targeted by Intimidate."
 }

@@ -1226,5 +1226,129 @@
   "Mega Lucario Z": {
     "ability": "Aura Break",
     "description": "Halves the damage it takes from any attack that makes contact."
+  },
+  "Wigglytuff": {
+    "ability": "Competitive",
+    "description": "Sharply raises its Special Attack every time one of its stats is lowered by an opponent."
+  },
+  "Persian": {
+    "ability": "Technician",
+    "description": "Powers up its weaker moves (40 power or less after other modifiers) by 50%."
+  },
+  "Alolan Persian": {
+    "ability": "Fur Coat",
+    "description": "Halves the damage it takes from physical moves."
+  },
+  "Farfetch'd": {
+    "ability": "Defiant",
+    "description": "Sharply raises its Attack every time one of its stats is lowered by an opponent."
+  },
+  "Sirfetch'd": {
+    "ability": "Steadfast",
+    "description": "Raises its Speed by one stage every time it flinches."
+  },
+  "Mr. Mime": {
+    "ability": "Filter",
+    "description": "Reduces the damage it takes from super-effective moves by 25%."
+  },
+  "Swalot": {
+    "ability": "Liquid Ooze",
+    "description": "Damages any Pokémon that tries to drain its HP by the same amount it would have healed, instead of healing them."
+  },
+  "Salamence": {
+    "ability": "Intimidate",
+    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+  },
+  "Mega Salamence": {
+    "ability": "Aerilate",
+    "description": "Turns its Normal-type moves into Flying-type moves and boosts their power by 30%."
+  },
+  "Gogoat": {
+    "ability": "Sap Sipper",
+    "description": "Raises its Attack by one stage instead of taking damage whenever it's hit by a Grass-type move."
+  },
+  "Golisopod": {
+    "ability": "Emergency Exit",
+    "description": "Switches the Pokémon out automatically once its HP drops to half or less."
+  },
+  "Mega Golisopod": {
+    "ability": "Tough Claws",
+    "description": "Boosts the power of the Pokémon's contact moves by 30%."
+  },
+  "Rillaboom": {
+    "ability": "Grassy Surge",
+    "description": "Summons Grassy Terrain as soon as it enters battle, which gradually heals grounded Pokémon and boosts the power of their Grass-type moves."
+  },
+  "Cinderace": {
+    "ability": "Libero",
+    "description": "Changes the Pokémon's type to match the type of the move it's about to use."
+  },
+  "Inteleon": {
+    "ability": "Torrent",
+    "description": "Powers up its Water-type moves by 50% once its HP falls to a third or less of its max HP."
+  },
+  "Thievul": {
+    "ability": "Unburden",
+    "description": "Doubles its Speed once its held item is used or lost."
+  },
+  "Toxtricity (Amped Form)": {
+    "ability": "Punk Rock",
+    "description": "Boosts the power of its sound-based moves by 30%, and halves the damage it takes from sound-based moves."
+  },
+  "Toxtricity (Low Key Form)": {
+    "ability": "Punk Rock",
+    "description": "Boosts the power of its sound-based moves by 30%, and halves the damage it takes from sound-based moves."
+  },
+  "Grapploct": {
+    "ability": "Technician",
+    "description": "Powers up its weaker moves (40 power or less after other modifiers) by 50%."
+  },
+  "Perrserker": {
+    "ability": "Steely Spirit",
+    "description": "Boosts the power of every Steel-type move used by itself and its allies by 50%."
+  },
+  "Pincurchin": {
+    "ability": "Electric Surge",
+    "description": "Summons Electric Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Electric-type moves and stops them from falling asleep."
+  },
+  "Indeedee (Male)": {
+    "ability": "Psychic Surge",
+    "description": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Psychic-type moves and blocks priority moves from hitting grounded Pokémon."
+  },
+  "Indeedee (Female)": {
+    "ability": "Psychic Surge",
+    "description": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Psychic-type moves and blocks priority moves from hitting grounded Pokémon."
+  },
+  "Arboliva": {
+    "ability": "Seed Sower",
+    "description": "Turns the terrain into Grassy Terrain when the Pokémon is hit by an attack."
+  },
+  "Squawkabilly (Green Plumage)": {
+    "ability": "Guts",
+    "description": "Boosts its Attack by 50% if it's suffering from a status condition, ignoring the usual Attack drop from being burned."
+  },
+  "Squawkabilly (Blue Plumage)": {
+    "ability": "Guts",
+    "description": "Boosts its Attack by 50% if it's suffering from a status condition, ignoring the usual Attack drop from being burned."
+  },
+  "Squawkabilly (Yellow Plumage)": {
+    "ability": "Sheer Force",
+    "description": "Removes the additional effect of its moves (like a chance to flinch or lower a stat) to boost their power by 30%."
+  },
+  "Squawkabilly (White Plumage)": {
+    "ability": "Sheer Force",
+    "description": "Removes the additional effect of its moves (like a chance to flinch or lower a stat) to boost their power by 30%."
+  },
+  "Mabosstiff": {
+    "ability": "Guard Dog",
+    "description": "Raises its Attack by one stage instead of being lowered if hit by an Attack-dropping effect like Intimidate, and can't be forced to switch out while it's on the field."
+  },
+  "Baxcalibur": {
+    "ability": "Thermal Exchange",
+    "description": "Raises its Attack by one stage when hit by a Fire-type move, and can't be burned."
+  },
+  "Mega Baxcalibur": {
+    "ability": "Thermal Exchange",
+    "description": "Raises its Attack by one stage when hit by a Fire-type move, and can't be burned."
   }
 }

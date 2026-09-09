@@ -64,6 +64,14 @@ const WINCON_MEGA_STONES = {
   // just named "Z" instead. See README's Milestone 61 section for what's
   // confirmed vs still a real data gap (exact stat blocks aren't sourced yet).
   "Mega Absol Z": "Absolite Z", "Mega Garchomp Z": "Garchompite Z", "Mega Lucario Z": "Lucarionite Z",
+  // Regulation M-C roster update: the 3 new-to-the-franchise Mega
+  // Evolutions Milestone 61 deliberately left as a documented gap (these
+  // species never had a Mega form before M-C, so no "Z" suffix -- unlike
+  // Absol/Garchomp/Lucario above, which already had one). Stone spelling
+  // resolved in favor of "Baxcalibrite"/"Golisopite", matching WinCon's own
+  // pre-existing item.json stubs over a conflicting outside source's
+  // "Baxcaliburite"/"Golisopodite".
+  "Mega Salamence": "Salamencite", "Mega Golisopod": "Golisopite", "Mega Baxcalibur": "Baxcalibrite",
   "Mega Froslass": "Froslassite", "Mega Emboar": "Emboarite", "Mega Excadrill": "Excadrite",
   "Mega Audino": "Audinite", "Mega Scolipede": "Scolipite", "Mega Scrafty": "Scraftinite",
   "Mega Eelektross": "Eelektrossite", "Mega Chandelure": "Chandelurite", "Mega Golurk": "Golurkite",

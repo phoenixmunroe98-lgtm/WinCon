@@ -156,13 +156,18 @@ check("The 3 new Mega Z items are real, described, legal items -- and the OTHER 
     assert.ok(item, `expected items.json to have ${name}`);
     assert.ok(item.description && item.description.trim().length > 0, `expected ${name} to have a real, non-blank description now`);
   });
-  // These 7 are real items already sitting in this project's own
-  // data/items.json before this milestone touched anything (confirmed via
-  // direct inspection) -- genuine Regulation M-C content WinCon doesn't
-  // have confirmed Mega data for yet. Left blank deliberately: a real,
-  // documented gap (see the Builder's own Regulation M-C banner and
-  // README), not something this milestone guesses at.
-  ["Baxcalibrite", "Golisopite", "Darkranite", "Heatranite", "Magearnite", "Tatsugirinite", "Zeraorite"].forEach((name) => {
+  // Baxcalibrite and Golisopite were filled in by the later Regulation M-C
+  // roster update milestone (Mega Golisopod/Mega Baxcalibur confirmed real
+  // -- see tools/test-regulation-mc-roster.mjs), so they've moved out of
+  // this still-blank list. Fresh research that milestone ran (an X/Twitter
+  // leak post cross-checked against 3 independent sources) also confirmed
+  // Darkrai/Heatran/Magearna/Tatsugiri/Zeraora do NOT get Mega forms in
+  // Regulation M-C at all -- these 5 stub items are real Regulation M-C
+  // items WinCon doesn't have confirmed Mega data for, and were never
+  // going to (not this milestone's gap to fill, a genuinely different one).
+  // Left blank deliberately: a real, documented gap (see the Builder's own
+  // Regulation M-C banner and README), not something this milestone guesses at.
+  ["Darkranite", "Heatranite", "Magearnite", "Tatsugirinite", "Zeraorite"].forEach((name) => {
     const item = items.find((i) => i.name === name);
     assert.ok(item, `expected the pre-existing stub item ${name} to still be present`);
     assert.equal(item.description.trim(), "", `expected ${name}'s description to still be an honest, undescribed gap`);

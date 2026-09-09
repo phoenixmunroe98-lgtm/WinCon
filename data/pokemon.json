@@ -2611,5 +2611,271 @@
       "Steel"
     ],
     "form": "Mega Z"
+  },
+  {
+    "name": "Wigglytuff",
+    "dexNumber": 40,
+    "types": [
+      "Normal",
+      "Fairy"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Persian",
+    "dexNumber": 53,
+    "types": [
+      "Normal"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Alolan Persian",
+    "dexNumber": 53,
+    "types": [
+      "Dark"
+    ],
+    "form": "Regional"
+  },
+  {
+    "name": "Farfetch'd",
+    "dexNumber": 83,
+    "types": [
+      "Normal",
+      "Flying"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Sirfetch'd",
+    "dexNumber": 865,
+    "types": [
+      "Fighting"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Mr. Mime",
+    "dexNumber": 122,
+    "types": [
+      "Psychic",
+      "Fairy"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Swalot",
+    "dexNumber": 317,
+    "types": [
+      "Poison"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Salamence",
+    "dexNumber": 373,
+    "types": [
+      "Dragon",
+      "Flying"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Mega Salamence",
+    "dexNumber": 373,
+    "types": [
+      "Dragon",
+      "Flying"
+    ],
+    "form": "Mega"
+  },
+  {
+    "name": "Gogoat",
+    "dexNumber": 673,
+    "types": [
+      "Grass"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Golisopod",
+    "dexNumber": 768,
+    "types": [
+      "Bug",
+      "Water"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Mega Golisopod",
+    "dexNumber": 768,
+    "types": [
+      "Bug",
+      "Steel"
+    ],
+    "form": "Mega"
+  },
+  {
+    "name": "Rillaboom",
+    "dexNumber": 812,
+    "types": [
+      "Grass"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Cinderace",
+    "dexNumber": 815,
+    "types": [
+      "Fire"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Inteleon",
+    "dexNumber": 818,
+    "types": [
+      "Water"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Thievul",
+    "dexNumber": 828,
+    "types": [
+      "Dark"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Toxtricity (Amped Form)",
+    "dexNumber": 849,
+    "types": [
+      "Electric",
+      "Poison"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Toxtricity (Low Key Form)",
+    "dexNumber": 849,
+    "types": [
+      "Electric",
+      "Poison"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Grapploct",
+    "dexNumber": 853,
+    "types": [
+      "Fighting"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Perrserker",
+    "dexNumber": 863,
+    "types": [
+      "Steel"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Pincurchin",
+    "dexNumber": 871,
+    "types": [
+      "Electric"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Indeedee (Male)",
+    "dexNumber": 876,
+    "types": [
+      "Psychic",
+      "Normal"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Indeedee (Female)",
+    "dexNumber": 876,
+    "types": [
+      "Psychic",
+      "Normal"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Arboliva",
+    "dexNumber": 928,
+    "types": [
+      "Grass",
+      "Normal"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Squawkabilly (Green Plumage)",
+    "dexNumber": 931,
+    "types": [
+      "Normal",
+      "Flying"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Squawkabilly (Blue Plumage)",
+    "dexNumber": 931,
+    "types": [
+      "Normal",
+      "Flying"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Squawkabilly (Yellow Plumage)",
+    "dexNumber": 931,
+    "types": [
+      "Normal",
+      "Flying"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Squawkabilly (White Plumage)",
+    "dexNumber": 931,
+    "types": [
+      "Normal",
+      "Flying"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Mabosstiff",
+    "dexNumber": 943,
+    "types": [
+      "Dark"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Baxcalibur",
+    "dexNumber": 998,
+    "types": [
+      "Dragon",
+      "Ice"
+    ],
+    "form": "Base"
+  },
+  {
+    "name": "Mega Baxcalibur",
+    "dexNumber": 998,
+    "types": [
+      "Dragon",
+      "Ice"
+    ],
+    "form": "Mega"
   }
 ]
