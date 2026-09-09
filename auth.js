@@ -765,14 +765,36 @@
   }
 
   async function wcHandleSessionChange(session) {
+    // Milestone 65: captured BEFORE wcCurrentSession is overwritten below,
+    // so this can tell a genuine identity change (sign-in, sign-out,
+    // switching accounts) apart from Supabase re-firing this same callback
+    // for the SAME already-signed-in user -- which it does automatically,
+    // e.g. TOKEN_REFRESHED (roughly hourly, and also whenever a
+    // backgrounded tab regains focus) and USER_UPDATED.
+    const previousUserId = wcCurrentSession ? wcCurrentSession.user.id : null;
     wcCurrentSession = session;
     wcCurrentProfile = session ? await wcLoadProfile(session.user.id) : null;
     if (!wcRecoveryMode) wcCloseAuthModal();
     wcRenderAccountWidget();
     wcMaybeShowAgeGate();
-    // Lets theme.js know a profile (with its saved color_theme, if any)
-    // just became available -- fires on initial load, sign-in, sign-out,
-    // and any other auth state change.
+    // Milestone 65: Phoenix reported that partway through setting up a team
+    // in the Builder -- adding moves/items/ability changes across several
+    // Pokemon before saving -- the page would periodically wipe her
+    // unsaved in-progress edits and replace them with whatever was last
+    // actually saved. Root cause: this function used to dispatch
+    // "wc:auth-changed" unconditionally on every raw Supabase auth event,
+    // and builder.js's listener for that event treats every firing as "an
+    // account just (dis)connected, reload its real saved team over
+    // whatever's in the working state" (see wcSyncTeamStateForAuth). A
+    // same-user TOKEN_REFRESHED mid-edit is not an identity change, but it
+    // was triggering that exact reload-and-overwrite path. Comparing user
+    // ids here (nullable on both sides for signed-out) stops the dispatch
+    // at the source for every page that listens for this event -- not
+    // just builder.js -- while sign-in, sign-out, and switching accounts
+    // (where the id genuinely differs, including from unset on first load)
+    // still notify exactly as before.
+    const newUserId = session ? session.user.id : null;
+    if (newUserId === previousUserId) return;
     window.dispatchEvent(new CustomEvent("wc:auth-changed", { detail: { session, profile: wcCurrentProfile } }));
   }
 
