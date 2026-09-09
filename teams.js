@@ -481,6 +481,109 @@ async function wcPushTeamsToCloudIfSignedIn(state) {
 }
 
 // ---------------------------------------------------------------------------
+// Milestone 62: obtained Pokemon now follow the signed-in ACCOUNT, not just
+// one browser -- the same class of bug Milestone 3 already fixed for the
+// color theme picker (see 0003_color_theme.sql). Before this, "obtained"
+// state (the wincon.obtained localStorage/sessionStorage key app.js,
+// home.js, and builder.js all read/write) lived ONLY in one browser's
+// storage, with no cloud copy at all -- unlike teams (0001_init.sql) and
+// locked builds (0008_locked_builds.sql), which do sync to the account.
+// Switching Chrome PROFILES (each with its own entirely separate
+// localStorage, exactly like switching to a different browser or device)
+// and signing into the same account showed whatever THAT profile's own
+// storage already held -- nothing, or a stale snapshot left over from some
+// earlier, unrelated visit -- never the account's real, current Pokedex.
+//
+// `obtained_pokemon` (0010_obtained_pokemon.sql) mirrors `locked_builds`'s
+// one-row-per-species shape (species text, user_id uuid) rather than
+// `teams`' one-JSONB-blob-per-team shape, since "obtained" is naturally a
+// flat set of names with nothing else to carry per entry: marking or
+// unmarking one Pokemon obtained upserts or deletes exactly that one row
+// (wcSetObtainedInCloud below), never a full reconciliation sweep on every
+// checkbox click.
+// ---------------------------------------------------------------------------
+
+/**
+ * Takes whatever's already in `localSet` (this browser's own current
+ * obtained set -- any signed-out/session marks already folded in by the
+ * caller, same as before this milestone) and, if a real Supabase session
+ * exists, merges in this account's real cloud set. A plain union: a flat
+ * set of "have I got this" marks can only ever safely GAIN entries from a
+ * merge, never lose one just because a different browser hadn't seen it
+ * yet. Anything present only in `localSet` (marked obtained on this
+ * browser before the account had a cloud row for it -- e.g. a dropped
+ * upload from an earlier session, or a signed-out session mark the caller
+ * just folded in) is uploaded right here, so the account's cloud copy
+ * catches up to the merged, now-authoritative set.
+ *
+ * Never throws -- returns `localSet` unchanged if signed out, if the
+ * Supabase CDN didn't load, or if the network call times out, exactly like
+ * wcLoadAndSyncTeamState() above.
+ */
+async function wcLoadAndSyncObtained(localSet) {
+  if (typeof window === "undefined" || !window.wcSupabase) return localSet;
+  try {
+    const sessionResult = await wcWithTimeout(window.wcSupabase.auth.getSession(), 5000);
+    const session = sessionResult && sessionResult.data && sessionResult.data.session;
+    if (!session) return localSet;
+
+    const userId = session.user.id;
+    const selectResult = await wcWithTimeout(
+      window.wcSupabase.from("obtained_pokemon").select("species").eq("user_id", userId),
+      5000
+    );
+    if (!selectResult) return localSet; // timed out -- stay local-only for this page view
+    const { data: rows, error } = selectResult;
+    if (error) {
+      console.warn("WinCon: couldn't load your obtained Pokemon from your account", error.message);
+      return localSet;
+    }
+
+    const cloudNames = new Set((rows || []).map((r) => r.species));
+    const merged = new Set([...localSet, ...cloudNames]);
+
+    const localOnly = [...localSet].filter((name) => !cloudNames.has(name));
+    if (localOnly.length > 0) {
+      const rowsToUpsert = localOnly.map((species) => ({ user_id: userId, species }));
+      const { error: upsertError } = await window.wcSupabase
+        .from("obtained_pokemon")
+        .upsert(rowsToUpsert, { onConflict: "user_id,species" });
+      if (upsertError) console.warn("WinCon: couldn't sync some obtained Pokemon to your account", upsertError.message);
+    }
+
+    return merged;
+  } catch (err) {
+    console.warn("WinCon: cloud obtained-Pokemon sync failed, continuing locally", err && err.message);
+    return localSet;
+  }
+}
+
+/**
+ * Upserts (isObtained: true) or deletes (isObtained: false) exactly one
+ * species' row -- see wcSaveLockedBuild/wcDeleteLockedBuild above for the
+ * same one-row, fire-and-forget shape. Called after every toggle from
+ * app.js/home.js/builder.js; a no-op while signed out.
+ */
+async function wcSetObtainedInCloud(species, isObtained) {
+  if (typeof window === "undefined" || !window.wcSupabase) return;
+  const userId = window.wcAuth && window.wcAuth.isSignedIn() ? window.wcAuth.getUserId() : null;
+  if (!userId) return;
+  try {
+    if (isObtained) {
+      const { error } = await window.wcSupabase
+        .from("obtained_pokemon")
+        .upsert({ user_id: userId, species }, { onConflict: "user_id,species" });
+      if (error) console.warn("WinCon: marked locally, but couldn't sync this as obtained to your account", error.message);
+    } else {
+      const { error } = await window.wcSupabase.from("obtained_pokemon").delete().eq("user_id", userId).eq("species", species);
+      if (error) console.warn("WinCon: unmarked locally, but couldn't remove this obtained mark from your account", error.message);
+    }
+  } catch (err) {
+    console.warn("WinCon: cloud obtained-Pokemon sync failed", err && err.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Milestone 28: cloud sync of INDIVIDUAL logged results, into a normalized
 // match_results table -- separate from the whole-team upsert above, and
 // from team.matchLog's own JSON-column mirror (0004_team_match_log.sql,

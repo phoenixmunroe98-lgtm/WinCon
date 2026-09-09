@@ -958,16 +958,21 @@ function wcMarkObtainedFromImport(names) {
   try {
     const obtained = getObtainedNames();
     let changed = false;
+    const newlyObtained = [];
     names.forEach((name) => {
       if (!obtained.has(name)) {
         obtained.add(name);
         changed = true;
+        newlyObtained.push(name);
       }
     });
     if (!changed) return;
     const json = JSON.stringify([...obtained]);
     if (wcTeamDataSignedIn) {
       localStorage.setItem(OBTAINED_KEY, json);
+      // Milestone 62: also syncs each newly-marked name to the account's
+      // real cloud set -- see wcSetObtainedInCloud()'s comment in teams.js.
+      newlyObtained.forEach((name) => wcSetObtainedInCloud(name, true).catch(() => {}));
     } else {
       sessionStorage.setItem(OBTAINED_KEY, json);
     }
@@ -1065,6 +1070,23 @@ async function wcSyncTeamStateForAuth() {
   // lookup above, for the same reason -- see wcFetchLockedBuilds in
   // teams.js.
   lockedBuildsLookup = wcTeamDataSignedIn ? await wcFetchLockedBuilds(WINCON_BUILDER_FORMAT) : {};
+  // Milestone 62: obtained Pokemon now follow the signed-in ACCOUNT, not
+  // just one browser -- see wcLoadAndSyncObtained()'s comment in teams.js.
+  // getObtainedNames() below reads straight from local/session storage
+  // synchronously, so this merge (and its write-back to localStorage) has
+  // to land before this page ever calls it -- exactly like every lookup
+  // above, just written back to storage instead of a lookup variable,
+  // since getObtainedNames() is shared with app.js/home.js and has no
+  // in-memory copy of its own to hand this merge to directly.
+  if (wcTeamDataSignedIn) {
+    const mergedObtained = await wcLoadAndSyncObtained(getObtainedNames());
+    try {
+      localStorage.setItem(OBTAINED_KEY, JSON.stringify([...mergedObtained]));
+    } catch {
+      // Storage full/unavailable -- getObtainedNames() below just won't
+      // see this account's cloud-only entries for this page view.
+    }
+  }
   if (wcTeamDataSignedIn) {
     activeId = teamState.activeId;
     // Checked BEFORE ensureActiveTeam() below (which can itself create a

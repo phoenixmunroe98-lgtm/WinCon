@@ -22,6 +22,16 @@
 // previous signed-in session (or a different account on a shared
 // computer) left in the real localStorage. See wcSyncObtainedForAuth() and
 // wcLoadSignedOutObtained() below for the full mechanics.
+//
+// Milestone 62: a signed-in account's marks are no longer JUST that local
+// localStorage copy -- they also sync to a real `obtained_pokemon` cloud
+// table (teams.js's wcLoadAndSyncObtained()/wcSetObtainedInCloud()), the
+// same account-level sync teams and locked builds already had. Before
+// this milestone, localStorage WAS the only copy, so switching Chrome
+// PROFILES (a separate localStorage, exactly like a different browser or
+// device) and signing into the same account showed whatever that
+// profile's own storage already held, never the account's real, current
+// Pokedex -- see wcSyncObtainedForAuth() below for the fix.
 
 const STORAGE_KEY = "wincon.obtained";
 
@@ -128,7 +138,12 @@ async function wcSyncObtainedForAuth() {
     const stored = loadObtained();
     const sessionObtained = wcLoadSignedOutObtained();
     sessionObtained.forEach((name) => stored.add(name));
-    obtained = stored;
+    // Milestone 62: merges in this account's real cloud set too -- see
+    // wcLoadAndSyncObtained()'s comment in teams.js for the bug this
+    // fixes (a signed-in account's obtained set used to be read straight
+    // from THIS browser's own localStorage and never checked against the
+    // account at all).
+    obtained = await wcLoadAndSyncObtained(stored);
     saveObtained();
     // Merged into the real account now -- nothing left for a later
     // signed-out visit in this tab to see.
@@ -222,6 +237,10 @@ function pruneLegacyMegaObtained() {
     if (megaNames.has(name)) {
       obtained.delete(name);
       changed = true;
+      // Milestone 62: also cleans up the cloud copy, so a stray legacy
+      // Mega entry doesn't sit in the account forever and get merged back
+      // in as a ghost by wcLoadAndSyncObtained() on some future visit.
+      wcSetObtainedInCloud(name, false).catch(() => {});
     }
   });
   if (changed) saveObtained();
@@ -321,6 +340,7 @@ function toggleObtained(name, cardEl, checkboxEl) {
     obtained.delete(name);
     cardEl.classList.remove("is-obtained");
     saveObtained();
+    wcSetObtainedInCloud(name, false).catch(() => {});
     updateProgress();
     updateObtainedLockHint();
     return;
@@ -340,6 +360,7 @@ function toggleObtained(name, cardEl, checkboxEl) {
   obtained.add(name);
   cardEl.classList.add("is-obtained");
   saveObtained();
+  wcSetObtainedInCloud(name, true).catch(() => {});
   updateProgress();
   updateObtainedLockHint();
 }

@@ -123,17 +123,22 @@ async function homeRenderAccountSections() {
   const signedIn = await wcHasRealSession();
   homeTeamDataSignedIn = signedIn;
   if (signedIn) {
+    homeObtainedSignedIn = true; // so homeGetObtainedSet() below reads real storage
     const sessionObtained = homeLoadSignedOutObtained();
-    if (sessionObtained.size > 0) {
-      homeObtainedSignedIn = true; // so homeGetObtainedSet() below reads real storage
-      const stored = homeGetObtainedSet();
-      sessionObtained.forEach((name) => stored.add(name));
-      homeSaveObtainedSet(stored);
-      try {
-        sessionStorage.removeItem(HOME_OBTAINED_KEY);
-      } catch {
-        // ignore
-      }
+    const stored = homeGetObtainedSet();
+    sessionObtained.forEach((name) => stored.add(name));
+    // Milestone 62: merges in this account's real cloud set too -- before
+    // this, a signed-in account's obtained set on this page was read
+    // straight from THIS browser's own localStorage and never checked
+    // against the account at all -- see wcSyncObtainedForAuth()'s comment
+    // in app.js for the fuller writeup of the exact bug this fixes, and
+    // wcLoadAndSyncObtained()'s own comment in teams.js.
+    const merged = await wcLoadAndSyncObtained(stored);
+    homeSaveObtainedSet(merged);
+    try {
+      sessionStorage.removeItem(HOME_OBTAINED_KEY);
+    } catch {
+      // ignore
     }
   }
   homeObtainedSignedIn = signedIn;
@@ -469,6 +474,7 @@ function wcHomeMountAddSearch() {
     }
     obtained.add(name);
     homeSaveObtainedSet(obtained);
+    wcSetObtainedInCloud(name, true).catch(() => {});
     input.value = "";
     closeSuggestions();
     renderOwnedSection();
