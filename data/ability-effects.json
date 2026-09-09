@@ -453,12 +453,6 @@
     "effect": "stealAttackerItem",
     "target": "attacker"
   },
-  "Aura Break": {
-    "trigger": "passive",
-    "effect": "damageTakenMult",
-    "condition": "contact",
-    "mult": 0.5
-  },
   "Sharpness": {
     "trigger": "passive",
     "effect": "damageDealtMultForMoveList",
@@ -482,5 +476,11 @@
       "X-Scissor"
     ],
     "mult": 1.5
+  },
+  "Aura Guard": {
+    "trigger": "passive",
+    "effect": "damageTakenMult",
+    "condition": "contact",
+    "mult": 0.5
   }
 }

@@ -12,11 +12,11 @@
 //    app.js, strategy.js, battle-sim-lineup.js) before writing any of
 //    this milestone's own code.
 // 2. Mega Absol Z's real Sharpness ability (50% boost to slicing moves)
-//    and Mega Lucario Z's real Aura Break ability (halves damage from
+//    and Mega Lucario Z's real Aura Guard ability (halves damage from
 //    contact moves) -- both newly implemented for this milestone, run
 //    through the real engine end to end, not just asserted against a
 //    stub.
-// 3. A real, pre-existing bug this milestone's own Aura Break work
+// 3. A real, pre-existing bug this milestone's own Aura Guard work
 //    surfaced and fixed: the damageTakenMult dispatcher in
 //    battle-sim-engine.js only ever checked `condition === "fullHp"`
 //    (Multiscale) and treated every OTHER condition value as "not
@@ -143,11 +143,31 @@ check("The 3 new Mega Z roster entries have real base-stats/abilities/learnsets 
   });
   assert.equal(abilitiesData["Mega Absol Z"].ability, "Sharpness");
   assert.equal(abilitiesData["Mega Garchomp Z"].ability, "Levitate");
-  assert.equal(abilitiesData["Mega Lucario Z"].ability, "Aura Break");
+  assert.equal(abilitiesData["Mega Lucario Z"].ability, "Aura Guard");
   // Confirmed by 2 independent sources (godisageek, champsdex) -- Mega
   // Absol Z's type genuinely changes from base Absol's mono-Dark.
   const megaAbsolZ = pokemonList.find((p) => p.name === "Mega Absol Z");
   assert.deepEqual(megaAbsolZ.types, ["Dark", "Ghost"]);
+});
+
+check("The 3 Mega Z forms' real Stat Point spreads, confirmed post-launch (Sept 9 2026) via pokemon-zone.com's own dedicated per-Pokemon pages, cross-checked against gamewith.ai and pokepc.net -- no longer the placeholder that reused their non-Z Mega's own numbers", () => {
+  const stats = (name) => baseStatsData.find((b) => b.name === name);
+  assert.deepEqual(stats("Mega Absol Z"), { name: "Mega Absol Z", hp: 65, atk: 154, def: 60, spa: 75, spd: 60, spe: 151 });
+  assert.deepEqual(stats("Mega Garchomp Z"), { name: "Mega Garchomp Z", hp: 108, atk: 130, def: 85, spa: 141, spd: 85, spe: 151 });
+  assert.deepEqual(stats("Mega Lucario Z"), { name: "Mega Lucario Z", hp: 70, atk: 100, def: 70, spa: 164, spd: 70, spe: 151 });
+  // Each keeps the same stat TOTAL as its non-Z sibling Mega (565/700/625)
+  // but redistributes it -- a real, deliberate differentiation, not a
+  // reused placeholder anymore.
+  const total = (s) => s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
+  assert.equal(total(stats("Mega Absol Z")), total(stats("Mega Absol")));
+  assert.equal(total(stats("Mega Garchomp Z")), total(stats("Mega Garchomp")));
+  assert.equal(total(stats("Mega Lucario Z")), total(stats("Mega Lucario")));
+  // Mega Garchomp Z's real type is mono-Dragon (confirmed by 3 independent
+  // sources -- gamewith.ai, pokepc.net, and pokemon-zone.com's own
+  // dedicated Mega Garchomp Z page), a genuine change from base
+  // Garchomp/Mega Garchomp's Dragon/Ground.
+  const megaGarchompZ = pokemonList.find((p) => p.name === "Mega Garchomp Z");
+  assert.deepEqual(megaGarchompZ.types, ["Dragon"]);
 });
 
 check("The 3 new Mega Z items are real, described, legal items -- and the OTHER still-unconfirmed M-C stub stones (already present in items.json before this milestone) are untouched, not fabricated", () => {
@@ -175,7 +195,7 @@ check("The 3 new Mega Z items are real, described, legal items -- and the OTHER 
 });
 
 // ---------------------------------------------------------------------------
-// 2. Sharpness (Mega Absol Z) and Aura Break (Mega Lucario Z), run through
+// 2. Sharpness (Mega Absol Z) and Aura Guard (Mega Lucario Z), run through
 // the real engine end to end.
 // ---------------------------------------------------------------------------
 
@@ -199,28 +219,28 @@ check("Sharpness does NOT boost a non-slicing move (Iron Head isn't on the real 
   assert.ok(abilityEffects.Sharpness.moves.includes("Night Slash"));
 });
 
-check("Aura Break genuinely halves damage from a real contact move, isolated via wcDamageTakenMultApplies directly (no stat-line noise)", () => {
-  const auraBreak = abilityEffects["Aura Break"];
-  assert.equal(auraBreak.effect, "damageTakenMult");
-  assert.equal(auraBreak.condition, "contact");
-  assert.equal(auraBreak.mult, 0.5);
+check("Aura Guard genuinely halves damage from a real contact move, isolated via wcDamageTakenMultApplies directly (no stat-line noise)", () => {
+  const auraGuard = abilityEffects["Aura Guard"];
+  assert.equal(auraGuard.effect, "damageTakenMult");
+  assert.equal(auraGuard.condition, "contact");
+  assert.equal(auraGuard.mult, 0.5);
   const ironHead = resolvedMove("Iron Head"); // real contact move
   const shadowBall = resolvedMove("Shadow Ball"); // real non-contact move
   assert.equal(ironHead.flags.contact, true);
   assert.equal(shadowBall.flags.contact, false);
-  assert.equal(context.wcDamageTakenMultApplies(auraBreak, ironHead, {}, ironHead.type, typeChart), true);
-  assert.equal(context.wcDamageTakenMultApplies(auraBreak, shadowBall, {}, shadowBall.type, typeChart), false);
+  assert.equal(context.wcDamageTakenMultApplies(auraGuard, ironHead, {}, ironHead.type, typeChart), true);
+  assert.equal(context.wcDamageTakenMultApplies(auraGuard, shadowBall, {}, shadowBall.type, typeChart), false);
 });
 
-check("Mega Lucario Z genuinely resolves with the Aura Break ability through the real slot-resolution path", () => {
+check("Mega Lucario Z genuinely resolves with the Aura Guard ability through the real slot-resolution path", () => {
   const megaLucarioZ = makeBattler(makeSpec("Lucario", "Lucarionite Z", ["Protect", "Protect", "Protect", "Protect"]));
   assert.equal(megaLucarioZ.name, "Mega Lucario Z");
-  assert.equal(megaLucarioZ.ability, "Aura Break");
+  assert.equal(megaLucarioZ.ability, "Aura Guard");
 });
 
 // ---------------------------------------------------------------------------
 // 3. The damageTakenMult dispatcher bug this milestone found and fixed --
-// pre-existing, not introduced by Aura Break, but touched by the same code.
+// pre-existing, not introduced by Aura Guard, but touched by the same code.
 // ---------------------------------------------------------------------------
 
 check("wcDamageTakenMultApplies checks each real ability's own genuine condition, not just fullHp -- the pre-existing bug this milestone fixed", () => {

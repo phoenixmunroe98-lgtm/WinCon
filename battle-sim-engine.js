@@ -200,7 +200,7 @@ function wcHasTypeImmunity(defender, moveType, abilityEffects) {
 }
 
 /**
- * Milestone 61 (Regulation M-C, Mega Lucario Z's real Aura Break: "halves
+ * Milestone 61 (Regulation M-C, Mega Lucario Z's real Aura Guard: "halves
  * the damage it takes from any attack that makes contact"). Whether a
  * `damageTakenMult` ability's own real condition genuinely applies to this
  * exact hit -- a real, pre-existing gap fixed here, not introduced by it:

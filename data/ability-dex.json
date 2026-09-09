@@ -212,5 +212,6 @@
   "Guard Dog": "Raises its Attack by one stage instead of being lowered if hit by an Attack-dropping effect like Intimidate, and can't be forced to switch out while it's on the field.",
   "Emergency Exit": "Switches the Pokémon out automatically once its HP drops to half or less.",
   "Thermal Exchange": "Raises its Attack by one stage when hit by a Fire-type move, and can't be burned.",
-  "Rattled": "Raises its Speed by one stage when hit by a Dark-, Bug-, or Ghost-type move, or when targeted by Intimidate."
+  "Rattled": "Raises its Speed by one stage when hit by a Dark-, Bug-, or Ghost-type move, or when targeted by Intimidate.",
+  "Aura Guard": "Halves the damage it takes from any attack that makes contact."
 }
