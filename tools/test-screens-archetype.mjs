@@ -98,7 +98,7 @@ check("wcAnalyzeTeamStrategy proposes a screens amendment for a team with a lear
     { name: "Kingambit", slotName: "Kingambit", types: ["Dark", "Steel"], baseStats: statsFor("Kingambit"), learnableNames: learnsets["Kingambit"] },
   ];
   const builds = {
-    Grimmsnarl: { nature: "Careful", item: "Light Clay", moves: ["Spirit Break", "Parting Shot", "", ""], sp: { hp: 32, attack: 0, defense: 0, sp_attack: 0, sp_defense: 32, speed: 2 } },
+    Grimmsnarl: { nature: "Careful", item: "Light Clay", moves: ["Spirit Break", "Parting Shot", "Light Screen", ""], sp: { hp: 32, attack: 0, defense: 0, sp_attack: 0, sp_defense: 32, speed: 2 } },
     Kingambit: { nature: "Adamant", item: "Black Glasses", moves: ["Sucker Punch", "Kowtow Cleave", "Iron Head", "Swords Dance"], sp: { hp: 32, attack: 32, defense: 0, sp_attack: 0, sp_defense: 2, speed: 0 } },
   };
   const threats = [{ name: "T1", types: ["Grass"] }, { name: "T2", types: ["Water"] }];

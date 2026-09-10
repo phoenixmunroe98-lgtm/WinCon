@@ -148,11 +148,46 @@ check("WINCON_NOTES_KEYWORDS electricterrain boost/suppress behave like every ot
 // wcAnalyzeTeamStrategy integration
 // ---------------------------------------------------------------------------
 
-check("wcAnalyzeTeamStrategy proposes an electricterrain amendment for a team with a learnable setter and a real Electric-type beneficiary", () => {
+// Milestone 67: Phoenix caught wcAnalyzeTeamStrategy's Win Condition
+// presenting a MERELY learnable move as if it were this battle's real,
+// executable plan -- "Win condition: Electric Terrain, set by Ampharos"
+// when Ampharos's actual build didn't have Electric Terrain selected at
+// all, and there's no changing a moveset mid-battle. The two checks
+// below are the fix's real before/after: a genuinely-built terrain setup
+// (Pikachu's own moveset actually running Electric Terrain) IS still
+// proposed as the win condition end-to-end; a merely-learnable one that
+// nobody's real build has selected is NOT -- reproducing Phoenix's exact
+// fixture (this file's own Pikachu/Ampharos builds, unchanged from
+// before this milestone except Pikachu's own moveset) confirms the old
+// bug is gone.
+
+check("wcAnalyzeTeamStrategy proposes electricterrain when a member's REAL build already runs Electric Terrain, and phrases it as already-active fact, not a suggestion", () => {
   const members = [
     { name: "Pikachu", slotName: "Pikachu", types: typesFor("Pikachu"), baseStats: statsFor("Pikachu"), learnableNames: learnsets["Pikachu"] },
     { name: "Ampharos", slotName: "Ampharos", types: typesFor("Ampharos"), baseStats: statsFor("Ampharos"), learnableNames: learnsets["Ampharos"] },
   ];
+  const builds = {
+    Pikachu: { nature: "Timid", item: "Light Ball", moves: ["Thunderbolt", "Volt Switch", "Electric Terrain", "Protect"], sp: { hp: 0, attack: 0, defense: 0, sp_attack: 32, sp_defense: 0, speed: 32 } },
+    Ampharos: { nature: "Modest", item: "Assault Vest", moves: ["Discharge", "Focus Blast", "Dragon Pulse", "Volt Switch"], sp: { hp: 32, attack: 0, defense: 0, sp_attack: 32, sp_defense: 0, speed: 0 } },
+  };
+  const threats = [{ name: "T1", types: ["Water"] }, { name: "T2", types: ["Ground"] }];
+  const result = context.wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, "doubles", "", abilitiesData, null);
+  const archetypes = [result.archetype, result.alternative && result.alternative.archetype].filter(Boolean);
+  assert.ok(archetypes.includes("electricterrain"), `expected "electricterrain" among the proposed strategies, got ${JSON.stringify(archetypes)}`);
+  const winning = result.archetype === "electricterrain" ? result : result.alternative;
+  assert.equal(winning.setterName, "Pikachu");
+  assert.ok(winning.note.includes("Pikachu already knows Electric Terrain"), winning.note);
+  assert.ok(!winning.note.includes("can learn"), `note should no longer say "can learn" once it's really built: ${winning.note}`);
+});
+
+check("Milestone 67 fix: wcAnalyzeTeamStrategy does NOT propose electricterrain when it's only learnable, not actually selected on any real build -- Phoenix's exact bug (Ampharos could learn it, but her real build didn't run it)", () => {
+  const members = [
+    { name: "Pikachu", slotName: "Pikachu", types: typesFor("Pikachu"), baseStats: statsFor("Pikachu"), learnableNames: learnsets["Pikachu"] },
+    { name: "Ampharos", slotName: "Ampharos", types: typesFor("Ampharos"), baseStats: statsFor("Ampharos"), learnableNames: learnsets["Ampharos"] },
+  ];
+  // Same fixture as the check above, except NEITHER build actually runs
+  // Electric Terrain (both merely CAN learn it) -- this is Phoenix's
+  // exact real scenario.
   const builds = {
     Pikachu: { nature: "Timid", item: "Light Ball", moves: ["Thunderbolt", "Volt Switch", "Nasty Plot", "Protect"], sp: { hp: 0, attack: 0, defense: 0, sp_attack: 32, sp_defense: 0, speed: 32 } },
     Ampharos: { nature: "Modest", item: "Assault Vest", moves: ["Discharge", "Focus Blast", "Dragon Pulse", "Volt Switch"], sp: { hp: 32, attack: 0, defense: 0, sp_attack: 32, sp_defense: 0, speed: 0 } },
@@ -160,7 +195,9 @@ check("wcAnalyzeTeamStrategy proposes an electricterrain amendment for a team wi
   const threats = [{ name: "T1", types: ["Water"] }, { name: "T2", types: ["Ground"] }];
   const result = context.wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, "doubles", "", abilitiesData, null);
   const archetypes = [result.archetype, result.alternative && result.alternative.archetype].filter(Boolean);
-  assert.ok(archetypes.includes("electricterrain"), `expected "electricterrain" among the proposed strategies, got ${JSON.stringify(archetypes)}`);
+  assert.ok(!archetypes.includes("electricterrain"), `electricterrain should not be proposed when nobody's real build has it -- got ${JSON.stringify(archetypes)}`);
+  assert.equal(result.archetype, "independent");
+  assert.ok(result.note.includes("learnable somewhere on this roster"), result.note);
 });
 
 console.log("");

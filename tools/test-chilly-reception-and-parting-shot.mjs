@@ -109,7 +109,7 @@ check("WINCON_PIVOT_MOVES now includes Parting Shot", () => {
   const fastPartner = { name: "FastPartner", types: ["Normal"], baseStats: { hp: 80, atk: 100, def: 80, spa: 60, spd: 80, spe: 110 }, learnableNames: [] };
   const members = [partingShotMon, fastPartner];
   const builds = {
-    PartingShotMon: { nature: "Jolly", item: "Focus Sash", moves: ["Sucker Punch", "Knock Off", "Protect", "Fake Out"], sp: { hp: 0, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 } },
+    PartingShotMon: { nature: "Jolly", item: "Focus Sash", moves: ["Tailwind", "Parting Shot", "Protect", "Fake Out"], sp: { hp: 0, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 } },
     FastPartner: { nature: "Jolly", item: "Life Orb", moves: ["Return", "Protect", "Rock Slide", "Earthquake"], sp: { hp: 0, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 32 } },
   };
   const threats = [{ name: "T1", types: ["Grass"] }, { name: "T2", types: ["Water"] }];

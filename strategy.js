@@ -1410,6 +1410,99 @@ function wcPreferredSetter(pool, notes, fallback) {
   return { setter: fallback(pool), mentioned: false };
 }
 
+/**
+ * Milestone 67: whether a strategy candidate's setter genuinely already
+ * has its defining move(s) selected on its REAL build, not just
+ * theoretically learnable (see `canLearn` in wcBuildStrategyCandidates).
+ * Real bug this fixes: Phoenix built a team, ran Battle Plan, and got
+ * "Win condition: Electric Terrain, set by Ampharos -- Ampharos can
+ * learn Electric Terrain" for a battle about to start -- but Ampharos's
+ * actual build didn't have Electric Terrain selected at all, and you
+ * can't change a moveset mid-battle. Every archetype candidate below is
+ * built from `canLearn` (species-learnset membership), which is exactly
+ * right for a team-BUILDING suggestion ("you could teach it this") but
+ * wrong for describing a battle that's about to happen with an already-
+ * fixed team -- wcAnalyzeTeamStrategy uses this flag to make sure only a
+ * genuinely-already-built archetype is ever presented as THE team's win
+ * condition (see that function's own comment).
+ *
+ * `wantMoves: []` (every ability-only archetype -- weather set by
+ * Drought/Drizzle, Sand Stream/Snow Warning) is always real: the ability
+ * is a fact about the Pokemon the instant it's on the team, not a
+ * moveset choice that could be missing.
+ */
+function wcCandidateIsReal(setter, wantMoves, builds) {
+  if (!wantMoves || wantMoves.length === 0) return true;
+  const build = builds && builds[setter.slotName || setter.name];
+  return Boolean(build && Array.isArray(build.moves) && wantMoves.every((mv) => build.moves.includes(mv)));
+}
+
+/**
+ * Milestone 67: prefers a setter whose REAL build already has every one
+ * of `wantMoves` selected (wcCandidateIsReal) over one that merely
+ * canLearn() them, by re-filtering `pool` down to the really-built
+ * subset first and only falling back to the full pool (today's "merely
+ * learnable" behavior) when nobody in it actually has it built yet. This
+ * matters beyond just tagging the final candidate real/not: `pool`
+ * itself can contain several eligible learners, and the old
+ * wcPreferredSetter alone (fastest/slowest/strongest/notes-mentioned)
+ * could easily land on one who merely CAN learn the move while a
+ * different, genuinely-already-built member sits right there in the
+ * same pool -- exactly the false negative a setter-blind isReal check
+ * would produce. Returns `{ setter, mentioned, isReal }`.
+ */
+function wcRealSetterFor(pool, builds, wantMoves, notes, fallback) {
+  const builtPool = pool.filter((m) => wcCandidateIsReal(m, wantMoves, builds));
+  if (builtPool.length > 0) {
+    const { setter, mentioned } = wcPreferredSetter(builtPool, notes, fallback);
+    return { setter, mentioned, isReal: true };
+  }
+  const { setter, mentioned } = wcPreferredSetter(pool, notes, fallback);
+  return { setter, mentioned, isReal: false };
+}
+
+/**
+ * Milestone 67: the "any one of several alternative moves" sibling of
+ * wcRealSetterFor, for archetypes where more than one distinct move
+ * satisfies the role (hazards' 4 moves, screens' Light Screen/Reflect/
+ * Aurora Veil, redirect's Follow Me/Rage Powder) -- a real build only
+ * needs ONE of `possibleMoves` already selected to count as really
+ * running this archetype, not all of them at once.
+ */
+function wcRealSetterForAny(pool, builds, possibleMoves, notes, fallback) {
+  const hasAnyBuilt = (m) => {
+    const build = builds && builds[m.slotName || m.name];
+    return Boolean(build && Array.isArray(build.moves) && possibleMoves.some((mv) => build.moves.includes(mv)));
+  };
+  const builtPool = pool.filter(hasAnyBuilt);
+  if (builtPool.length > 0) {
+    const { setter, mentioned } = wcPreferredSetter(builtPool, notes, fallback);
+    return { setter, mentioned, isReal: true };
+  }
+  const { setter, mentioned } = wcPreferredSetter(pool, notes, fallback);
+  return { setter, mentioned, isReal: false };
+}
+
+/**
+ * Milestone 67: once wcCandidateIsReal confirms a candidate's move IS
+ * really already on its setter's build, its note's "can learn"/"can set
+ * up"/"(learnable by X)" framing -- written for the "you could build
+ * this in" suggestion case every candidate below defaults to -- reads as
+ * a hypothetical when it's actually already true and already executable
+ * this battle. Swaps the specific literal phrases this file's own
+ * candidate notes use for that framing over to present-tense "already"
+ * wording. Plain string .replace (not regex) intentionally only touches
+ * the first match -- every note below uses each of these phrases at most
+ * once, right where the setter is first named.
+ */
+function wcRephraseNoteAsReal(note, setterName) {
+  return note
+    .replace(`${setterName} can also learn`, `${setterName} already knows`)
+    .replace(`${setterName} can learn`, `${setterName} already knows`)
+    .replace(`${setterName} can set up`, `${setterName} already has`)
+    .replace(`(learnable by ${setterName})`, `(already on ${setterName}'s moveset)`);
+}
+
 /** Builds one full strategy-option object (archetype/setterName/note/amendments) from a scored candidate — shared by the primary and alternative results below so they're computed identically. */
 function wcBuildStrategyOption(candidate, builds, movesData, threats, typeChart, fmt, abilitiesData) {
   const slotName = candidate.setter.slotName || candidate.setter.name;
@@ -1531,7 +1624,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
   if (trCandidates.length > 0) {
     const netBenefit = bulkyMembers.length - fastMembers.length;
     if (netBenefit > 0) {
-      const { setter, mentioned } = wcPreferredSetter(trCandidates, notes, (pool) =>
+      const { setter, mentioned } = wcRealSetterFor(trCandidates, builds, ["Trick Room"], notes, (pool) =>
         pool.reduce((a, b) => (b.baseStats.spe < a.baseStats.spe ? b : a))
       );
       candidates.push({
@@ -1554,7 +1647,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
 
   const twCandidates = members.filter((m) => canLearn(m, "Tailwind"));
   if (twCandidates.length > 0 && fastMembers.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(twCandidates, notes, (pool) =>
+    const { setter, mentioned } = wcRealSetterFor(twCandidates, builds, ["Tailwind"], notes, (pool) =>
       pool.reduce((a, b) => (b.baseStats.spe > a.baseStats.spe ? b : a))
     );
     // Milestone 12: "Tailwind then a switch" is a real sequencing tactic —
@@ -1651,7 +1744,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
       return;
     }
 
-    const { setter, mentioned } = wcPreferredSetter(moveCandidates, notes, (pool) =>
+    const { setter, mentioned } = wcRealSetterFor(moveCandidates, builds, [moveName], notes, (pool) =>
       pool.find((m) => !beneficiaries.some((b) => b.name === m.name)) || wcStrongestPick(pool)
     );
     candidates.push({
@@ -1696,7 +1789,10 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
     if (beneficiaries.length === 0) return;
 
     const settersPool = abilitySetters.length > 0 ? abilitySetters : moveSetters;
-    const { setter, mentioned } = wcPreferredSetter(settersPool, notes, (pool) => wcStrongestPick(pool));
+    // Milestone 67: ability setters need no move at all (always real);
+    // the Chilly Reception path is the one move-dependent case here.
+    const settersWantMoves = abilitySetters.length > 0 ? [] : ["Chilly Reception"];
+    const { setter, mentioned } = wcRealSetterFor(settersPool, builds, settersWantMoves, notes, (pool) => wcStrongestPick(pool));
     const usesChillyReception = abilitySetters.length === 0 && moveSetters.some((m) => m.name === setter.name);
     const parts = [];
     if (bulkBeneficiaries.length > 0) {
@@ -1731,7 +1827,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
       const sweeper = members.reduce((a, b) =>
         Math.max(b.baseStats.atk, b.baseStats.spa) > Math.max(a.baseStats.atk, a.baseStats.spa) ? b : a
       );
-      const { setter: redirector, mentioned } = wcPreferredSetter(redirectCandidates, notes, (pool) =>
+      const { setter: redirector, mentioned } = wcRealSetterForAny(redirectCandidates, builds, ["Follow Me", "Rage Powder"], notes, (pool) =>
         pool.find((m) => m.name !== sweeper.name) || wcStrongestPick(pool)
       );
       const move = canLearn(redirector, "Follow Me") ? "Follow Me" : "Rage Powder";
@@ -1752,7 +1848,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
     const hazardCandidates = members.filter((m) => hazardMoves.some((hz) => canLearn(m, hz)));
     if (hazardCandidates.length > 0) {
       const learnCount = (m) => hazardMoves.filter((hz) => canLearn(m, hz)).length;
-      const { setter, mentioned } = wcPreferredSetter(hazardCandidates, notes, (pool) =>
+      const { setter, mentioned } = wcRealSetterForAny(hazardCandidates, builds, hazardMoves, notes, (pool) =>
         pool.reduce((a, b) => (learnCount(b) > learnCount(a) ? b : a))
       );
       const learnableHazards = hazardMoves.filter((hz) => canLearn(setter, hz));
@@ -1790,7 +1886,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
     );
     const prankster = screensCandidates.filter((m) => wcAbilityOf(abilitiesData, m.name) === "Prankster");
     const pool = auroraVeilSelfSnow.length > 0 ? auroraVeilSelfSnow : prankster.length > 0 ? prankster : screensCandidates;
-    const { setter, mentioned } = wcPreferredSetter(pool, notes, (p) => wcStrongestPick(p));
+    const { setter, mentioned } = wcRealSetterForAny(pool, builds, ["Light Screen", "Reflect", "Aurora Veil"], notes, (p) => wcStrongestPick(p));
     const usesAuroraVeil = auroraVeilSelfSnow.some((m) => m.name === setter.name);
     const learnableScreens = usesAuroraVeil ? ["Aurora Veil"] : ["Light Screen", "Reflect"].filter((mv) => canLearn(setter, mv));
     const isPrankster = wcAbilityOf(abilitiesData, setter.name) === "Prankster";
@@ -1817,7 +1913,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
   // notes name one, prefer that one via wcPreferredSetter.
   const wideguardCandidates = members.filter((m) => canLearn(m, "Wide Guard"));
   if (wideguardCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(wideguardCandidates, notes, (p) => wcStrongestPick(p));
+    const { setter, mentioned } = wcRealSetterFor(wideguardCandidates, builds, ["Wide Guard"], notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "wideguard",
       setterName: setter.name,
@@ -1836,7 +1932,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
   // blocking priority moves instead of spread moves.
   const quickguardCandidates = members.filter((m) => canLearn(m, "Quick Guard"));
   if (quickguardCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(quickguardCandidates, notes, (p) => wcStrongestPick(p));
+    const { setter, mentioned } = wcRealSetterFor(quickguardCandidates, builds, ["Quick Guard"], notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "quickguard",
       setterName: setter.name,
@@ -1865,7 +1961,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
     const terrainCandidates = members.filter((m) => canLearn(m, moveName));
     if (terrainCandidates.length === 0) return;
     const beneficiaries = members.filter((m) => m.types && m.types.includes(boostedType));
-    const { setter, mentioned } = wcPreferredSetter(terrainCandidates, notes, (p) => wcStrongestPick(p));
+    const { setter, mentioned } = wcRealSetterFor(terrainCandidates, builds, [moveName], notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: key,
       setterName: setter.name,
@@ -1884,7 +1980,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
 
   const mistyTerrainCandidates = members.filter((m) => canLearn(m, "Misty Terrain"));
   if (mistyTerrainCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(mistyTerrainCandidates, notes, (p) => wcStrongestPick(p));
+    const { setter, mentioned } = wcRealSetterFor(mistyTerrainCandidates, builds, ["Misty Terrain"], notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "mistyterrain",
       setterName: setter.name,
@@ -1903,7 +1999,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
   // status/confusion immunity, mirrors Misty Terrain's defensive role).
   const safeguardCandidates = members.filter((m) => canLearn(m, "Safeguard"));
   if (safeguardCandidates.length > 0) {
-    const { setter, mentioned } = wcPreferredSetter(safeguardCandidates, notes, (p) => wcStrongestPick(p));
+    const { setter, mentioned } = wcRealSetterFor(safeguardCandidates, builds, ["Safeguard"], notes, (p) => wcStrongestPick(p));
     candidates.push({
       archetype: "safeguard",
       setterName: setter.name,
@@ -1941,7 +2037,7 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
         (m) => canLearn(m, "Helping Hand") && !hardHitters.some((h) => h.name === m.name)
       );
       if (helpingHandCandidates.length > 0) {
-        const { setter, mentioned } = wcPreferredSetter(helpingHandCandidates, notes, (p) => wcStrongestPick(p));
+        const { setter, mentioned } = wcRealSetterFor(helpingHandCandidates, builds, ["Helping Hand"], notes, (p) => wcStrongestPick(p));
         const beneficiary = hardHitters[0];
         candidates.push({
           archetype: "helpinghand",
@@ -1958,7 +2054,10 @@ function wcBuildStrategyCandidates(members, builds, movesData, threats, typeChar
     }
   }
 
-  return candidates;
+  return candidates.map((c) => {
+    const isReal = wcCandidateIsReal(c.setter, c.wantMoves, builds);
+    return isReal ? { ...c, isReal, note: wcRephraseNoteAsReal(c.note, c.setterName) } : { ...c, isReal };
+  });
 }
 
 function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, format, notes, abilitiesData, metaBaseline) {
@@ -1969,6 +2068,19 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
 
   const candidates = wcBuildStrategyCandidates(members, builds, movesData, threats, typeChart, format, notes, abilitiesData);
   const biasedCandidates = wcApplyNotesBias(candidates, notes);
+  // Milestone 67: a candidate is only allowed to become the team's real,
+  // presented win condition if its setter's ACTUAL build already has the
+  // defining move(s) selected (see wcCandidateIsReal) -- never a merely
+  // learnable-but-not-built one, which used to win here and get reported
+  // as this battle's plan even though the move wasn't on the real
+  // moveset and can't be added mid-battle (the bug Phoenix caught:
+  // "Win condition: Electric Terrain, set by Ampharos" when Ampharos's
+  // real build didn't run Electric Terrain at all). This only narrows
+  // THIS function's own selection -- `candidates` itself still carries
+  // every hypothetical candidate for wcGenerateTeamBuilds/Auto-build,
+  // which legitimately wants "could learn" suggestions while a team is
+  // still being built.
+  const realCandidates = biasedCandidates.filter((c) => c.isReal);
   // Milestone 51: the team's overall macro STYLE (Balance/Weather/Hyper
   // Offense/Tailwind/Trick Room/Dual Room -- wcClassifyTeamStyle), a
   // separate, additive read from the single tactical archetype this
@@ -1976,15 +2088,18 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
   // it's never lost just because no single tactical tool stood out.
   const teamStyleResult = wcClassifyTeamStyle(members, abilitiesData);
 
-  if (biasedCandidates.length === 0) {
+  if (realCandidates.length === 0) {
+    const learnableNotBuiltCount = biasedCandidates.length;
     return {
       archetype: "independent",
       setterName: null,
       note:
-        candidates.length > 0
+        candidates.length > 0 && biasedCandidates.length === 0
           ? `Your team notes ruled out every strategy that would otherwise fit here — playing as six independent attackers is the fallback while that's the case.`
-          : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, Wide Guard, Quick Guard, Safeguard, terrain, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
-            `move would clearly help more of the team than it'd cost — no single shared strategy stands out here, so playing as six independent attackers is the safer call.`,
+          : learnableNotBuiltCount > 0
+            ? `${learnableNotBuiltCount === 1 ? "One archetype move is" : `${learnableNotBuiltCount} archetype moves are`} learnable somewhere on this roster, but nobody's real, already-built moveset actually has one selected yet -- Trick Room/Tailwind/weather/screens/terrain and the rest only count as a real win condition once a build already runs it, not just because the species could theoretically learn it, since there's no changing a moveset mid-battle. Playing as six independent attackers is the honest read for this team as it's actually built right now.`
+            : `Your team's built roles are split (${fastMembers.length} fast / ${bulkyMembers.length} bulky), and no learnable Trick Room, Tailwind, weather, screens, Wide Guard, Quick Guard, Safeguard, terrain, or ${fmt === "doubles" ? "redirection" : "hazard"}-setting ` +
+              `move would clearly help more of the team than it'd cost — no single shared strategy stands out here, so playing as six independent attackers is the safer call.`,
       amendments: [],
       metaSynergy: wcMetaBaselineSynergyNote(members, metaBaseline, fmt),
       alternative: null,
@@ -1992,11 +2107,11 @@ function wcAnalyzeTeamStrategy(members, builds, movesData, threats, typeChart, f
     };
   }
 
-  biasedCandidates.sort((a, b) => b.fitScore - a.fitScore);
-  const winnerOption = wcBuildStrategyOption(biasedCandidates[0], builds, movesData, threats, typeChart, fmt, abilitiesData);
+  realCandidates.sort((a, b) => b.fitScore - a.fitScore);
+  const winnerOption = wcBuildStrategyOption(realCandidates[0], builds, movesData, threats, typeChart, fmt, abilitiesData);
   const alternativeOption =
-    biasedCandidates.length > 1
-      ? wcBuildStrategyOption(biasedCandidates[1], builds, movesData, threats, typeChart, fmt, abilitiesData)
+    realCandidates.length > 1
+      ? wcBuildStrategyOption(realCandidates[1], builds, movesData, threats, typeChart, fmt, abilitiesData)
       : null;
 
   return {
