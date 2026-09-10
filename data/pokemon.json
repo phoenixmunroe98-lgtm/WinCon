@@ -2808,7 +2808,7 @@
   },
   {
     "name": "Arboliva",
-    "dexNumber": 928,
+    "dexNumber": 930,
     "types": [
       "Grass",
       "Normal"
@@ -2876,5 +2876,14 @@
       "Ice"
     ],
     "form": "Mega"
+  },
+  {
+    "name": "Pawmot",
+    "dexNumber": 923,
+    "types": [
+      "Electric",
+      "Fighting"
+    ],
+    "form": "Base"
   }
 ]

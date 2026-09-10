@@ -13,6 +13,17 @@
 // Bulbapedia fetch was caught and discarded when it wasn't corroborated
 // anywhere else -- see this milestone's own data script comment header).
 //
+// Milestone 66 Day-1 re-verification (the ruleset had been live a full
+// day by then, giving sources like pokemon-zone.com's own Regulation M-C
+// overview page and a Bulbagarden roster-reconciliation thread time to go
+// up) found one real miss in the original 28-entry list: Pawmot was a
+// genuine Regulation M-C addition this milestone's original research
+// never surfaced. Added here as the 29th base/form entry -- see this
+// file's own NEW_BASE_OR_FORM_NAMES list and the dedicated Pawmot check
+// below -- with the counts updated to match (29 + 6 = 35). Everything
+// else re-checked the same day came back clean: zero stat/ability/typing
+// corrections needed anywhere else in this file.
+//
 // Run: node tools/test-regulation-mc-roster.mjs
 
 import fs from "node:fs";
@@ -58,17 +69,20 @@ const NEW_BASE_OR_FORM_NAMES = [
   "Squawkabilly (Green Plumage)", "Squawkabilly (Blue Plumage)",
   "Squawkabilly (Yellow Plumage)", "Squawkabilly (White Plumage)",
   "Mabosstiff", "Baxcalibur",
+  // Milestone 66: the real 29th entry, missed by the original research
+  // pass and caught on Day-1 re-verification.
+  "Pawmot",
 ];
 const NEW_MEGA_NAMES = ["Mega Salamence", "Mega Golisopod", "Mega Baxcalibur"];
 
-check("Vice's confirmed roster reconciles to exactly 28 new base/form entries + 6 Mega Evolutions = 34, matching its own article title", () => {
-  assert.equal(NEW_BASE_OR_FORM_NAMES.length, 28);
+check("The real, fully-confirmed roster (after Milestone 66's Day-1 Pawmot correction) reconciles to exactly 29 new base/form entries + 6 Mega Evolutions = 35", () => {
+  assert.equal(NEW_BASE_OR_FORM_NAMES.length, 29);
   const allNewMegasEver = ["Mega Absol Z", "Mega Garchomp Z", "Mega Lucario Z", ...NEW_MEGA_NAMES];
   assert.equal(allNewMegasEver.length, 6);
-  assert.equal(NEW_BASE_OR_FORM_NAMES.length + allNewMegasEver.length, 34);
+  assert.equal(NEW_BASE_OR_FORM_NAMES.length + allNewMegasEver.length, 35);
 });
 
-check("Every one of the 28 new base/form roster entries has real pokemon.json/base-stats/abilities/learnsets entries -- nothing half-wired", () => {
+check("Every one of the 29 new base/form roster entries has real pokemon.json/base-stats/abilities/learnsets entries -- nothing half-wired", () => {
   NEW_BASE_OR_FORM_NAMES.forEach((name) => {
     assert.ok(pokemonList.some((p) => p.name === name), `expected pokemon.json to have ${name}`);
     assert.ok(baseStatsData.some((b) => b.name === name), `expected base-stats.json to have ${name}`);
@@ -135,6 +149,16 @@ check("Mega Golisopod's and Mega Baxcalibur's stats/typing were cross-checked ag
   assert.deepEqual(baxcaliburMega, { name: "Mega Baxcalibur", hp: 115, atk: 175, def: 117, spa: 105, spd: 101, spe: 87 });
   assert.deepEqual(pokemonList.find((p) => p.name === "Mega Baxcalibur").types, ["Dragon", "Ice"]);
   assert.equal(abilitiesData["Mega Baxcalibur"].ability, "Thermal Exchange");
+});
+
+check("Milestone 66: Pawmot (the real 29th entry, missed until Day-1 re-verification) is wired in with its real dex number, typing, stats, and ability, triple-confirmed against pokemondb.net, Serebii.net, and this project's PokeAPI data-mirror pass", () => {
+  assert.deepEqual(pokemonList.find((p) => p.name === "Pawmot"), {
+    name: "Pawmot", dexNumber: 923, types: ["Electric", "Fighting"], form: "Base",
+  });
+  assert.deepEqual(baseStatsData.find((b) => b.name === "Pawmot"), {
+    name: "Pawmot", hp: 70, atk: 115, def: 70, spa: 70, spd: 60, spe: 105,
+  });
+  assert.equal(abilitiesData["Pawmot"].ability, "Iron Fist");
 });
 
 check("Every ability newly assigned this milestone that abilities.json references has a matching data/ability-dex.json entry (or was already a real, pre-existing WinCon ability like Tough Claws/Aerilate/Ice Body)", () => {

@@ -2624,5 +2624,19 @@
       "isHidden": false,
       "name": "Illusion"
     }
+  ],
+  "Pawmot": [
+    {
+      "isHidden": false,
+      "name": "Volt Absorb"
+    },
+    {
+      "isHidden": false,
+      "name": "Natural Cure"
+    },
+    {
+      "isHidden": true,
+      "name": "Iron Fist"
+    }
   ]
 }

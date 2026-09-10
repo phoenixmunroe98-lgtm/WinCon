@@ -1,7 +1,7 @@
 {
   "Abomasnow": {
     "ability": "Snow Warning",
-    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pok\u00e9mon on the field by 50%."
   },
   "Absol": {
     "ability": "Justified",
@@ -30,7 +30,7 @@
   },
   "Alolan Ninetales": {
     "ability": "Snow Warning",
-    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pok\u00e9mon on the field by 50%."
   },
   "Alolan Raichu": {
     "ability": "Surge Surfer",
@@ -42,7 +42,7 @@
   },
   "Ampharos": {
     "ability": "Static",
-    "description": "Has a 30% chance to paralyze any Pokémon that hits it with a move that makes contact."
+    "description": "Has a 30% chance to paralyze any Pok\u00e9mon that hits it with a move that makes contact."
   },
   "Annihilape": {
     "ability": "Defiant",
@@ -58,11 +58,11 @@
   },
   "Arbok": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+    "description": "Lowers the Attack of the opposing Pok\u00e9mon by one stage as soon as it enters battle."
   },
   "Arcanine": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+    "description": "Lowers the Attack of the opposing Pok\u00e9mon by one stage as soon as it enters battle."
   },
   "Archaludon": {
     "ability": "Sturdy",
@@ -88,7 +88,7 @@
   },
   "Aurorus": {
     "ability": "Snow Warning",
-    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pok\u00e9mon on the field by 50%."
   },
   "Avalugg": {
     "ability": "Sturdy",
@@ -173,7 +173,7 @@
   },
   "Cofagrigus": {
     "ability": "Mummy",
-    "description": "Changes the ability of any Pokémon that hits it with a contact move to Mummy, spreading the effect onward."
+    "description": "Changes the ability of any Pok\u00e9mon that hits it with a contact move to Mummy, spreading the effect onward."
   },
   "Conkeldurr": {
     "ability": "Guts",
@@ -205,7 +205,7 @@
   },
   "Ditto": {
     "ability": "Imposter",
-    "description": "Transforms into the Pokémon it faces as soon as it switches in, copying its stats, moves, and ability."
+    "description": "Transforms into the Pok\u00e9mon it faces as soon as it switches in, copying its stats, moves, and ability."
   },
   "Dragalge": {
     "ability": "Adaptability",
@@ -258,7 +258,7 @@
   },
   "Farigiraf": {
     "ability": "Armor Tail",
-    "description": "Prevents opposing Pokémon from targeting it with priority moves."
+    "description": "Prevents opposing Pok\u00e9mon from targeting it with priority moves."
   },
   "Feraligatr": {
     "ability": "Sheer Force",
@@ -274,11 +274,11 @@
   },
   "Floette": {
     "ability": "Flower Veil",
-    "description": "Shields every Grass-type Pokémon on its team (not necessarily itself) from status conditions and stat-lowering effects."
+    "description": "Shields every Grass-type Pok\u00e9mon on its team (not necessarily itself) from status conditions and stat-lowering effects."
   },
   "Florges": {
     "ability": "Flower Veil",
-    "description": "Shields every Grass-type Pokémon on its team (not necessarily itself) from status conditions and stat-lowering effects."
+    "description": "Shields every Grass-type Pok\u00e9mon on its team (not necessarily itself) from status conditions and stat-lowering effects."
   },
   "Forretress": {
     "ability": "Sturdy",
@@ -318,7 +318,7 @@
   },
   "Gardevoir": {
     "ability": "Trace",
-    "description": "Copies the Ability of an adjacent opposing Pokémon as soon as Gardevoir enters battle."
+    "description": "Copies the Ability of an adjacent opposing Pok\u00e9mon as soon as Gardevoir enters battle."
   },
   "Garganacl": {
     "ability": "Purifying Salt",
@@ -330,7 +330,7 @@
   },
   "Gholdengo": {
     "ability": "Good as Gold",
-    "description": "Makes Gholdengo fully immune to other Pokémon's status (non-damaging) moves."
+    "description": "Makes Gholdengo fully immune to other Pok\u00e9mon's status (non-damaging) moves."
   },
   "Glaceon": {
     "ability": "Snow Cloak",
@@ -359,7 +359,7 @@
   },
   "Gourgeist": {
     "ability": "Frisk",
-    "description": "Reveals the held item of the opposing Pokémon as soon as Gourgeist enters battle."
+    "description": "Reveals the held item of the opposing Pok\u00e9mon as soon as Gourgeist enters battle."
   },
   "Greninja": {
     "ability": "Protean",
@@ -371,11 +371,11 @@
   },
   "Gyarados": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Gyarados enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Gyarados enters battle."
   },
   "Hatterene": {
     "ability": "Magic Bounce",
-    "description": "Reflects most status (non-damaging) moves back at the Pokémon that used them instead of being affected."
+    "description": "Reflects most status (non-damaging) moves back at the Pok\u00e9mon that used them instead of being affected."
   },
   "Hawlucha": {
     "ability": "Unburden",
@@ -395,7 +395,7 @@
   },
   "Hisuian Arcanine": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Hisuian Arcanine enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Hisuian Arcanine enters battle."
   },
   "Hisuian Avalugg": {
     "ability": "Strong Jaw",
@@ -404,7 +404,7 @@
   },
   "Hisuian Decidueye": {
     "ability": "Scrappy",
-    "description": "Allows Normal- and Fighting-type moves to hit Ghost-type Pokémon, which they would otherwise completely miss."
+    "description": "Allows Normal- and Fighting-type moves to hit Ghost-type Pok\u00e9mon, which they would otherwise completely miss."
   },
   "Hisuian Goodra": {
     "ability": "Sap Sipper",
@@ -421,7 +421,7 @@
   },
   "Hisuian Zoroark": {
     "ability": "Illusion",
-    "description": "Makes Hisuian Zoroark enter battle disguised as the last Pokémon in its party, fooling the opponent until it is hit by an attack."
+    "description": "Makes Hisuian Zoroark enter battle disguised as the last Pok\u00e9mon in its party, fooling the opponent until it is hit by an attack."
   },
   "Houndoom": {
     "ability": "Flash Fire",
@@ -441,7 +441,7 @@
   },
   "Incineroar": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Incineroar enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Incineroar enters battle."
   },
   "Infernape": {
     "ability": "Iron Fist",
@@ -453,7 +453,7 @@
   },
   "Kangaskhan": {
     "ability": "Scrappy",
-    "description": "Allows Normal- and Fighting-type moves to hit Ghost-type Pokémon, which they would otherwise completely miss."
+    "description": "Allows Normal- and Fighting-type moves to hit Ghost-type Pok\u00e9mon, which they would otherwise completely miss."
   },
   "Kingambit": {
     "ability": "Supreme Overlord",
@@ -473,7 +473,7 @@
   },
   "Krookodile": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Krookodile enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Krookodile enters battle."
   },
   "Leafeon": {
     "ability": "Chlorophyll",
@@ -493,7 +493,7 @@
   },
   "Luxray": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Luxray enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Luxray enters battle."
   },
   "Lycanroc": {
     "ability": "Sand Rush",
@@ -521,7 +521,7 @@
   },
   "Mawile": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Mawile enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Mawile enters battle."
   },
   "Medicham": {
     "ability": "Pure Power",
@@ -529,7 +529,7 @@
   },
   "Mega Abomasnow": {
     "ability": "Snow Warning",
-    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pok\u00e9mon on the field by 50%."
   },
   "Mega Absol": {
     "ability": "Magic Bounce",
@@ -545,7 +545,7 @@
   },
   "Mega Alakazam": {
     "ability": "Trace",
-    "description": "Copies the Ability of an adjacent opposing Pokémon as soon as it enters battle."
+    "description": "Copies the Ability of an adjacent opposing Pok\u00e9mon as soon as it enters battle."
   },
   "Mega Altaria": {
     "ability": "Pixilate",
@@ -656,7 +656,7 @@
   },
   "Mega Froslass": {
     "ability": "Snow Warning",
-    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pokémon on the field by 50%."
+    "description": "Summons snowy weather as soon as it enters battle, which boosts the Defense of Ice-type Pok\u00e9mon on the field by 50%."
   },
   "Mega Gallade": {
     "ability": "Inner Focus",
@@ -672,7 +672,7 @@
   },
   "Mega Gengar": {
     "ability": "Shadow Tag",
-    "description": "Prevents opposing Pokémon from switching out while it's on the field."
+    "description": "Prevents opposing Pok\u00e9mon from switching out while it's on the field."
   },
   "Mega Glalie": {
     "ability": "Refrigerate",
@@ -712,7 +712,7 @@
   },
   "Mega Lopunny": {
     "ability": "Scrappy",
-    "description": "Allows its Normal- and Fighting-type moves to hit Ghost-type Pokémon, which they would otherwise completely miss."
+    "description": "Allows its Normal- and Fighting-type moves to hit Ghost-type Pok\u00e9mon, which they would otherwise completely miss."
   },
   "Mega Lucario": {
     "ability": "Adaptability",
@@ -724,7 +724,7 @@
   },
   "Mega Manectric": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+    "description": "Lowers the Attack of the opposing Pok\u00e9mon by one stage as soon as it enters battle."
   },
   "Mega Mawile": {
     "ability": "Huge Power",
@@ -741,7 +741,7 @@
   },
   "Mega Meowstic": {
     "ability": "Trace",
-    "description": "Copies the Ability of an adjacent opposing Pokémon as soon as it enters battle."
+    "description": "Copies the Ability of an adjacent opposing Pok\u00e9mon as soon as it enters battle."
   },
   "Mega Metagross": {
     "ability": "Tough Claws",
@@ -762,7 +762,7 @@
   },
   "Mega Raichu X": {
     "ability": "Electric Surge",
-    "description": "Summons Electric Terrain the instant it enters battle, powering up grounded Pokémon's Electric-type moves and preventing them from falling asleep."
+    "description": "Summons Electric Terrain the instant it enters battle, powering up grounded Pok\u00e9mon's Electric-type moves and preventing them from falling asleep."
   },
   "Mega Raichu Y": {
     "ability": "No Guard",
@@ -787,11 +787,11 @@
   "Mega Scovillain": {
     "ability": "Spicy Spray",
     "confidence": "low",
-    "description": "A Champions-exclusive ability that hazes the field with a spicy cloud, lowering the Speed of opposing Pokémon that switch in."
+    "description": "A Champions-exclusive ability that hazes the field with a spicy cloud, lowering the Speed of opposing Pok\u00e9mon that switch in."
   },
   "Mega Scrafty": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+    "description": "Lowers the Attack of the opposing Pok\u00e9mon by one stage as soon as it enters battle."
   },
   "Mega Sharpedo": {
     "ability": "Strong Jaw",
@@ -848,7 +848,7 @@
   },
   "Metagross": {
     "ability": "Clear Body",
-    "description": "Prevents other Pokémon's moves and Abilities from lowering Metagross's stats."
+    "description": "Prevents other Pok\u00e9mon's moves and Abilities from lowering Metagross's stats."
   },
   "Milotic": {
     "ability": "Competitive",
@@ -873,7 +873,7 @@
   "Musharna": {
     "ability": "Synchronize",
     "confidence": "low",
-    "description": "Passes on any burn, poison, or paralysis Musharna receives to whatever Pokémon inflicted it."
+    "description": "Passes on any burn, poison, or paralysis Musharna receives to whatever Pok\u00e9mon inflicted it."
   },
   "Ninetales": {
     "ability": "Drought",
@@ -893,7 +893,7 @@
   },
   "Overqwil": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Overqwil enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Overqwil enters battle."
   },
   "Palafin": {
     "ability": "Zero to Hero",
@@ -901,15 +901,15 @@
   },
   "Paldean Tauros": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Tauros enters battle."
   },
   "Paldean Tauros (Blaze Breed)": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Tauros enters battle."
   },
   "Paldean Tauros (Aqua Breed)": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of opposing Pokémon by one stage when Tauros enters battle."
+    "description": "Lowers the Attack stat of opposing Pok\u00e9mon by one stage when Tauros enters battle."
   },
   "Pangoro": {
     "ability": "Iron Fist",
@@ -917,7 +917,7 @@
   },
   "Passimian": {
     "ability": "Receiver",
-    "description": "Copies the Ability of an ally Pokémon the instant that ally faints."
+    "description": "Copies the Ability of an ally Pok\u00e9mon the instant that ally faints."
   },
   "Pelipper": {
     "ability": "Drizzle",
@@ -930,11 +930,11 @@
   },
   "Pikachu": {
     "ability": "Static",
-    "description": "Gives any Pokémon that hits it with a contact move a chance to become paralyzed."
+    "description": "Gives any Pok\u00e9mon that hits it with a contact move a chance to become paralyzed."
   },
   "Pinsir": {
     "ability": "Moxie",
-    "description": "Raises its Attack stat by one stage every time it knocks out a Pokémon."
+    "description": "Raises its Attack stat by one stage every time it knocks out a Pok\u00e9mon."
   },
   "Politoed": {
     "ability": "Drizzle",
@@ -950,19 +950,19 @@
   },
   "Pyroar": {
     "ability": "Moxie",
-    "description": "Raises its Attack stat by one stage every time it knocks out a Pokémon."
+    "description": "Raises its Attack stat by one stage every time it knocks out a Pok\u00e9mon."
   },
   "Quaquaval": {
     "ability": "Moxie",
-    "description": "Raises its Attack stat by one stage every time it knocks out a Pokémon."
+    "description": "Raises its Attack stat by one stage every time it knocks out a Pok\u00e9mon."
   },
   "Qwilfish": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of the opposing Pokémon as soon as it switches in."
+    "description": "Lowers the Attack stat of the opposing Pok\u00e9mon as soon as it switches in."
   },
   "Raichu": {
     "ability": "Static",
-    "description": "Gives any Pokémon that hits it with a contact move a chance to become paralyzed."
+    "description": "Gives any Pok\u00e9mon that hits it with a contact move a chance to become paralyzed."
   },
   "Rampardos": {
     "ability": "Sheer Force",
@@ -987,7 +987,7 @@
   },
   "Runerigus": {
     "ability": "Wandering Spirit",
-    "description": "Swaps abilities with any Pokémon that hits it with a contact move."
+    "description": "Swaps abilities with any Pok\u00e9mon that hits it with a contact move."
   },
   "Sableye": {
     "ability": "Prankster",
@@ -995,7 +995,7 @@
   },
   "Salazzle": {
     "ability": "Corrosion",
-    "description": "Lets it inflict the poison status on Steel- and Poison-type Pokémon, which are normally immune to poison."
+    "description": "Lets it inflict the poison status on Steel- and Poison-type Pok\u00e9mon, which are normally immune to poison."
   },
   "Samurott": {
     "ability": "Torrent",
@@ -1023,7 +1023,7 @@
   },
   "Scrafty": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of the opposing Pokémon as soon as it switches in."
+    "description": "Lowers the Attack stat of the opposing Pok\u00e9mon as soon as it switches in."
   },
   "Serperior": {
     "ability": "Contrary",
@@ -1058,7 +1058,7 @@
   },
   "Skeledirge": {
     "ability": "Unaware",
-    "description": "Ignores the opposing Pokémon's stat changes when calculating both the damage it deals and the damage it takes."
+    "description": "Ignores the opposing Pok\u00e9mon's stat changes when calculating both the damage it deals and the damage it takes."
   },
   "Slowbro": {
     "ability": "Regenerator",
@@ -1100,7 +1100,7 @@
   },
   "Stunfisk": {
     "ability": "Static",
-    "description": "Gives any Pokémon that hits it with a contact move a chance to become paralyzed."
+    "description": "Gives any Pok\u00e9mon that hits it with a contact move a chance to become paralyzed."
   },
   "Swampert": {
     "ability": "Torrent",
@@ -1116,7 +1116,7 @@
   },
   "Tauros": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack stat of the opposing Pokémon as soon as it switches in."
+    "description": "Lowers the Attack stat of the opposing Pok\u00e9mon as soon as it switches in."
   },
   "Tinkaton": {
     "ability": "Mold Breaker",
@@ -1148,7 +1148,7 @@
   },
   "Tsareena": {
     "ability": "Queenly Majesty",
-    "description": "Prevents opposing Pokémon from hitting it with priority moves."
+    "description": "Prevents opposing Pok\u00e9mon from hitting it with priority moves."
   },
   "Typhlosion": {
     "ability": "Flash Fire",
@@ -1164,7 +1164,7 @@
   },
   "Umbreon": {
     "ability": "Synchronize",
-    "description": "Passes back the same status condition (burn, poison, or paralysis) to whichever Pokémon just inflicted it with that status."
+    "description": "Passes back the same status condition (burn, poison, or paralysis) to whichever Pok\u00e9mon just inflicted it with that status."
   },
   "Vanilluxe": {
     "ability": "Snow Warning",
@@ -1184,7 +1184,7 @@
   },
   "Vileplume": {
     "ability": "Effect Spore",
-    "description": "Gives opposing Pokémon a chance to be poisoned, paralyzed, or put to sleep whenever they make contact with it."
+    "description": "Gives opposing Pok\u00e9mon a chance to be poisoned, paralyzed, or put to sleep whenever they make contact with it."
   },
   "Vivillon": {
     "ability": "Compound Eyes",
@@ -1192,7 +1192,7 @@
   },
   "Volcarona": {
     "ability": "Flame Body",
-    "description": "Gives opposing Pokémon a chance to be burned whenever they make contact with it."
+    "description": "Gives opposing Pok\u00e9mon a chance to be burned whenever they make contact with it."
   },
   "Watchog": {
     "ability": "Analytic",
@@ -1213,7 +1213,7 @@
   },
   "Zoroark": {
     "ability": "Illusion",
-    "description": "Lets it enter battle disguised as the last Pokémon in its party until it's hit by a move or the disguise is otherwise broken."
+    "description": "Lets it enter battle disguised as the last Pok\u00e9mon in its party until it's hit by a move or the disguise is otherwise broken."
   },
   "Mega Absol Z": {
     "ability": "Sharpness",
@@ -1253,11 +1253,11 @@
   },
   "Swalot": {
     "ability": "Liquid Ooze",
-    "description": "Damages any Pokémon that tries to drain its HP by the same amount it would have healed, instead of healing them."
+    "description": "Damages any Pok\u00e9mon that tries to drain its HP by the same amount it would have healed, instead of healing them."
   },
   "Salamence": {
     "ability": "Intimidate",
-    "description": "Lowers the Attack of the opposing Pokémon by one stage as soon as it enters battle."
+    "description": "Lowers the Attack of the opposing Pok\u00e9mon by one stage as soon as it enters battle."
   },
   "Mega Salamence": {
     "ability": "Aerilate",
@@ -1269,19 +1269,19 @@
   },
   "Golisopod": {
     "ability": "Emergency Exit",
-    "description": "Switches the Pokémon out automatically once its HP drops to half or less."
+    "description": "Switches the Pok\u00e9mon out automatically once its HP drops to half or less."
   },
   "Mega Golisopod": {
     "ability": "Tough Claws",
-    "description": "Boosts the power of the Pokémon's contact moves by 30%."
+    "description": "Boosts the power of the Pok\u00e9mon's contact moves by 30%."
   },
   "Rillaboom": {
     "ability": "Grassy Surge",
-    "description": "Summons Grassy Terrain as soon as it enters battle, which gradually heals grounded Pokémon and boosts the power of their Grass-type moves."
+    "description": "Summons Grassy Terrain as soon as it enters battle, which gradually heals grounded Pok\u00e9mon and boosts the power of their Grass-type moves."
   },
   "Cinderace": {
     "ability": "Libero",
-    "description": "Changes the Pokémon's type to match the type of the move it's about to use."
+    "description": "Changes the Pok\u00e9mon's type to match the type of the move it's about to use."
   },
   "Inteleon": {
     "ability": "Torrent",
@@ -1309,19 +1309,19 @@
   },
   "Pincurchin": {
     "ability": "Electric Surge",
-    "description": "Summons Electric Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Electric-type moves and stops them from falling asleep."
+    "description": "Summons Electric Terrain as soon as it enters battle, which boosts the power of grounded Pok\u00e9mon's Electric-type moves and stops them from falling asleep."
   },
   "Indeedee (Male)": {
     "ability": "Psychic Surge",
-    "description": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Psychic-type moves and blocks priority moves from hitting grounded Pokémon."
+    "description": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pok\u00e9mon's Psychic-type moves and blocks priority moves from hitting grounded Pok\u00e9mon."
   },
   "Indeedee (Female)": {
     "ability": "Psychic Surge",
-    "description": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pokémon's Psychic-type moves and blocks priority moves from hitting grounded Pokémon."
+    "description": "Summons Psychic Terrain as soon as it enters battle, which boosts the power of grounded Pok\u00e9mon's Psychic-type moves and blocks priority moves from hitting grounded Pok\u00e9mon."
   },
   "Arboliva": {
     "ability": "Seed Sower",
-    "description": "Turns the terrain into Grassy Terrain when the Pokémon is hit by an attack."
+    "description": "Turns the terrain into Grassy Terrain when the Pok\u00e9mon is hit by an attack."
   },
   "Squawkabilly (Green Plumage)": {
     "ability": "Guts",
@@ -1350,5 +1350,9 @@
   "Mega Baxcalibur": {
     "ability": "Thermal Exchange",
     "description": "Raises its Attack by one stage when hit by a Fire-type move, and can't be burned."
+  },
+  "Pawmot": {
+    "ability": "Iron Fist",
+    "description": "Boosts the power of the Pok\u00e9mon's punching moves by 20%."
   }
 }
