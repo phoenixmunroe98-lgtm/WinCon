@@ -91,6 +91,20 @@
       "name": "Snow Warning"
     }
   ],
+  "Alolan Persian": [
+    {
+      "isHidden": false,
+      "name": "Fur Coat"
+    },
+    {
+      "isHidden": false,
+      "name": "Technician"
+    },
+    {
+      "isHidden": true,
+      "name": "Rattled"
+    }
+  ],
   "Alolan Raichu": [
     {
       "isHidden": false,
@@ -167,6 +181,16 @@
     {
       "isHidden": true,
       "name": "Unnerve"
+    }
+  ],
+  "Arboliva": [
+    {
+      "isHidden": false,
+      "name": "Seed Sower"
+    },
+    {
+      "isHidden": true,
+      "name": "Harvest"
     }
   ],
   "Arcanine": [
@@ -335,6 +359,16 @@
       "name": "Soundproof"
     }
   ],
+  "Baxcalibur": [
+    {
+      "isHidden": false,
+      "name": "Thermal Exchange"
+    },
+    {
+      "isHidden": true,
+      "name": "Ice Body"
+    }
+  ],
   "Beartic": [
     {
       "isHidden": false,
@@ -461,6 +495,16 @@
     {
       "isHidden": false,
       "name": "Levitate"
+    }
+  ],
+  "Cinderace": [
+    {
+      "isHidden": false,
+      "name": "Blaze"
+    },
+    {
+      "isHidden": true,
+      "name": "Libero"
     }
   ],
   "Clawitzer": [
@@ -725,6 +769,20 @@
       "name": "Defiant"
     }
   ],
+  "Farfetch'd": [
+    {
+      "isHidden": false,
+      "name": "Keen Eye"
+    },
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": true,
+      "name": "Defiant"
+    }
+  ],
   "Farigiraf": [
     {
       "isHidden": false,
@@ -979,6 +1037,22 @@
       "name": "Poison Heal"
     }
   ],
+  "Gogoat": [
+    {
+      "isHidden": false,
+      "name": "Sap Sipper"
+    },
+    {
+      "isHidden": true,
+      "name": "Grass Pelt"
+    }
+  ],
+  "Golisopod": [
+    {
+      "isHidden": false,
+      "name": "Emergency Exit"
+    }
+  ],
   "Golurk": [
     {
       "isHidden": false,
@@ -1019,6 +1093,16 @@
     {
       "isHidden": true,
       "name": "Insomnia"
+    }
+  ],
+  "Grapploct": [
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": true,
+      "name": "Technician"
     }
   ],
   "Greninja": [
@@ -1253,6 +1337,34 @@
       "name": "Intimidate"
     }
   ],
+  "Indeedee (Female)": [
+    {
+      "isHidden": false,
+      "name": "Own Tempo"
+    },
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": true,
+      "name": "Psychic Surge"
+    }
+  ],
+  "Indeedee (Male)": [
+    {
+      "isHidden": false,
+      "name": "Inner Focus"
+    },
+    {
+      "isHidden": false,
+      "name": "Synchronize"
+    },
+    {
+      "isHidden": true,
+      "name": "Psychic Surge"
+    }
+  ],
   "Infernape": [
     {
       "isHidden": false,
@@ -1261,6 +1373,16 @@
     {
       "isHidden": true,
       "name": "Iron Fist"
+    }
+  ],
+  "Inteleon": [
+    {
+      "isHidden": false,
+      "name": "Torrent"
+    },
+    {
+      "isHidden": true,
+      "name": "Sniper"
     }
   ],
   "Jolteon": [
@@ -1433,6 +1555,20 @@
       "name": "Steadfast"
     }
   ],
+  "Mabosstiff": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Guard Dog"
+    },
+    {
+      "isHidden": true,
+      "name": "Stakeout"
+    }
+  ],
   "Machamp": [
     {
       "isHidden": false,
@@ -1597,6 +1733,20 @@
       "name": "Hunger Switch"
     }
   ],
+  "Mr. Mime": [
+    {
+      "isHidden": false,
+      "name": "Soundproof"
+    },
+    {
+      "isHidden": false,
+      "name": "Filter"
+    },
+    {
+      "isHidden": true,
+      "name": "Technician"
+    }
+  ],
   "Mr. Rime": [
     {
       "isHidden": false,
@@ -1721,7 +1871,7 @@
       "name": "Cud Chew"
     }
   ],
-  "Paldean Tauros (Blaze Breed)": [
+  "Paldean Tauros (Aqua Breed)": [
     {
       "isHidden": false,
       "name": "Intimidate"
@@ -1735,7 +1885,7 @@
       "name": "Cud Chew"
     }
   ],
-  "Paldean Tauros (Aqua Breed)": [
+  "Paldean Tauros (Blaze Breed)": [
     {
       "isHidden": false,
       "name": "Intimidate"
@@ -1773,6 +1923,20 @@
       "name": "Defiant"
     }
   ],
+  "Pawmot": [
+    {
+      "isHidden": false,
+      "name": "Volt Absorb"
+    },
+    {
+      "isHidden": false,
+      "name": "Natural Cure"
+    },
+    {
+      "isHidden": true,
+      "name": "Iron Fist"
+    }
+  ],
   "Pelipper": [
     {
       "isHidden": false,
@@ -1785,6 +1949,34 @@
     {
       "isHidden": true,
       "name": "Rain Dish"
+    }
+  ],
+  "Perrserker": [
+    {
+      "isHidden": false,
+      "name": "Battle Armor"
+    },
+    {
+      "isHidden": false,
+      "name": "Tough Claws"
+    },
+    {
+      "isHidden": true,
+      "name": "Steely Spirit"
+    }
+  ],
+  "Persian": [
+    {
+      "isHidden": false,
+      "name": "Limber"
+    },
+    {
+      "isHidden": false,
+      "name": "Technician"
+    },
+    {
+      "isHidden": true,
+      "name": "Unnerve"
     }
   ],
   "Pidgeot": [
@@ -1809,6 +2001,16 @@
     {
       "isHidden": true,
       "name": "Lightning Rod"
+    }
+  ],
+  "Pincurchin": [
+    {
+      "isHidden": false,
+      "name": "Lightning Rod"
+    },
+    {
+      "isHidden": true,
+      "name": "Electric Surge"
     }
   ],
   "Pinsir": [
@@ -1945,6 +2147,16 @@
       "name": "Reckless"
     }
   ],
+  "Rillaboom": [
+    {
+      "isHidden": false,
+      "name": "Overgrow"
+    },
+    {
+      "isHidden": true,
+      "name": "Grassy Surge"
+    }
+  ],
   "Roserade": [
     {
       "isHidden": false,
@@ -1983,6 +2195,16 @@
     {
       "isHidden": true,
       "name": "Prankster"
+    }
+  ],
+  "Salamence": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": true,
+      "name": "Moxie"
     }
   ],
   "Salazzle": [
@@ -2145,6 +2367,16 @@
       "name": "Heatproof"
     }
   ],
+  "Sirfetch'd": [
+    {
+      "isHidden": false,
+      "name": "Steadfast"
+    },
+    {
+      "isHidden": true,
+      "name": "Scrappy"
+    }
+  ],
   "Skarmory": [
     {
       "isHidden": false,
@@ -2245,6 +2477,62 @@
       "name": "Infiltrator"
     }
   ],
+  "Squawkabilly (Blue Plumage)": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Hustle"
+    },
+    {
+      "isHidden": true,
+      "name": "Guts"
+    }
+  ],
+  "Squawkabilly (Green Plumage)": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Hustle"
+    },
+    {
+      "isHidden": true,
+      "name": "Guts"
+    }
+  ],
+  "Squawkabilly (White Plumage)": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Hustle"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
+  "Squawkabilly (Yellow Plumage)": [
+    {
+      "isHidden": false,
+      "name": "Intimidate"
+    },
+    {
+      "isHidden": false,
+      "name": "Hustle"
+    },
+    {
+      "isHidden": true,
+      "name": "Sheer Force"
+    }
+  ],
   "Staraptor": [
     {
       "isHidden": false,
@@ -2297,6 +2585,20 @@
       "name": "Sand Veil"
     }
   ],
+  "Swalot": [
+    {
+      "isHidden": false,
+      "name": "Liquid Ooze"
+    },
+    {
+      "isHidden": false,
+      "name": "Sticky Hold"
+    },
+    {
+      "isHidden": true,
+      "name": "Gluttony"
+    }
+  ],
   "Swampert": [
     {
       "isHidden": false,
@@ -2339,6 +2641,20 @@
     {
       "isHidden": true,
       "name": "Sheer Force"
+    }
+  ],
+  "Thievul": [
+    {
+      "isHidden": false,
+      "name": "Run Away"
+    },
+    {
+      "isHidden": false,
+      "name": "Unburden"
+    },
+    {
+      "isHidden": true,
+      "name": "Stakeout"
     }
   ],
   "Tinkaton": [
@@ -2419,6 +2735,34 @@
     {
       "isHidden": true,
       "name": "Poison Touch"
+    }
+  ],
+  "Toxtricity (Amped Form)": [
+    {
+      "isHidden": false,
+      "name": "Punk Rock"
+    },
+    {
+      "isHidden": false,
+      "name": "Plus"
+    },
+    {
+      "isHidden": true,
+      "name": "Technician"
+    }
+  ],
+  "Toxtricity (Low Key Form)": [
+    {
+      "isHidden": false,
+      "name": "Punk Rock"
+    },
+    {
+      "isHidden": false,
+      "name": "Minus"
+    },
+    {
+      "isHidden": true,
+      "name": "Technician"
     }
   ],
   "Trevenant": [
@@ -2605,6 +2949,20 @@
       "name": "Chlorophyll"
     }
   ],
+  "Wigglytuff": [
+    {
+      "isHidden": false,
+      "name": "Cute Charm"
+    },
+    {
+      "isHidden": false,
+      "name": "Competitive"
+    },
+    {
+      "isHidden": true,
+      "name": "Frisk"
+    }
+  ],
   "Wyrdeer": [
     {
       "isHidden": false,
@@ -2623,20 +2981,6 @@
     {
       "isHidden": false,
       "name": "Illusion"
-    }
-  ],
-  "Pawmot": [
-    {
-      "isHidden": false,
-      "name": "Volt Absorb"
-    },
-    {
-      "isHidden": false,
-      "name": "Natural Cure"
-    },
-    {
-      "isHidden": true,
-      "name": "Iron Fist"
     }
   ]
 }

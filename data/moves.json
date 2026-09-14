@@ -2715,7 +2715,7 @@
     "category": "Status",
     "power": 0,
     "accuracy": null,
-    "pp": 8,
+    "pp": 5,
     "priority": 0,
     "description": "The user restores 1/2 of its maximum HP, rounded half up."
   },
@@ -4185,7 +4185,7 @@
     "category": "Status",
     "power": 0,
     "accuracy": 100,
-    "pp": 12,
+    "pp": 8,
     "priority": 0,
     "description": "Lowers the target's Attack by 1 stage. The user restores its HP equal to the target's Attack stat calculated with its stat stage before this move was used. If Big Root is held by the user, the HP recovered is 1.3x normal, rounded half down. Fails if the target's Attack stat stage is -6."
   },
@@ -4915,7 +4915,7 @@
     "category": "Status",
     "power": 0,
     "accuracy": null,
-    "pp": 12,
+    "pp": 8,
     "priority": 0,
     "description": "At the end of the next turn, the Pokemon at the user's position has 1/2 of the user's maximum HP restored to it, rounded down. Fails if this move is already in effect for the user's position."
   },
@@ -4998,5 +4998,145 @@
     "pp": 16,
     "priority": 0,
     "description": "Has a 20% chance to make the target flinch."
+  },
+  {
+    "name": "Pyro Ball",
+    "type": "Fire",
+    "category": "Physical",
+    "power": 120,
+    "accuracy": 90,
+    "pp": 5,
+    "priority": 0,
+    "description": "The user launches a fiery projectile at the target. This may also leave the target with a burn. Cinderace's signature move."
+  },
+  {
+    "name": "Court Change",
+    "type": "Normal",
+    "category": "Status",
+    "power": 0,
+    "accuracy": 100,
+    "pp": 10,
+    "priority": 0,
+    "description": "The user swaps the effects on its own side of the field with those on the opposing side, such as Stealth Rock, Spikes, Toxic Spikes, Sticky Web, Reflect, Light Screen, Aurora Veil, Safeguard, Mist, and Tailwind."
+  },
+  {
+    "name": "Snipe Shot",
+    "type": "Water",
+    "category": "Special",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 15,
+    "priority": 0,
+    "description": "The user ignores the effects of Abilities and moves that draw in moves, such as Follow Me and Rage Powder, letting it hit the target it chose. This move has a heightened critical-hit ratio."
+  },
+  {
+    "name": "Jaw Lock",
+    "type": "Dark",
+    "category": "Physical",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 10,
+    "priority": 0,
+    "description": "Prevents the user and the target from switching out until either of them faints. The effect ends if either Pokemon leaves the field for any reason."
+  },
+  {
+    "name": "Meteor Assault",
+    "type": "Fighting",
+    "category": "Physical",
+    "power": 150,
+    "accuracy": 100,
+    "pp": 5,
+    "priority": 0,
+    "description": "The user is unable to move on the next turn after using this move, as the force of the blow makes it stagger. Sirfetch'd's signature move."
+  },
+  {
+    "name": "Overdrive",
+    "type": "Electric",
+    "category": "Special",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 10,
+    "priority": 0,
+    "description": "The user twangs a guitar or bass to send a huge echo and strong vibration toward the opposing side, hitting all adjacent opponents. This is a sound-based move."
+  },
+  {
+    "name": "Octolock",
+    "type": "Fighting",
+    "category": "Status",
+    "power": 0,
+    "accuracy": 100,
+    "pp": 15,
+    "priority": 0,
+    "description": "The user locks the target in and prevents it from fleeing or switching out. The target's Defense and Sp. Def are also lowered by one stage at the end of each turn."
+  },
+  {
+    "name": "Glaive Rush",
+    "type": "Dragon",
+    "category": "Physical",
+    "power": 120,
+    "accuracy": 100,
+    "pp": 5,
+    "priority": 0,
+    "description": "If this move hits, until the end of the user's next turn, attacks against the user are guaranteed to hit and deal double damage. Baxcalibur's signature move."
+  },
+  {
+    "name": "Revival Blessing",
+    "type": "Normal",
+    "category": "Status",
+    "power": 0,
+    "accuracy": null,
+    "pp": 1,
+    "priority": 0,
+    "description": "The user brings a fainted ally back to life, restoring half that Pokemon's maximum HP. Fails if no ally has fainted."
+  },
+  {
+    "name": "Double Shock",
+    "type": "Electric",
+    "category": "Physical",
+    "power": 120,
+    "accuracy": 100,
+    "pp": 5,
+    "priority": 0,
+    "description": "The user discharges all the electricity from its body to inflict damage. After using this move, the user loses its Electric type. Fails if the user is not an Electric type. Pawmot's signature move."
+  },
+  {
+    "name": "Zing Zap",
+    "type": "Electric",
+    "category": "Physical",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 10,
+    "priority": 0,
+    "description": "A powerful electric shock is delivered to the target. This may also cause the target to flinch."
+  },
+  {
+    "name": "Drum Beating",
+    "type": "Grass",
+    "category": "Physical",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 10,
+    "priority": 0,
+    "description": "The user plays its drum, controlling roots to attack the target. This also lowers the target's Speed by one stage. Rillaboom's signature move."
+  },
+  {
+    "name": "Shift Gear",
+    "type": "Steel",
+    "category": "Status",
+    "power": 0,
+    "accuracy": null,
+    "pp": 10,
+    "priority": 0,
+    "description": "Raises the user's Attack by 1 stage and its Speed by 2 stages."
+  },
+  {
+    "name": "Slash",
+    "type": "Normal",
+    "category": "Physical",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 20,
+    "priority": 0,
+    "description": "The target is attacked with a slash of claws or blades. This move has a heightened critical-hit ratio."
   }
 ]
