@@ -2667,6 +2667,16 @@ Fourteen real moves tied to Regulation M-C's new roster were entirely missing fr
 
 **Verification.** Full `tools/test-*.mjs` suite (44 files, same pre-existing sandbox-only `test-weight-search.mjs` file-deletion permission issue noted in Milestone 67, unrelated to this change) run after every edit — zero regressions.
 
+## Four more player-reported moveset gaps: three real, one already fixed (Milestone 69)
+
+Phoenix reported four more specific moveset claims: Golisopod learns Iron Head and Close Combat; Salamence learns Temper Flare; Basculegion learns Zen Headbutt and Liquidation; Farigiraf learns Psychic. Checked every claim against pokemondb.net/Bulbapedia before touching anything, the same discipline as Milestone 68, rather than trusting the report at face value.
+
+**Three real, confirmed gaps, now fixed.** Golisopod (and Mega Golisopod) really do learn Iron Head and Close Combat -- not in Scarlet/Violet directly (Golisopod isn't in the Paldea dex, so it has no SV TM compatibility at all), but via Technical Record in its native Generation VIII (Sword/Shield), the same real-movepool-from-any-generation standard this project has used throughout (e.g. Persian's Slash in Milestone 68). Salamence (and Mega Salamence) really do learn Temper Flare, via SV's TM207 -- a Generation IX move that simply hadn't been reconciled into `learnsets.json` yet. Farigiraf really does learn Psychic itself (level 50 and TM120 in SV) -- its `learnsets.json` entry already had Psychic Fangs, Psychic Noise, and Psychic Terrain, but not the plain move Psychic. All three added; all four move definitions (Iron Head, Close Combat, Temper Flare, Psychic) already existed correctly in `moves.json`, so this was a learnset-wiring fix only, no new move data needed.
+
+**One already correct.** Basculegion's `learnsets.json` entry already had both Zen Headbutt and Liquidation before this milestone touched anything -- confirmed by direct inspection, not assumed. No change made there; noting it here so the report isn't mistaken for a miss.
+
+**Verification.** Full `tools/test-*.mjs` suite (44 files) green.
+
 ## Running it
 
 
