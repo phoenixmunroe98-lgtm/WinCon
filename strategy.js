@@ -319,43 +319,52 @@ function wcRealStatPointSpreadFor(species, format, liveChampionsStats) {
 // walks the team in order and, for each member, hands out the first pool
 // entry nobody earlier in the team already has (see wcPickItem) — so a
 // full 6-member team never comes out of auto-generate with a clash.
+//
+// Every entry below is drawn only from held items actually legal in
+// Pokémon Champions right now (Milestone 70) -- the game's held-item pool
+// is a curated subset of the classic mainline list, and long-time VGC
+// staples like Choice Band, Choice Specs, Assault Vest, Safety Goggles,
+// Weakness Policy, and Heavy-Duty Boots are not currently implemented, so
+// Auto-build/Dream Team never hand any of those out.
 const WINCON_ITEM_POOLS = {
   doubles: {
     fast: {
       // Choice Scarf's speed control is a long-running staple — safe even
       // when a teammate needs you unlocked less often than in a 1-on-1
-      // game. Choice Band/Specs are the harder-hitting locked fallback.
-      Physical: ["Choice Scarf", "Choice Band", "Life Orb", "Focus Sash", "Expert Belt", "Wide Lens"],
-      Special: ["Choice Scarf", "Choice Specs", "Life Orb", "Focus Sash", "Expert Belt", "Wide Lens"],
+      // game. Life Orb keeps the wielder flexible; Muscle Band/Wise Glasses
+      // are milder, clause-safe power picks that don't lock the move.
+      Physical: ["Choice Scarf", "Life Orb", "Focus Sash", "Expert Belt", "Wide Lens", "Muscle Band"],
+      Special: ["Choice Scarf", "Life Orb", "Focus Sash", "Expert Belt", "Wide Lens", "Wise Glasses"],
     },
     // Sitrus Berry's one-time heal is cheap insurance for a short game;
-    // Assault Vest/Rocky Helmet cover the next two most common bulky
-    // Doubles roles (special sponge, physical punish-switch-ins).
-    bulky: ["Sitrus Berry", "Assault Vest", "Rocky Helmet", "Leftovers", "Safety Goggles", "Weakness Policy"],
+    // Rocky Helmet/Leftovers cover punish-switch-ins and steady recovery,
+    // and Mental Herb/White Herb/Shell Bell round out the bulky pool with
+    // other currently-legal defensive-utility items.
+    bulky: ["Sitrus Berry", "Rocky Helmet", "Leftovers", "Mental Herb", "White Herb", "Shell Bell"],
   },
   singles: {
     fast: {
       // Life Orb keeps you unlocked, useful over a longer match where you
-      // may need to switch move choice turn to turn; Choice Band/Specs
-      // trade that flexibility for more raw power once Life Orb is taken.
-      Physical: ["Life Orb", "Choice Band", "Choice Scarf", "Expert Belt", "Focus Sash", "Muscle Band"],
-      Special: ["Life Orb", "Choice Specs", "Choice Scarf", "Expert Belt", "Focus Sash", "Wise Glasses"],
+      // may need to switch move choice turn to turn; Choice Scarf trades
+      // that flexibility for guaranteed Speed control.
+      Physical: ["Life Orb", "Choice Scarf", "Expert Belt", "Focus Sash", "Muscle Band", "Wide Lens"],
+      Special: ["Life Orb", "Choice Scarf", "Expert Belt", "Focus Sash", "Wise Glasses", "Wide Lens"],
     },
     // Leftovers' steady per-turn recovery pays off over a longer war of
     // attrition than Doubles usually allows for.
-    bulky: ["Leftovers", "Assault Vest", "Rocky Helmet", "Sitrus Berry", "Safety Goggles", "Weakness Policy"],
+    bulky: ["Leftovers", "Rocky Helmet", "Sitrus Berry", "Mental Herb", "White Herb", "Shell Bell"],
   },
 };
 
 // Catch-all if a role/category pool ever runs dry before the team does —
 // can't actually happen at the real 6-Pokémon team cap given the pools
 // above, but keeps wcPickItem always returning something sane instead of
-// undefined if this ever gets called with a larger roster.
+// undefined if this ever gets called with a larger roster. Legal items
+// only (Milestone 70).
 const WINCON_ITEM_FALLBACK_POOL = [
-  "Choice Scarf", "Choice Band", "Choice Specs", "Life Orb", "Leftovers", "Sitrus Berry",
-  "Assault Vest", "Rocky Helmet", "Focus Sash", "Expert Belt", "Wide Lens", "Safety Goggles",
-  "Weakness Policy", "Muscle Band", "Wise Glasses", "Metronome", "Shell Bell", "Air Balloon",
-  "Heavy-Duty Boots", "Cell Battery", "Absorb Bulb", "Big Root",
+  "Choice Scarf", "Life Orb", "Leftovers", "Sitrus Berry", "Rocky Helmet", "Focus Sash",
+  "Expert Belt", "Wide Lens", "Muscle Band", "Wise Glasses", "Metronome", "Shell Bell",
+  "Air Balloon", "Big Root",
 ];
 
 /**
@@ -2760,12 +2769,12 @@ const WINCON_ARCHETYPE_COUNTERS = {
     reason: "Tailwind doesn't stack and only lasts 4 turns -- denying the setter its first cast, or just surviving until it expires, neutralizes it entirely.",
   },
   sun: {
-    counter: "Setting Rain instead, or a Utility Umbrella holder",
-    reason: "a newly-set weather always overwrites the old one outright, and Utility Umbrella specifically blocks Sun's move-power boost and Chlorophyll's Speed double while its holder keeps acting normally.",
+    counter: "Setting Rain instead, or a Cloud Nine/Air Lock holder",
+    reason: "a newly-set weather always overwrites the old one outright, and Cloud Nine/Air Lock negates the sun's effects entirely -- blocking its move-power boost and Chlorophyll's Speed double -- while its holder keeps acting normally.",
   },
   rain: {
-    counter: "Setting Sun instead, or a Utility Umbrella holder",
-    reason: "the same overwrite rule applies in reverse, and Utility Umbrella blocks Rain's Water-move boost and Swift Swim's Speed double.",
+    counter: "Setting Sun instead, or a Cloud Nine/Air Lock holder",
+    reason: "the same overwrite rule applies in reverse, and Cloud Nine/Air Lock negates the rain's effects entirely, blocking its Water-move boost and Swift Swim's Speed double.",
   },
   sand: {
     counter: "A Rock/Ground/Steel-type (immune to the chip), an Overcoat/Magic Guard holder, or setting a different weather",
@@ -2796,8 +2805,8 @@ const WINCON_ARCHETYPE_COUNTERS = {
     reason: "Follow Me/Rage Powder can only reroute a move aimed at one specific target -- a move already hitting the whole field ignores them completely.",
   },
   hazards: {
-    counter: "Rapid Spin, Defog, or a Heavy-Duty Boots holder",
-    reason: "the first two clear hazards from the field outright, and Boots lets its holder ignore any hazards already down without removing them.",
+    counter: "Rapid Spin or Defog",
+    reason: "both specifically clear hazards from the field outright, removing them for the rest of the game.",
   },
   electricterrain: {
     counter: "A Flying-type, a Levitate holder, or anything else ungrounded",
@@ -4516,15 +4525,16 @@ function wcTrickRoomDependencyWarnings(members, builds) {
 /**
  * Point 3 of the sourced prompt ("Trick Room defence audit"): for any
  * team that isn't itself running Trick Room as its primary strategy,
- * checks for the four concrete anti-Trick-Room tools the prompt itself
- * named -- a Taunt user (silences an incoming setter before it moves), a
- * Fake Out user (its fixed +3 priority still goes before a slower
- * Trick-Roomed opponent, since priority brackets are never reversed by
- * Trick Room, only turn order within the same bracket is), a genuine
- * minimum-Speed utility pivot (0 Speed Stat Points -- "doesn't care
- * which way Speed order runs" is itself a defensive answer to Trick
- * Room), and a Safety Goggles holder (bypasses Spore/Rage Powder-style
- * redirection and status the opponent might lean on while Room is up).
+ * checks for three concrete anti-Trick-Room tools -- a Taunt user
+ * (silences an incoming setter before it moves), a Fake Out user (its
+ * fixed +3 priority still goes before a slower Trick-Roomed opponent,
+ * since priority brackets are never reversed by Trick Room, only turn
+ * order within the same bracket is), and a genuine minimum-Speed
+ * utility pivot (0 Speed Stat Points -- "doesn't care which way Speed
+ * order runs" is itself a defensive answer to Trick Room).
+ * (The prompt's fourth tool, a Safety Goggles holder, is omitted --
+ * Safety Goggles isn't currently a legal held item in Pokémon Champions,
+ * so it can never be a real answer on a legal team. See Milestone 70.)
  * Returns { audited: false } for a team that's itself Trick-Room-
  * archetyped -- it doesn't need defenses against its own plan.
  */
@@ -4535,7 +4545,6 @@ function wcAntiTrickRoomAudit(members, builds, archetype) {
   const tauntUsers = members.filter((m) => builds[m.name] && (builds[m.name].moves || []).includes("Taunt"));
   const fakeOutUsers = members.filter((m) => builds[m.name] && (builds[m.name].moves || []).includes("Fake Out"));
   const minSpeedPivots = members.filter((m) => builds[m.name] && builds[m.name].sp && builds[m.name].sp.speed === 0);
-  const safetyGogglesUsers = members.filter((m) => builds[m.name] && builds[m.name].item === "Safety Goggles");
 
   const confirmations = [];
   const gaps = [];
@@ -4558,12 +4567,6 @@ function wcAntiTrickRoomAudit(members, builds, archetype) {
     gaps.push("No minimum-Speed utility pivot on this team -- everyone is built to care about Speed order one way, so an opposing Trick Room flips who's disadvantaged for the whole team at once.");
   }
 
-  if (safetyGogglesUsers.length) {
-    confirmations.push(`${safetyGogglesUsers.map((m) => m.name).join(", ")} holds Safety Goggles, bypassing Spore/Rage Powder-style redirection and status.`);
-  } else {
-    gaps.push("No one holds Safety Goggles -- a redirection-plus-status Amoonguss-style lead has no built-in answer on this team.");
-  }
-
   return { audited: true, gaps, confirmations };
 }
 
@@ -4581,10 +4584,12 @@ function wcAntiTrickRoomAudit(members, builds, archetype) {
  * build already has a real reason to hold (a Mega Stone, an existing
  * defensive item), only filling a genuinely empty or clearly-worse slot.
  */
+// Lax Incense isn't currently a legal held item in Pokémon Champions (Milestone
+// 70), so it's intentionally excluded here -- it can never actually be held
+// on a legal team.
 const WINCON_HIGH_VARIANCE_ITEMS = {
   "Quick Claw": "a random ~20% chance to move first each turn -- not a reliable tournament tool since it fails 4 times out of 5.",
   "King's Rock": "a random ~10% flinch chance -- too unreliable to build a real gameplan around.",
-  "Lax Incense": "a random ~10% extra evasion -- too unreliable to build a real gameplan around.",
   "Bright Powder": "a random ~10% extra evasion -- too unreliable to build a real gameplan around.",
 };
 

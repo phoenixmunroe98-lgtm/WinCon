@@ -2173,11 +2173,16 @@ function ensureItemDatalist() {
   if (document.getElementById("item-options")) return;
   const datalist = document.createElement("datalist");
   datalist.id = "item-options";
-  data.items.forEach((item) => {
-    const opt = document.createElement("option");
-    opt.value = item.name;
-    datalist.appendChild(opt);
-  });
+  // Regulation M-C only supports a curated subset of held items (Milestone 70) --
+  // data.items is a full mainline items database, so only "legal: true" entries
+  // (the items actually usable in Pokemon Champions right now) are suggested here.
+  data.items
+    .filter((item) => item.legal)
+    .forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = item.name;
+      datalist.appendChild(opt);
+    });
   document.body.appendChild(datalist);
 }
 

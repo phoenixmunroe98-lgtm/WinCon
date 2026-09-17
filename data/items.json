@@ -5,15 +5,18 @@
   },
   {
     "name": "Abomasite",
-    "description": "If held by an Abomasnow, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Abomasnow, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Absolite",
-    "description": "If held by an Absol, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Absol, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Absolite Z",
-    "description": "If held by an Absol, this item allows it to undergo its Mega Z Evolution in battle -- a distinct Mega form from the one Absolite grants."
+    "description": "If held by an Absol, this item allows it to undergo its Mega Z Evolution in battle -- a distinct Mega form from the one Absolite grants.",
+    "legal": true
   },
   {
     "name": "Absorb Bulb",
@@ -33,11 +36,13 @@
   },
   {
     "name": "Aerodactylite",
-    "description": "If held by an Aerodactyl, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Aerodactyl, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Aggronite",
-    "description": "If held by an Aggron, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Aggron, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Aguav Berry",
@@ -45,11 +50,13 @@
   },
   {
     "name": "Air Balloon",
-    "description": "Holder is immune to Ground-type attacks. Pops when holder is hit."
+    "description": "Holder is immune to Ground-type attacks. Pops when holder is hit.",
+    "legal": true
   },
   {
     "name": "Alakazite",
-    "description": "If held by an Alakazam, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Alakazam, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Aloraichium Z",
@@ -57,11 +64,13 @@
   },
   {
     "name": "Altarianite",
-    "description": "If held by an Altaria, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Altaria, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Ampharosite",
-    "description": "If held by an Ampharos, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Ampharos, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Apicot Berry",
@@ -73,7 +82,8 @@
   },
   {
     "name": "Aspear Berry",
-    "description": "Holder is cured if it is frozen. Single use."
+    "description": "Holder is cured if it is frozen. Single use.",
+    "legal": true
   },
   {
     "name": "Assault Vest",
@@ -81,7 +91,8 @@
   },
   {
     "name": "Audinite",
-    "description": "If held by an Audino, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Audino, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Auspicious Armor",
@@ -89,19 +100,23 @@
   },
   {
     "name": "Babiri Berry",
-    "description": "Halves damage taken from a supereffective Steel-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Steel-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Banettite",
-    "description": "If held by a Banette, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Banette, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Barbaracite",
-    "description": "If held by a Barbaracle, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Barbaracle, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Baxcalibrite",
-    "description": "If held by a Baxcalibur, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Baxcalibur, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Beast Ball",
@@ -109,7 +124,8 @@
   },
   {
     "name": "Beedrillite",
-    "description": "If held by a Beedrill, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Beedrill, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Belue Berry",
@@ -137,11 +153,13 @@
   },
   {
     "name": "Big Root",
-    "description": "Holder gains 1.3x HP from draining/Aqua Ring/Ingrain/Leech Seed/Strength Sap."
+    "description": "Holder gains 1.3x HP from draining/Aqua Ring/Ingrain/Leech Seed/Strength Sap.",
+    "legal": true
   },
   {
     "name": "Binding Band",
-    "description": "Holder's partial-trapping moves deal 1/6 max HP per turn instead of 1/8."
+    "description": "Holder's partial-trapping moves deal 1/6 max HP per turn instead of 1/8.",
+    "legal": true
   },
   {
     "name": "Bitter Berry",
@@ -149,11 +167,13 @@
   },
   {
     "name": "Black Belt",
-    "description": "Holder's Fighting-type attacks have 1.2x power."
+    "description": "Holder's Fighting-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Black Glasses",
-    "description": "Holder's Dark-type attacks have 1.2x power."
+    "description": "Holder's Dark-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Black Sludge",
@@ -161,11 +181,13 @@
   },
   {
     "name": "Blastoisinite",
-    "description": "If held by a Blastoise, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Blastoise, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Blazikenite",
-    "description": "If held by a Blaziken, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Blaziken, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Blue Orb",
@@ -189,7 +211,8 @@
   },
   {
     "name": "Bright Powder",
-    "description": "The accuracy of attacks against the holder is 0.9x."
+    "description": "The accuracy of attacks against the holder is 0.9x.",
+    "legal": true
   },
   {
     "name": "Bug Gem",
@@ -213,7 +236,8 @@
   },
   {
     "name": "Cameruptite",
-    "description": "If held by a Camerupt, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Camerupt, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Cell Battery",
@@ -221,27 +245,33 @@
   },
   {
     "name": "Chandelurite",
-    "description": "If held by a Chandelure, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Chandelure, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Charcoal",
-    "description": "Holder's Fire-type attacks have 1.2x power."
+    "description": "Holder's Fire-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Charizardite X",
-    "description": "If held by a Charizard, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Charizard, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Charizardite Y",
-    "description": "If held by a Charizard, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Charizard, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Charti Berry",
-    "description": "Halves damage taken from a supereffective Rock-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Rock-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Cheri Berry",
-    "description": "Holder cures itself if it is paralyzed. Single use."
+    "description": "Holder cures itself if it is paralyzed. Single use.",
+    "legal": true
   },
   {
     "name": "Cherish Ball",
@@ -249,15 +279,18 @@
   },
   {
     "name": "Chesnaughtite",
-    "description": "If held by a Chesnaught, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Chesnaught, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Chesto Berry",
-    "description": "Holder wakes up if it is asleep. Single use."
+    "description": "Holder wakes up if it is asleep. Single use.",
+    "legal": true
   },
   {
     "name": "Chilan Berry",
-    "description": "Halves damage taken from a Normal-type attack. Single use."
+    "description": "Halves damage taken from a Normal-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Chill Drive",
@@ -265,7 +298,8 @@
   },
   {
     "name": "Chimechite",
-    "description": "If held by a Chimecho, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Chimecho, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Chipped Pot",
@@ -277,7 +311,8 @@
   },
   {
     "name": "Choice Scarf",
-    "description": "Holder's Speed is 1.5x, but it can only select the first move it executes."
+    "description": "Holder's Speed is 1.5x, but it can only select the first move it executes.",
+    "legal": true
   },
   {
     "name": "Choice Specs",
@@ -285,7 +320,8 @@
   },
   {
     "name": "Chople Berry",
-    "description": "Halves damage taken from a supereffective Fighting-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Fighting-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Claw Fossil",
@@ -297,7 +333,8 @@
   },
   {
     "name": "Clefablite",
-    "description": "If held by a Clefable, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Clefable, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Clover Sweet",
@@ -305,11 +342,13 @@
   },
   {
     "name": "Coba Berry",
-    "description": "Halves damage taken from a supereffective Flying-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Flying-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Colbur Berry",
-    "description": "Halves damage taken from a supereffective Dark-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Dark-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Cornerstone Mask",
@@ -329,7 +368,8 @@
   },
   {
     "name": "Crabominite",
-    "description": "If held by a Crabominable, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Crabominable, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Cracked Pot",
@@ -345,7 +385,8 @@
   },
   {
     "name": "Damp Rock",
-    "description": "Holder's use of Rain Dance lasts 8 turns instead of 5."
+    "description": "Holder's use of Rain Dance lasts 8 turns instead of 5.",
+    "legal": true
   },
   {
     "name": "Dark Gem",
@@ -381,7 +422,8 @@
   },
   {
     "name": "Delphoxite",
-    "description": "If held by a Delphox, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Delphox, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Destiny Knot",
@@ -409,11 +451,13 @@
   },
   {
     "name": "Dragalgite",
-    "description": "If held by a Dragalge, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Dragalge, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Dragon Fang",
-    "description": "Holder's Dragon-type attacks have 1.2x power."
+    "description": "Holder's Dragon-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Dragon Gem",
@@ -429,7 +473,8 @@
   },
   {
     "name": "Dragoninite",
-    "description": "If held by a Dragonite, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Dragonite, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Dragonium Z",
@@ -437,7 +482,8 @@
   },
   {
     "name": "Drampanite",
-    "description": "If held by a Drampa, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Drampa, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Dread Plate",
@@ -445,7 +491,7 @@
   },
   {
     "name": "Dream Ball",
-    "description": "A Poke Ball that makes it easier to catch wild Pokémon while they're asleep."
+    "description": "A Poke Ball that makes it easier to catch wild Pok\u00e9mon while they're asleep."
   },
   {
     "name": "Dubious Disc",
@@ -469,7 +515,8 @@
   },
   {
     "name": "Eelektrossite",
-    "description": "If held by an Eelektross, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Eelektross, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Eevium Z",
@@ -477,7 +524,8 @@
   },
   {
     "name": "Eject Button",
-    "description": "If holder survives a hit, it immediately switches out to a chosen ally. Single use."
+    "description": "If holder survives a hit, it immediately switches out to a chosen ally. Single use.",
+    "legal": true
   },
   {
     "name": "Eject Pack",
@@ -497,7 +545,8 @@
   },
   {
     "name": "Electric Seed",
-    "description": "If the terrain is Electric Terrain, raises holder's Defense by 1 stage. Single use."
+    "description": "If the terrain is Electric Terrain, raises holder's Defense by 1 stage. Single use.",
+    "legal": true
   },
   {
     "name": "Electrium Z",
@@ -505,7 +554,8 @@
   },
   {
     "name": "Emboarite",
-    "description": "If held by an Emboar, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Emboar, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Enigma Berry",
@@ -517,11 +567,13 @@
   },
   {
     "name": "Excadrite",
-    "description": "If held by an Excadrill, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Excadrill, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Expert Belt",
-    "description": "Holder's attacks that are super effective against the target do 1.2x damage."
+    "description": "Holder's attacks that are super effective against the target do 1.2x damage.",
+    "legal": true
   },
   {
     "name": "Fairium Z",
@@ -529,7 +581,8 @@
   },
   {
     "name": "Fairy Feather",
-    "description": "Holder's Fairy-type attacks have 1.2x power."
+    "description": "Holder's Fairy-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Fairy Gem",
@@ -541,7 +594,8 @@
   },
   {
     "name": "Falinksite",
-    "description": "If held by a Falinks, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Falinks, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Fast Ball",
@@ -549,7 +603,8 @@
   },
   {
     "name": "Feraligite",
-    "description": "If held by a Feraligatr, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Feraligatr, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Fighting Gem",
@@ -601,7 +656,8 @@
   },
   {
     "name": "Floettite",
-    "description": "If held by an Eternal Flower Floette, this item allows it to Mega Evolve in battle."
+    "description": "If held by an Eternal Flower Floette, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Flower Sweet",
@@ -621,11 +677,13 @@
   },
   {
     "name": "Focus Band",
-    "description": "Holder has a 10% chance to survive an attack that would KO it with 1 HP."
+    "description": "Holder has a 10% chance to survive an attack that would KO it with 1 HP.",
+    "legal": true
   },
   {
     "name": "Focus Sash",
-    "description": "If holder's HP is full, will survive an attack that would KO it with 1 HP. Single use."
+    "description": "If holder's HP is full, will survive an attack that would KO it with 1 HP. Single use.",
+    "legal": true
   },
   {
     "name": "Fossilized Bird",
@@ -649,7 +707,8 @@
   },
   {
     "name": "Froslassite",
-    "description": "If held by a Froslass, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Froslass, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Full Incense",
@@ -665,7 +724,8 @@
   },
   {
     "name": "Galladite",
-    "description": "If held by a Gallade, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Gallade, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Ganlon Berry",
@@ -673,19 +733,23 @@
   },
   {
     "name": "Garchompite",
-    "description": "If held by a Garchomp, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Garchomp, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Garchompite Z",
-    "description": "If held by a Garchomp, this item allows it to undergo its Mega Z Evolution in battle -- a distinct Mega form from the one Garchompite grants."
+    "description": "If held by a Garchomp, this item allows it to undergo its Mega Z Evolution in battle -- a distinct Mega form from the one Garchompite grants.",
+    "legal": true
   },
   {
     "name": "Gardevoirite",
-    "description": "If held by a Gardevoir, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Gardevoir, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Gengarite",
-    "description": "If held by a Gengar, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Gengar, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Ghost Gem",
@@ -701,11 +765,13 @@
   },
   {
     "name": "Glalitite",
-    "description": "If held by a Glalie, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Glalie, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Glimmoranite",
-    "description": "If held by a Glimmora, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Glimmora, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Gold Berry",
@@ -717,11 +783,13 @@
   },
   {
     "name": "Golisopite",
-    "description": "If held by a Golisopod, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Golisopod, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Golurkite",
-    "description": "If held by a Golurk, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Golurk, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Grass Gem",
@@ -737,7 +805,8 @@
   },
   {
     "name": "Grassy Seed",
-    "description": "If the terrain is Grassy Terrain, raises holder's Defense by 1 stage. Single use."
+    "description": "If the terrain is Grassy Terrain, raises holder's Defense by 1 stage. Single use.",
+    "legal": true
   },
   {
     "name": "Great Ball",
@@ -745,7 +814,8 @@
   },
   {
     "name": "Greninjite",
-    "description": "If held by a Greninja, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Greninja, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Grepa Berry",
@@ -777,19 +847,23 @@
   },
   {
     "name": "Gyaradosite",
-    "description": "If held by a Gyarados, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Gyarados, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Haban Berry",
-    "description": "Halves damage taken from a supereffective Dragon-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Dragon-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Hard Stone",
-    "description": "Holder's Rock-type attacks have 1.2x power."
+    "description": "Holder's Rock-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Hawluchanite",
-    "description": "If held by a Hawlucha, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Hawlucha, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Heal Ball",
@@ -801,7 +875,8 @@
   },
   {
     "name": "Heat Rock",
-    "description": "Holder's use of Sunny Day lasts 8 turns instead of 5."
+    "description": "Holder's use of Sunny Day lasts 8 turns instead of 5.",
+    "legal": true
   },
   {
     "name": "Heatranite",
@@ -821,7 +896,8 @@
   },
   {
     "name": "Heracronite",
-    "description": "If held by a Heracross, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Heracross, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Hondew Berry",
@@ -829,7 +905,8 @@
   },
   {
     "name": "Houndoominite",
-    "description": "If held by a Houndoom, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Houndoom, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Iapapa Berry",
@@ -861,7 +938,8 @@
   },
   {
     "name": "Icy Rock",
-    "description": "Holder's use of Snowscape lasts 8 turns instead of 5."
+    "description": "Holder's use of Snowscape lasts 8 turns instead of 5.",
+    "legal": true
   },
   {
     "name": "Incinium Z",
@@ -873,7 +951,8 @@
   },
   {
     "name": "Iron Ball",
-    "description": "Holder is grounded, Speed halved. If Flying type, takes neutral Ground damage."
+    "description": "Holder is grounded, Speed halved. If Flying type, takes neutral Ground damage.",
+    "legal": true
   },
   {
     "name": "Iron Plate",
@@ -889,15 +968,18 @@
   },
   {
     "name": "Kangaskhanite",
-    "description": "If held by a Kangaskhan, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Kangaskhan, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Kasib Berry",
-    "description": "Halves damage taken from a supereffective Ghost-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Ghost-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Kebia Berry",
-    "description": "Halves damage taken from a supereffective Poison-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Poison-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Kee Berry",
@@ -909,7 +991,8 @@
   },
   {
     "name": "King's Rock",
-    "description": "Holder's attacks without a chance to make the target flinch gain a 10% chance to make the target flinch. Evolves Poliwhirl into Politoed and Slowpoke into Slowking when traded."
+    "description": "Holder's attacks without a chance to make the target flinch gain a 10% chance to make the target flinch. Evolves Poliwhirl into Politoed and Slowpoke into Slowking when traded.",
+    "legal": true
   },
   {
     "name": "Kommonium Z",
@@ -941,15 +1024,18 @@
   },
   {
     "name": "Leek",
-    "description": "If held by a Farfetch’d or Sirfetch’d, its critical hit ratio is raised by 2 stages."
+    "description": "If held by a Farfetch\u2019d or Sirfetch\u2019d, its critical hit ratio is raised by 2 stages.",
+    "legal": true
   },
   {
     "name": "Leftovers",
-    "description": "At the end of every turn, holder restores 1/16 of its max HP."
+    "description": "At the end of every turn, holder restores 1/16 of its max HP.",
+    "legal": true
   },
   {
     "name": "Leppa Berry",
-    "description": "Restores 10 PP to the first of the holder's moves to reach 0 PP. Single use."
+    "description": "Restores 10 PP to the first of the holder's moves to reach 0 PP. Single use.",
+    "legal": true
   },
   {
     "name": "Level Ball",
@@ -961,15 +1047,18 @@
   },
   {
     "name": "Life Orb",
-    "description": "Holder's attacks do 1.3x damage, and it loses 1/10 its max HP after the attack."
+    "description": "Holder's attacks do 1.3x damage, and it loses 1/10 its max HP after the attack.",
+    "legal": true
   },
   {
     "name": "Light Ball",
-    "description": "If held by a Pikachu, its Attack and Sp. Atk are doubled."
+    "description": "If held by a Pikachu, its Attack and Sp. Atk are doubled.",
+    "legal": true
   },
   {
     "name": "Light Clay",
-    "description": "Holder's use of Aurora Veil, Light Screen, or Reflect lasts 8 turns instead of 5."
+    "description": "Holder's use of Aurora Veil, Light Screen, or Reflect lasts 8 turns instead of 5.",
+    "legal": true
   },
   {
     "name": "Loaded Dice",
@@ -977,7 +1066,8 @@
   },
   {
     "name": "Lopunnite",
-    "description": "If held by a Lopunny, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Lopunny, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Love Ball",
@@ -989,11 +1079,13 @@
   },
   {
     "name": "Lucarionite",
-    "description": "If held by a Lucario, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Lucario, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Lucarionite Z",
-    "description": "If held by a Lucario, this item allows it to undergo its Mega Z Evolution in battle -- a distinct Mega form from the one Lucarionite grants."
+    "description": "If held by a Lucario, this item allows it to undergo its Mega Z Evolution in battle -- a distinct Mega form from the one Lucarionite grants.",
+    "legal": true
   },
   {
     "name": "Lucky Punch",
@@ -1001,7 +1093,8 @@
   },
   {
     "name": "Lum Berry",
-    "description": "Holder cures itself if it has a non-volatile status or is confused. Single use."
+    "description": "Holder cures itself if it has a non-volatile status or is confused. Single use.",
+    "legal": true
   },
   {
     "name": "Luminous Moss",
@@ -1045,7 +1138,8 @@
   },
   {
     "name": "Magnet",
-    "description": "Holder's Electric-type attacks have 1.2x power."
+    "description": "Holder's Electric-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Mago Berry",
@@ -1061,7 +1155,8 @@
   },
   {
     "name": "Malamarite",
-    "description": "If held by a Malamar, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Malamar, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Malicious Armor",
@@ -1069,7 +1164,8 @@
   },
   {
     "name": "Manectite",
-    "description": "If held by a Manectric, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Manectric, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Maranga Berry",
@@ -1089,7 +1185,8 @@
   },
   {
     "name": "Mawilite",
-    "description": "If held by a Mawile, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Mawile, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Meadow Plate",
@@ -1097,23 +1194,28 @@
   },
   {
     "name": "Medichamite",
-    "description": "If held by a Medicham, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Medicham, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Meganiumite",
-    "description": "If held by a Meganium, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Meganium, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Mental Herb",
-    "description": "Cures holder of Attract, Disable, Encore, Heal Block, Taunt, Torment. Single use."
+    "description": "Cures holder of Attract, Disable, Encore, Heal Block, Taunt, Torment. Single use.",
+    "legal": true
   },
   {
     "name": "Meowsticite",
-    "description": "If held by a Meowstic, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Meowstic, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Metagrossite",
-    "description": "If held by a Metagross, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Metagross, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Metal Alloy",
@@ -1121,7 +1223,8 @@
   },
   {
     "name": "Metal Coat",
-    "description": "Holder's Steel-type attacks have 1.2x power. Evolves Onix into Steelix and Scyther into Scizor when traded."
+    "description": "Holder's Steel-type attacks have 1.2x power. Evolves Onix into Steelix and Scyther into Scizor when traded.",
+    "legal": true
   },
   {
     "name": "Metal Powder",
@@ -1129,7 +1232,8 @@
   },
   {
     "name": "Metronome",
-    "description": "Damage of moves used on consecutive turns is increased. Max 2x after 5 turns."
+    "description": "Damage of moves used on consecutive turns is increased. Max 2x after 5 turns.",
+    "legal": true
   },
   {
     "name": "Mewnium Z",
@@ -1165,7 +1269,8 @@
   },
   {
     "name": "Miracle Seed",
-    "description": "Holder's Grass-type attacks have 1.2x power."
+    "description": "Holder's Grass-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Mirror Herb",
@@ -1173,7 +1278,8 @@
   },
   {
     "name": "Misty Seed",
-    "description": "If the terrain is Misty Terrain, raises holder's Sp. Def by 1 stage. Single use."
+    "description": "If the terrain is Misty Terrain, raises holder's Sp. Def by 1 stage. Single use.",
+    "legal": true
   },
   {
     "name": "Moon Ball",
@@ -1185,7 +1291,8 @@
   },
   {
     "name": "Muscle Band",
-    "description": "Holder's physical attacks have 1.1x power."
+    "description": "Holder's physical attacks have 1.1x power.",
+    "legal": true
   },
   {
     "name": "Mystery Berry",
@@ -1193,7 +1300,8 @@
   },
   {
     "name": "Mystic Water",
-    "description": "Holder's Water-type attacks have 1.2x power."
+    "description": "Holder's Water-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Nanab Berry",
@@ -1209,7 +1317,8 @@
   },
   {
     "name": "Never-Melt Ice",
-    "description": "Holder's Ice-type attacks have 1.2x power."
+    "description": "Holder's Ice-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Nomel Berry",
@@ -1217,7 +1326,8 @@
   },
   {
     "name": "Normal Gem",
-    "description": "Holder's first successful Normal-type attack will have 1.3x power. Single use."
+    "description": "Holder's first successful Normal-type attack will have 1.3x power. Single use.",
+    "legal": true
   },
   {
     "name": "Normalium Z",
@@ -1225,7 +1335,8 @@
   },
   {
     "name": "Occa Berry",
-    "description": "Halves damage taken from a supereffective Fire-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Fire-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Odd Incense",
@@ -1237,7 +1348,8 @@
   },
   {
     "name": "Oran Berry",
-    "description": "Restores 10 HP when at 1/2 max HP or less. Single use."
+    "description": "Restores 10 HP when at 1/2 max HP or less. Single use.",
+    "legal": true
   },
   {
     "name": "Oval Stone",
@@ -1261,19 +1373,23 @@
   },
   {
     "name": "Passho Berry",
-    "description": "Halves damage taken from a supereffective Water-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Water-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Payapa Berry",
-    "description": "Halves damage taken from a supereffective Psychic-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Psychic-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Pecha Berry",
-    "description": "Holder is cured if it is poisoned. Single use."
+    "description": "Holder is cured if it is poisoned. Single use.",
+    "legal": true
   },
   {
     "name": "Persim Berry",
-    "description": "Holder is cured if it is confused. Single use."
+    "description": "Holder is cured if it is confused. Single use.",
+    "legal": true
   },
   {
     "name": "Petaya Berry",
@@ -1281,7 +1397,8 @@
   },
   {
     "name": "Pidgeotite",
-    "description": "If held by a Pidgeot, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Pidgeot, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Pikanium Z",
@@ -1301,7 +1418,8 @@
   },
   {
     "name": "Pinsirite",
-    "description": "If held by a Pinsir, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Pinsir, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Pixie Plate",
@@ -1313,7 +1431,8 @@
   },
   {
     "name": "Poison Barb",
-    "description": "Holder's Poison-type attacks have 1.2x power."
+    "description": "Holder's Poison-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Poison Gem",
@@ -1401,7 +1520,8 @@
   },
   {
     "name": "Psychic Seed",
-    "description": "If the terrain is Psychic Terrain, raises holder's Sp. Def by 1 stage. Single use."
+    "description": "If the terrain is Psychic Terrain, raises holder's Sp. Def by 1 stage. Single use.",
+    "legal": true
   },
   {
     "name": "Psychium Z",
@@ -1413,7 +1533,8 @@
   },
   {
     "name": "Pyroarite",
-    "description": "If held by a Pyroar, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Pyroar, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Qualot Berry",
@@ -1425,7 +1546,8 @@
   },
   {
     "name": "Quick Claw",
-    "description": "Each turn, holder has a 20% chance to move first in its priority bracket."
+    "description": "Each turn, holder has a 20% chance to move first in its priority bracket.",
+    "legal": true
   },
   {
     "name": "Quick Powder",
@@ -1437,11 +1559,13 @@
   },
   {
     "name": "Raichunite X",
-    "description": "If held by a Raichu, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Raichu, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Raichunite Y",
-    "description": "If held by a Raichu, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Raichu, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Rare Bone",
@@ -1449,7 +1573,8 @@
   },
   {
     "name": "Rawst Berry",
-    "description": "Holder is cured if it is burned. Single use."
+    "description": "Holder is cured if it is burned. Single use.",
+    "legal": true
   },
   {
     "name": "Razor Claw",
@@ -1469,7 +1594,8 @@
   },
   {
     "name": "Red Card",
-    "description": "If holder survives a hit, attacker is forced to switch to a random ally. Single use."
+    "description": "If holder survives a hit, attacker is forced to switch to a random ally. Single use.",
+    "legal": true
   },
   {
     "name": "Red Orb",
@@ -1485,7 +1611,8 @@
   },
   {
     "name": "Rindo Berry",
-    "description": "Halves damage taken from a supereffective Grass-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Grass-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Ring Target",
@@ -1509,7 +1636,8 @@
   },
   {
     "name": "Rocky Helmet",
-    "description": "If holder is hit by a contact move, the attacker loses 1/6 of its max HP."
+    "description": "If holder is hit by a contact move, the attacker loses 1/6 of its max HP.",
+    "legal": true
   },
   {
     "name": "Room Service",
@@ -1525,7 +1653,8 @@
   },
   {
     "name": "Roseli Berry",
-    "description": "Halves damage taken from a supereffective Fairy-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Fairy-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Rowap Berry",
@@ -1541,7 +1670,8 @@
   },
   {
     "name": "Sablenite",
-    "description": "If held by a Sableye, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Sableye, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Sachet",
@@ -1565,31 +1695,38 @@
   },
   {
     "name": "Salamencite",
-    "description": "If held by a Salamence, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Salamence, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Sceptilite",
-    "description": "If held by a Sceptile, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Sceptile, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Scizorite",
-    "description": "If held by a Scizor, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Scizor, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Scolipite",
-    "description": "If held by a Scolipede, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Scolipede, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Scope Lens",
-    "description": "Holder's critical hit ratio is raised by 1 stage."
+    "description": "Holder's critical hit ratio is raised by 1 stage.",
+    "legal": true
   },
   {
     "name": "Scovillainite",
-    "description": "If held by a Scovillain, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Scovillain, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Scraftinite",
-    "description": "If held by a Scrafty, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Scrafty, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Sea Incense",
@@ -1597,19 +1734,23 @@
   },
   {
     "name": "Sharp Beak",
-    "description": "Holder's Flying-type attacks have 1.2x power."
+    "description": "Holder's Flying-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Sharpedonite",
-    "description": "If held by a Sharpedo, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Sharpedo, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Shed Shell",
-    "description": "Holder cannot be prevented from choosing to switch out by any effect."
+    "description": "Holder cannot be prevented from choosing to switch out by any effect.",
+    "legal": true
   },
   {
     "name": "Shell Bell",
-    "description": "After an attack, holder gains 1/8 of the damage in HP dealt to other Pokemon."
+    "description": "After an attack, holder gains 1/8 of the damage in HP dealt to other Pokemon.",
+    "legal": true
   },
   {
     "name": "Shiny Stone",
@@ -1621,23 +1762,28 @@
   },
   {
     "name": "Shuca Berry",
-    "description": "Halves damage taken from a supereffective Ground-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Ground-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Silk Scarf",
-    "description": "Holder's Normal-type attacks have 1.2x power."
+    "description": "Holder's Normal-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Silver Powder",
-    "description": "Holder's Bug-type attacks have 1.2x power."
+    "description": "Holder's Bug-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Sitrus Berry",
-    "description": "Restores 1/4 max HP when at 1/2 max HP or less. Single use."
+    "description": "Restores 1/4 max HP when at 1/2 max HP or less. Single use.",
+    "legal": true
   },
   {
     "name": "Skarmorite",
-    "description": "If held by a Skarmory, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Skarmory, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Skull Fossil",
@@ -1649,11 +1795,13 @@
   },
   {
     "name": "Slowbronite",
-    "description": "If held by a Slowbro, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Slowbro, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Smooth Rock",
-    "description": "Holder's use of Sandstorm lasts 8 turns instead of 5."
+    "description": "Holder's use of Sandstorm lasts 8 turns instead of 5.",
+    "legal": true
   },
   {
     "name": "Snorlium Z",
@@ -1665,7 +1813,8 @@
   },
   {
     "name": "Soft Sand",
-    "description": "Holder's Ground-type attacks have 1.2x power."
+    "description": "Holder's Ground-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Solganium Z",
@@ -1677,7 +1826,8 @@
   },
   {
     "name": "Spell Tag",
-    "description": "Holder's Ghost-type attacks have 1.2x power."
+    "description": "Holder's Ghost-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Spelon Berry",
@@ -1701,7 +1851,8 @@
   },
   {
     "name": "Staraptite",
-    "description": "If held by a Staraptor, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Staraptor, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Starf Berry",
@@ -1709,7 +1860,8 @@
   },
   {
     "name": "Starminite",
-    "description": "If held by a Starmie, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Starmie, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Steel Gem",
@@ -1725,11 +1877,12 @@
   },
   {
     "name": "Steelixite",
-    "description": "If held by a Steelix, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Steelix, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Stick",
-    "description": "If held by a Farfetch’d, its critical hit ratio is raised by 2 stages."
+    "description": "If held by a Farfetch\u2019d, its critical hit ratio is raised by 2 stages."
   },
   {
     "name": "Sticky Barb",
@@ -1753,7 +1906,8 @@
   },
   {
     "name": "Swampertite",
-    "description": "If held by a Swampert, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Swampert, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Sweet Apple",
@@ -2169,7 +2323,8 @@
   },
   {
     "name": "Tanga Berry",
-    "description": "Halves damage taken from a supereffective Bug-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Bug-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Tapunium Z",
@@ -2185,7 +2340,8 @@
   },
   {
     "name": "Terrain Extender",
-    "description": "Holder's use of Electric/Grassy/Misty/Psychic Terrain lasts 8 turns instead of 5."
+    "description": "Holder's use of Electric/Grassy/Misty/Psychic Terrain lasts 8 turns instead of 5.",
+    "legal": true
   },
   {
     "name": "Thick Club",
@@ -2213,11 +2369,13 @@
   },
   {
     "name": "Twisted Spoon",
-    "description": "Holder's Psychic-type attacks have 1.2x power."
+    "description": "Holder's Psychic-type attacks have 1.2x power.",
+    "legal": true
   },
   {
     "name": "Tyranitarite",
-    "description": "If held by a Tyranitar, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Tyranitar, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Ultra Ball",
@@ -2241,11 +2399,13 @@
   },
   {
     "name": "Venusaurite",
-    "description": "If held by a Venusaur, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Venusaur, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Victreebelite",
-    "description": "If held by a Victreebel, this item allows it to Mega Evolve in battle."
+    "description": "If held by a Victreebel, this item allows it to Mega Evolve in battle.",
+    "legal": true
   },
   {
     "name": "Vile Vial",
@@ -2253,7 +2413,8 @@
   },
   {
     "name": "Wacan Berry",
-    "description": "Halves damage taken from a supereffective Electric-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Electric-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Water Gem",
@@ -2297,11 +2458,13 @@
   },
   {
     "name": "White Herb",
-    "description": "Restores all lowered stat stages to 0 when one is less than 0. Single use."
+    "description": "Restores all lowered stat stages to 0 when one is less than 0. Single use.",
+    "legal": true
   },
   {
     "name": "Wide Lens",
-    "description": "The accuracy of attacks by the holder is 1.1x."
+    "description": "The accuracy of attacks by the holder is 1.1x.",
+    "legal": true
   },
   {
     "name": "Wiki Berry",
@@ -2309,11 +2472,13 @@
   },
   {
     "name": "Wise Glasses",
-    "description": "Holder's special attacks have 1.1x power."
+    "description": "Holder's special attacks have 1.1x power.",
+    "legal": true
   },
   {
     "name": "Yache Berry",
-    "description": "Halves damage taken from a supereffective Ice-type attack. Single use."
+    "description": "Halves damage taken from a supereffective Ice-type attack. Single use.",
+    "legal": true
   },
   {
     "name": "Zap Plate",
@@ -2325,7 +2490,8 @@
   },
   {
     "name": "Zoom Lens",
-    "description": "The accuracy of attacks by the holder is 1.2x if it moves after its target."
+    "description": "The accuracy of attacks by the holder is 1.2x if it moves after its target.",
+    "legal": true
   },
   {
     "name": "Zygardite",

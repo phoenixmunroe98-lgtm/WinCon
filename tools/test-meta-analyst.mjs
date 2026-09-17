@@ -202,20 +202,19 @@ check("wcTrickRoomDependencyWarnings never fires for a Sassy/Relaxed minimum-Spe
 // wcAntiTrickRoomAudit
 // ---------------------------------------------------------------------------
 
-check("wcAntiTrickRoomAudit: a real Incineroar covering all four tools produces four confirmations, zero gaps", () => {
+check("wcAntiTrickRoomAudit: a real Incineroar covering all three tools produces three confirmations, zero gaps", () => {
   const incineroar = poolMember("Incineroar");
   const build = emptyBuild();
   build.nature = "Sassy";
   build.sp.speed = 0;
-  build.item = "Safety Goggles";
   build.moves = ["Fake Out", "Taunt", "Parting Shot", "Throat Chop"];
   const audit = context.wcAntiTrickRoomAudit([incineroar], { Incineroar: build }, "tailwind");
   assert.equal(audit.audited, true);
-  assert.equal(audit.confirmations.length, 4);
+  assert.equal(audit.confirmations.length, 3);
   assert.equal(audit.gaps.length, 0);
 });
 
-check("wcAntiTrickRoomAudit: a team with none of the four tools produces four gaps, zero confirmations", () => {
+check("wcAntiTrickRoomAudit: a team with none of the three tools produces three gaps, zero confirmations", () => {
   const staraptor = poolMember("Staraptor");
   const build = emptyBuild();
   build.nature = "Jolly";
@@ -225,7 +224,7 @@ check("wcAntiTrickRoomAudit: a team with none of the four tools produces four ga
   const audit = context.wcAntiTrickRoomAudit([staraptor], { Staraptor: build }, "tailwind");
   assert.equal(audit.audited, true);
   assert.equal(audit.confirmations.length, 0);
-  assert.equal(audit.gaps.length, 4);
+  assert.equal(audit.gaps.length, 3);
 });
 
 check("wcAntiTrickRoomAudit is skipped entirely for a team whose own archetype IS Trick Room", () => {
